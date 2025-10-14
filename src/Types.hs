@@ -37,6 +37,9 @@ instance Component Particle where type Storage Particle = Map Particle
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
+data Wall = Wall deriving Show
+instance Component Wall where type Storage Wall = Map Wall
+
 newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where (<>) = (+)
 instance Monoid Score where mempty = 0
@@ -47,7 +50,21 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle, ''Camera]
+data Sprite = Sprite String (Int, Int) (Int, Int) deriving (Show)
+instance Component Sprite where type Storage Sprite = Map Sprite
+
+-- Define all the components in the world
+makeWorld "World" [''Position,
+                    ''Velocity,
+                    ''Player, 
+                    ''Target, 
+                    ''Bullet, 
+                    ''Score, 
+                    ''Time, 
+                    ''Particle, 
+                    ''Camera, 
+                    ''Sprite,
+                    ''Wall]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
- 
+
 module Systems where
 
 import Apecs
@@ -24,8 +24,8 @@ playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 170
 bulletSpeed = 500
 enemySpeed  = 80
-xmin = -100
-xmax = 100
+xmin = -640
+xmax = 640
 
 hitBonus, missPenalty :: Int
 hitBonus = 100
@@ -38,7 +38,8 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0))
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite "assets/player.png" (0,0) (0,0))
+    wallEntity <- newEntity (Wall, Position (V2 150 150) )
     return ()
 
 -- Update positions based on velocity and delta time
@@ -113,15 +114,22 @@ step dT = do
     triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
 handleEvent :: Event -> System' ()
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
-handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
-handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
+-- Player movement
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x-playerSpeed) y)
+handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x+playerSpeed) y)
+handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x+playerSpeed) y)
+handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x-playerSpeed) y)
+handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y+playerSpeed))
+handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y-playerSpeed))
+handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y-playerSpeed))
+handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y+playerSpeed))
+-- Player shooting
 handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
     spawnParticles 7 pos (-80,80) (10,100)
+-- Exit game
 handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
-handleEvent _ = return ()
+handleEvent _ = return () -- base case
 
 translate' :: Position -> Picture -> Picture
 translate' (Position (V2 x y)) = translate x y
@@ -130,6 +138,9 @@ triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
+-- renderSprite :: Sprite -> Position -> Picture
+-- renderSprite (Sprite path (ox,oy) (w,h)) pos = translate' pos $ color white $ 
+
 draw :: System' Picture
 draw = do
     player <- foldDraw $ \(Player, pos) -> translate' pos $ color white $ scale 10 20 triangle
@@ -137,7 +148,13 @@ draw = do
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 $ diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
+    wall <- foldDraw $ \(Wall, pos) -> translate' pos $ color blue $ rectangleSolid 10 10
     Score s <- get global
     let score = color white $ translate' (Position scorePos) $ scale 0.1 0.1 $ Text $ "Score: " ++ show s
-    return $ player <> targets <> bullets <> score <> particles
+    playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
+    let world = player <> targets <> bullets <> score <> particles <> wall
+    let camera = case playerPos of
+            Just (V2 x y) -> translate (-x) (-y) world
+            Nothing       -> world
+    return camera
 

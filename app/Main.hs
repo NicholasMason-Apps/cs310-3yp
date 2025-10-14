@@ -17,4 +17,4 @@ main = do
     w <- initWorld
     runWith w $ do
         initialize
-        play (InWindow "Shmup" (220, 360) (10, 10)) black 60 draw handleEvent step
+        play (InWindow "Shmup" (1280, 720) (10, 10)) black 60 draw handleEvent step
