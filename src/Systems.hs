@@ -32,7 +32,7 @@ hitBonus = 100
 missPenalty = 40
 
 playerPos, scorePos :: V2 Float
-playerPos = V2 0 (-120)
+playerPos = V2 0 0
 scorePos  = V2 xmin (-170)
 
 -- Initialise the game state by creating a player entity
@@ -166,9 +166,10 @@ draw = do
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText
-    let camera = case playerPos of
-            Just (V2 x y) -> translate (-x) (-y) world
-            Nothing       -> world
-    return camera
+    let dot = color white $ translate' (Position (V2 0 0)) $ rectangleSolid 1 1
+    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText <> dot
+    -- let camera = case playerPos of
+    --         Just (V2 x y) -> translate (-x) (-y) world
+    --         Nothing       -> world
+    return world
 
