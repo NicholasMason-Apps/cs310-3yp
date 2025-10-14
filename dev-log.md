@@ -12,3 +12,5 @@ Defining new components is very easy, and alleviates the lack of mutable state f
 Adapting how you work with game dev code from a more GUI focused system with things like Unity or Unreal to a more programatical system took some time, but thanks to prior experience with Monogame, this was not a big issue, and on top of that apecs is designed to minimise this issue with said systems and functions like `cmap` which allow you to programatically change specific components within the game world
 
 # Term 1 Week 2
+
+- Issue arose from the lack of being made aware that rendering in Gloss is done centre of mass, rather than top-left. I.e., for a Square of size 10x10, it is rendered such that its center is placed at (0,0), instead of its top-left corner being at (0,0). This is different to many systems already out there (e.g. Monogame)

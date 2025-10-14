@@ -85,16 +85,31 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
 
--- checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
--- checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
---     | (x1 + w1 > x2) &&  (x1 < x2) && 
---     where
---         (w1,h1) = case s1 of
---             StaticSprite _ (w,h) -> (w,h)
---             SpriteSheet _ (w,h) n -> (toInteger (w `div` n),h)
---         (w2,h2) = case s2 of
---             StaticSprite _ (w,h) -> (w,h)
---             SpriteSheet _ (w,h) n -> (toInteger (w `div` n),h)
+-- Boundary box collision detection
+-- The Direction indicates which side the first sprite hit the second sprite from
+-- Note: Sprite positions are centered based on their Position component
+checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
+checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+    | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = Just East
+    | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = Just West
+    | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = Just North
+    | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = Just South
+    | otherwise = Nothing
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        right2 = x2 + w2/2
+        top2  = y2 - h2/2
+        bottom2 = y2 + h2/2
 
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 triggerEvery dT period phase sys = do
@@ -112,6 +127,7 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
     t <- liftIO $ randomRIO (0.02, 0.3)
     newEntity (Particle t, pos, Velocity (V2 vx vy))
 
+-- TODO: Add boundary box collision check and stop player movement
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
@@ -154,7 +170,7 @@ diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
 draw :: System' Picture
 draw = do
-    player <- foldDraw $ \(Player, pos) -> translate' pos $ color white $ scale 10 20 triangle
+    player <- foldDraw $ \(Player, pos) -> translate' pos $ color white $ scale 1 1 $ rectangleSolid 10 10
     targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 $ diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
@@ -166,8 +182,8 @@ draw = do
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let dot = color white $ translate' (Position (V2 0 0)) $ rectangleSolid 1 1
-    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText <> dot
+    -- let dot = color blue $ translate' (Position (V2 0 0)) $ rectangleSolid 1 1
+    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText -- <> dot
     -- let camera = case playerPos of
     --         Just (V2 x y) -> translate (-x) (-y) world
     --         Nothing       -> world
