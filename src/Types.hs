@@ -50,8 +50,13 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Sprite = Sprite String (Int, Int) (Int, Int) deriving (Show)
+-- Texture coordinates of a sprite
+-- StaticSprite for non-animated sprites
+-- SpriteSheet for animated sprites
+data Sprite = StaticSprite String (Int, Int) | SpriteSheet String (Int, Int) Int deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
+
+data Direction = North | South | East | West deriving (Show, Eq)
 
 -- Define all the components in the world
 makeWorld "World" [''Position,

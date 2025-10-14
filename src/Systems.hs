@@ -38,7 +38,7 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite "assets/player.png" (0,0) (0,0))
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0))
     wallEntity <- newEntity (Wall, Position (V2 150 150) )
     return ()
 
@@ -84,6 +84,17 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             -- Spawn particles
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
+
+-- checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
+-- checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+--     | (x1 + w1 > x2) &&  (x1 < x2) && 
+--     where
+--         (w1,h1) = case s1 of
+--             StaticSprite _ (w,h) -> (w,h)
+--             SpriteSheet _ (w,h) n -> (toInteger (w `div` n),h)
+--         (w2,h2) = case s2 of
+--             StaticSprite _ (w,h) -> (w,h)
+--             SpriteSheet _ (w,h) n -> (toInteger (w `div` n),h)
 
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 triggerEvery dT period phase sys = do
@@ -152,7 +163,10 @@ draw = do
     Score s <- get global
     let score = color white $ translate' (Position scorePos) $ scale 0.1 0.1 $ Text $ "Score: " ++ show s
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    let world = player <> targets <> bullets <> score <> particles <> wall
+    let playerPosText = case playerPos of
+            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
+            Nothing       -> Blank
+    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world
