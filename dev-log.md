@@ -14,3 +14,5 @@ Adapting how you work with game dev code from a more GUI focused system with thi
 # Term 1 Week 2
 
 - Issue arose from the lack of being made aware that rendering in Gloss is done centre of mass, rather than top-left. I.e., for a Square of size 10x10, it is rendered such that its center is placed at (0,0), instead of its top-left corner being at (0,0). This is different to many systems already out there (e.g. Monogame)
+- Big issue with boundary box collision is to do with how apecs works under the hood. For boundary box collision, two attempts have been made: attempting to pre-emptively check for a collision in the event handler which was ineffective since it seems that it is only considered once the key is lifted; and doing a System' () function for it, which also has been ineffective
+    - May need to split functions up into separate ones for checking a collision overlap, that may be effective
