@@ -88,18 +88,18 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
 
-handlePlayerCollisions :: System' ()
-handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
-    cmapM $ \(Wall, Position posW, sw) -> do
-        Time t <- get global
-        let (Position posP') = stepPositionFormula t posP v -- Predict next position
-        case checkBoundaryBoxIntersection posP' sp posW sw of
-            Just dir -> case dir of
-                North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
-                South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
-                East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
-                West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
-            Nothing -> return ()
+-- handlePlayerCollisions :: System' ()
+-- handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
+--     cmapM $ \(Wall, Position posW, sw) -> do
+--         Time t <- get global
+--         let (Position posP') = stepPositionFormula t posP v -- Predict next position
+--         case checkBoundaryBoxIntersection posP' sp posW sw of
+--             Just dir -> case dir of
+--                 North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
+--                 South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
+--                 East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
+--                 West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
+--             Nothing -> return ()
 
 -- handlePlayerCollisions :: System' ()
 -- handlePlayerCollisions = cmapM $ \(Player, posP, v, s1) ->
@@ -115,15 +115,68 @@ handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
 --                 Nothing -> return ()
 
 -- Boundary box collision detection
--- The Direction indicates which side the first sprite hit the second sprite from
 -- Note: Sprite positions are centered based on their Position component
-checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
-checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = Just West
-    | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = Just East
-    | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = Just South
-    | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = Just North
-    | otherwise = Nothing
+checkBoundayBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundayBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+    | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = True
+    | otherwise = False
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        right2 = x2 + w2/2
+        top2  = y2 - h2/2
+        bottom2 = y2 + h2/2
+checkBoundayBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundayBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+    | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = True
+    | otherwise = False
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        right2 = x2 + w2/2
+        top2  = y2 - h2/2
+        bottom2 = y2 + h2/2
+checkBoundayBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundayBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+    | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = True
+    | otherwise = False
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        right2 = x2 + w2/2
+        top2  = y2 - h2/2
+        bottom2 = y2 + h2/2
+checkBoundayBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundayBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+    | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = True
+    | otherwise = False
     where
         (w1,h1) = case s1 of
             StaticSprite _ (w,h) -> (toEnum w,toEnum h)
