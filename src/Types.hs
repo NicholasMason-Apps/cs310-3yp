@@ -50,6 +50,11 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
+newtype FPS = FPS Int deriving (Show, Num)
+instance Semigroup FPS where (<>) = (+)
+instance Monoid FPS where mempty = 60
+instance Component FPS where type Storage FPS = Global FPS
+
 -- Texture coordinates of a sprite
 -- StaticSprite for non-animated sprites
 -- SpriteSheet for animated sprites

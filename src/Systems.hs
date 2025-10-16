@@ -16,8 +16,6 @@ import System.Random
 import System.Exit
 import Linear
 import Control.Monad
-import Data.Monoid
-import Data.Semigroup (Semigroup)
 import Types
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
@@ -239,8 +237,12 @@ triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
--- renderSprite :: Sprite -> Position -> Picture
--- renderSprite (Sprite path (ox,oy) (w,h)) pos = translate' pos $ color white $ 
+animateSprites :: System' ()
+animateSprites = cmapM $ \(SpriteSheet pic (w,h) n) -> do
+    Time t <- get global
+    FPS fps <- get global
+    -- TODO: add animation rendering by figuring out how to do a rendering rectangle
+    -- also need to add a frame time component to control animation speed
 
 draw :: System' Picture
 draw = do
