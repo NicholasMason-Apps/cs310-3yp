@@ -58,8 +58,17 @@ instance Component FPS where type Storage FPS = Global FPS
 -- Texture coordinates of a sprite
 -- StaticSprite for non-animated sprites
 -- SpriteSheet for animated sprites
-data Sprite = StaticSprite Picture (Int, Int) | SpriteSheet Picture (Int, Int) Int deriving (Show)
+-- data Sprite = StaticSprite Picture (Int, Int) | SpriteSheet Picture (Int, Int) Int deriving (Show)
+-- instance Component Sprite where type Storage Sprite = Map Sprite
+
+data Sprite = Sprite Picture (Int, Int) (Maybe Animation) deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
+
+data Animation = Animation { frameCount :: Int
+                           , currentFrame :: Int
+                           , frameSpeed :: Float
+                           , timeSinceLastFrame :: Float
+                           } deriving (Show)
 
 -- Define all the components in the world
 makeWorld "World" [''Position,

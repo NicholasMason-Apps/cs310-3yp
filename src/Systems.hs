@@ -17,6 +17,7 @@ import System.Exit
 import Linear
 import Control.Monad
 import Types
+import Sprite
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 170
@@ -36,8 +37,8 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), StaticSprite (color white $ rectangleSolid 10 10) (10,10) )
-    wallEntity <- newEntity (Wall, Position (V2 150 150), StaticSprite (color blue $ rectangleSolid 50 50) (50,50) )
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite (color white $ rectangleSolid 10 10) (10,10) (Just $ Animation { frameCount = 1, currentFrame = 1, frameSpeed = 0.1, timeSinceLastFrame = 0 }) )
+    wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (color blue $ rectangleSolid 50 50) (50,50) Nothing )
     return ()
 
 stepPositionFormula :: Float -> Position -> Velocity -> Position
@@ -50,30 +51,6 @@ stepPosition dT = cmap $ uncurry (stepPositionFormula dT)
 -- Lock the player's position within the screen bounds
 clampPlayer :: System' ()
 clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
-
--- Block the player from moving into walls
-blockPlayer :: System' ()
-blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
-    cmapM $ \(Player, Position posP, spriteP) -> do
-        let top = checkBoundaryBoxTopIntersection posP spriteP posW spriteW
-            bottom = checkBoundaryBoxBottomIntersection posP spriteP posW spriteW
-            left = checkBoundaryBoxLeftIntersection posP spriteP posW spriteW
-            right = checkBoundaryBoxRightIntersection posP spriteP posW spriteW
-            (wp, hp) = case spriteP of
-                StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-                SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-            (ww, hw) = case spriteW of
-                StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-                SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-            (V2 x _) = posP
-            (V2 xw yw) = posW
-        posP' <- if top then return $ Position (V2 x (yw + (hw / 2) + (hp / 2))) else return $ Position posP
-        let (Position (V2 x' _)) = posP'
-        posP'' <- if bottom then return $ Position (V2 x' (yw - (hw / 2) - (hp / 2))) else return posP'
-        let (Position (V2 _ y'')) = posP''
-        posP''' <- if left then return $ Position (V2 (xw - (ww / 2) - (wp / 2)) y'') else return posP''
-        let (Position (V2 _ y''')) = posP'''
-        return $ if right then Position (V2 (xw + (ww / 2) + (wp / 2)) y''') else posP'''
 
 incrementTime :: Float -> System' ()
 incrementTime dT = modify global $ \(Time t) -> Time (t + dT)
@@ -110,81 +87,10 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
 
--- Boundary box collision detection
--- Note: Sprite positions are centered based on their Position component
-checkBoundaryBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
-    top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        bottom2 = y2 + h2/2
-checkBoundaryBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
-    bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-checkBoundaryBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
-    right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-checkBoundaryBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
-    left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
-triggerEvery dT period phase sys = do
+triggerEvery dT period offset sys = do
     Time t <- get global
-    let t' = t + phase
+    let t' = t + offset
         trigger = floor (t'/period) /= floor ((t'+dT)/period)
     when trigger $ void sys
 
@@ -237,21 +143,14 @@ triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
-animateSprites :: System' ()
-animateSprites = cmapM $ \(SpriteSheet pic (w,h) n) -> do
-    Time t <- get global
-    FPS fps <- get global
-    -- TODO: add animation rendering by figuring out how to do a rendering rectangle
-    -- also need to add a frame time component to control animation speed
-
 draw :: System' Picture
 draw = do
-    player <- foldDraw $ \(Player, pos, StaticSprite s _) -> translate' pos s -- TODO: adapt types to not have non-exhaustive pattern matching
+    player <- foldDraw $ \(Player, pos, Sprite s _ _) -> translate' pos s
     targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
-    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 $ diamond
+    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
-    wall <- foldDraw $ \(Wall, pos, StaticSprite s _) -> translate' pos s
+    wall <- foldDraw $ \(Wall, pos, Sprite s _ _) -> translate' pos s
     Score s <- get global
     let score = color white $ translate' (Position scorePos) $ scale 0.1 0.1 $ Text $ "Score: " ++ show s
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing

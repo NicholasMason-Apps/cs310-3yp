@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Sprite
       Systems
       Types
   other-modules:
