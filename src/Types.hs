@@ -56,8 +56,6 @@ instance Component Time where type Storage Time = Global Time
 data Sprite = StaticSprite Picture (Int, Int) | SpriteSheet Picture (Int, Int) Int deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
-data Direction = North | South | East | West deriving (Show, Eq)
-
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
