@@ -53,6 +53,30 @@ stepPosition dT = cmap $ uncurry (stepPositionFormula dT)
 clampPlayer :: System' ()
 clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
 
+-- Block the player from moving into walls
+blockPlayer :: System' ()
+blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
+    cmapM $ \(Player, Position posP, spriteP) -> do
+        let top = checkBoundaryBoxTopIntersection posP spriteP posW spriteW
+            bottom = checkBoundaryBoxBottomIntersection posP spriteP posW spriteW
+            left = checkBoundaryBoxLeftIntersection posP spriteP posW spriteW
+            right = checkBoundaryBoxRightIntersection posP spriteP posW spriteW
+            (wp, hp) = case spriteP of
+                StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+                SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+            (ww, hw) = case spriteW of
+                StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+                SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+            (V2 x _) = posP
+            (V2 xw yw) = posW
+        posP' <- if top then return $ Position (V2 x (yw + (hw / 2) + (hp / 2))) else return $ Position posP
+        let (Position (V2 x' _)) = posP'
+        posP'' <- if bottom then return $ Position (V2 x' (yw - (hw / 2) - (hp / 2))) else return posP'
+        let (Position (V2 _ y'')) = posP''
+        posP''' <- if left then return $ Position (V2 (xw - (ww / 2) - (wp / 2)) y'') else return posP''
+        let (Position (V2 _ y''')) = posP'''
+        return $ if right then Position (V2 (xw + (ww / 2) + (wp / 2)) y''') else posP'''
+
 incrementTime :: Float -> System' ()
 incrementTime dT = modify global $ \(Time t) -> Time (t + dT)
 
@@ -88,18 +112,18 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
 
-handlePlayerCollisions :: System' ()
-handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
-    cmapM $ \(Wall, Position posW, sw) -> do
-        Time t <- get global
-        let (Position posP') = stepPositionFormula t posP v -- Predict next position
-        case checkBoundaryBoxIntersection posP' sp posW sw of
-            Just dir -> case dir of
-                North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
-                South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
-                East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
-                West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
-            Nothing -> return ()
+-- handlePlayerCollisions :: System' ()
+-- handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
+--     cmapM $ \(Wall, Position posW, sw) -> do
+--         Time t <- get global
+--         let (Position posP') = stepPositionFormula t posP v -- Predict next position
+--         case checkBoundaryBoxIntersection posP' sp posW sw of
+--             Just dir -> case dir of
+--                 North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
+--                 South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
+--                 East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
+--                 West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
+--             Nothing -> return ()
 
 -- handlePlayerCollisions :: System' ()
 -- handlePlayerCollisions = cmapM $ \(Player, posP, v, s1) ->
@@ -115,15 +139,27 @@ handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
 --                 Nothing -> return ()
 
 -- Boundary box collision detection
--- The Direction indicates which side the first sprite hit the second sprite from
 -- Note: Sprite positions are centered based on their Position component
-checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
-checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = Just West
-    | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = Just East
-    | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = Just South
-    | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = Just North
-    | otherwise = Nothing
+checkBoundaryBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        right2 = x2 + w2/2
+        bottom2 = y2 + h2/2
+checkBoundaryBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2
     where
         (w1,h1) = case s1 of
             StaticSprite _ (w,h) -> (toEnum w,toEnum h)
@@ -138,7 +174,63 @@ checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
         left2 = x2 - w2/2
         right2 = x2 + w2/2
         top2  = y2 - h2/2
+checkBoundaryBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        left2 = x2 - w2/2
+        top2  = y2 - h2/2
         bottom2 = y2 + h2/2
+checkBoundaryBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2
+    where
+        (w1,h1) = case s1 of
+            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        (w2,h2) = case s2 of
+            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+        left1 = x1 - w1/2
+        right1 = x1 + w1/2
+        top1  = y1 - h1/2
+        bottom1 = y1 + h1/2
+        right2 = x2 + w2/2
+        top2  = y2 - h2/2
+        bottom2 = y2 + h2/2
+
+-- checkBoundaryBoxIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Maybe Direction
+-- checkBoundaryBoxIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
+--     | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = Just West
+--     | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = Just East
+--     | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = Just South
+--     | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = Just North
+--     | otherwise = Nothing
+--     where
+--         (w1,h1) = case s1 of
+--             StaticSprite _ (w,h) -> (toEnum w,toEnum h)
+--             SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+--         (w2,h2) = case s2 of
+--             StaticSprite _ (w,h) -> (toEnum w, toEnum h)
+--             SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
+--         left1 = x1 - w1/2
+--         right1 = x1 + w1/2
+--         top1  = y1 - h1/2
+--         bottom1 = y1 + h1/2
+--         left2 = x2 - w2/2
+--         right2 = x2 + w2/2
+--         top2  = y2 - h2/2
+--         bottom2 = y2 + h2/2
 
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 triggerEvery dT period phase sys = do
@@ -160,9 +252,10 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
-    handlePlayerCollisions
+    -- handlePlayerCollisions
     stepPosition dT
     clampPlayer
+    blockPlayer
     clearTargets
     clearBullets
     stepParticles dT
@@ -230,12 +323,12 @@ draw = do
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
     -- let dot = color blue $ translate' (Position (V2 0 0)) $ rectangleSolid 1 1
-    collisionRes <- cfoldM (\_ (Player, Position p1, s1) ->
-            cfold (\_ (Wall, Position p2, s2) -> checkBoundaryBoxIntersection p1 s1 p2 s2) Nothing) Nothing
-    let collisionText = case collisionRes of
-            Just dir -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text $ "Collision: " ++ show dir
-            Nothing  -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text "Collision: None"
-    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText <> collisionText
+    -- collisionRes <- cfoldM (\_ (Player, Position p1, s1) ->
+    --         cfold (\_ (Wall, Position p2, s2) -> checkBoundaryBoxIntersection p1 s1 p2 s2) Nothing) Nothing
+    -- let collisionText = case collisionRes of
+    --         Just dir -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text $ "Collision: " ++ show dir
+    --         Nothing  -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text "Collision: None"
+    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText -- <> collisionText
     -- let camera = case playerPos of
     --         Just (V2 x y) -> translate (-x) (-y) world
     --         Nothing       -> world
