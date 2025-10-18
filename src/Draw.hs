@@ -8,14 +8,17 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Draw where
+module Draw ( draw ) where
 
 import Apecs
 import Apecs.Gloss
 import Linear
 import Types
 import Sprite
-import Graphics.Gloss ( Picture, pictures, translate )
+import Graphics.Gloss ( Picture, pictures, translate, bitmap, bitmapSection, Rectangle(..) )
+import Codec.Picture
+import Graphics.Gloss.Juicy (fromDynamicImage)
+import Data.Maybe
 
 translate' :: Position -> Picture -> Picture
 translate' (Position (V2 x y)) = translate x y
@@ -24,18 +27,20 @@ triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
-spriteDraw :: Sprite -> Picture
-spriteDraw (Sprite pic (w,h) Nothing) = pic
-spriteDraw (Sprite pic (w,h) (Just a)) = 
+getSpritePicture :: Sprite -> Picture
+getSpritePicture (Sprite img (w,h) Nothing) = fromMaybe Blank (fromDynamicImage (ImageRGBA8 img))
+getSpritePicture (Sprite sheet (w,h) (Just a)) = let
+        subImg = generateImage (\x y -> pixelAt sheet (x + (fromIntegral (currentFrame a - 1) * (w `div` frameCount a))) y) (w `div` frameCount a) h
+    in fromMaybe Blank (fromDynamicImage (ImageRGBA8 subImg))
 
 draw :: System' Picture
 draw = do
-    player <- foldDraw $ \(Player, pos, Sprite s _ _) -> translate' pos s
+    player <- foldDraw $ \(Player, pos, s) -> translate' pos $ getSpritePicture s
     targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
-    wall <- foldDraw $ \(Wall, pos, Sprite s _ _) -> translate' pos s
+    wall <- foldDraw $ \(Wall, pos, s) -> translate' pos $ getSpritePicture s
     Score s <- get global
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     let playerPosText = case playerPos of

@@ -18,6 +18,7 @@ import Linear
 import Control.Monad
 import Data.Monoid
 import Data.Semigroup (Semigroup)
+import Codec.Picture
 
 newtype Position = Position (V2 Float) deriving (Show)
 instance Component Position where type Storage Position = Map Position
@@ -37,6 +38,11 @@ instance Component Particle where type Storage Particle = Map Particle
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
+data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
+instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
+
+data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq)
+
 data Wall = Wall deriving Show
 instance Component Wall where type Storage Wall = Map Wall
 
@@ -50,24 +56,12 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-newtype FPS = FPS Int deriving (Show, Num)
-instance Semigroup FPS where (<>) = (+)
-instance Monoid FPS where mempty = 60
-instance Component FPS where type Storage FPS = Global FPS
-
--- Texture coordinates of a sprite
--- StaticSprite for non-animated sprites
--- SpriteSheet for animated sprites
--- data Sprite = StaticSprite Picture (Int, Int) | SpriteSheet Picture (Int, Int) Int deriving (Show)
--- instance Component Sprite where type Storage Sprite = Map Sprite
-
-data Sprite = Sprite Picture (Int, Int) (Maybe Animation) deriving (Show)
+data Sprite = Sprite (Image PixelRGBA8) (Int, Int) (Maybe Animation)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
 data Animation = Animation { frameCount :: Int
                            , currentFrame :: Int
                            , frameSpeed :: Float
-                           , timeSinceLastFrame :: Float
                            } deriving (Show)
 
 -- Define all the components in the world
@@ -81,7 +75,8 @@ makeWorld "World" [''Position,
                     ''Particle, 
                     ''Camera, 
                     ''Sprite,
-                    ''Wall]
+                    ''Wall,
+                    ''MoveDirection]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

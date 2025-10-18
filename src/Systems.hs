@@ -37,8 +37,8 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite (color white $ loadSpritePicture "player.bmp") (72,24) (Just $ Animation { frameCount = 1, currentFrame = 1, frameSpeed = 0.1, timeSinceLastFrame = 0 }) )
-    wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (color blue $ rectangleSolid 50 50) (50,50) Nothing )
+    playerEntity <- newEntity (Player, MoveDirection Nothing, Position playerPos, Velocity (V2 0 0), Sprite (loadSprite "player.png") (72,24) (Just $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1 }) )
+    wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (loadSprite "wall.png") (64,64) Nothing )
     return ()
 
 stepPositionFormula :: Float -> Position -> Velocity -> Position
@@ -107,8 +107,8 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
-    -- handlePlayerCollisions
     stepPosition dT
+    stepAnimations dT
     clampPlayer
     blockPlayer
     clearTargets
@@ -120,14 +120,44 @@ step dT = do
 
 handleEvent :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x-playerSpeed) y)
-handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x+playerSpeed) y)
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x+playerSpeed) y)
-handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x-playerSpeed) y)
-handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y+playerSpeed))
-handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y-playerSpeed))
-handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y-playerSpeed))
-handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 x (y+playerSpeed))
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection _, e) -> do
+    set e (Velocity (V2 (x - playerSpeed) y))
+    set e (MoveDirection $ Just LeftDir)
+handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 (x+playerSpeed) y))
+    if md == Just LeftDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection md)
+handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 (x+playerSpeed) y))
+    if md == Just RightDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection $ Just RightDir)
+handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 (x-playerSpeed) y))
+    if md == Just RightDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection md)
+handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+        set e (Velocity (V2 x (y+playerSpeed)))
+        if md == Just UpDir
+            then set e (MoveDirection Nothing)
+            else set e (MoveDirection $ Just UpDir)
+handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 x (y-playerSpeed)))
+    if md == Just UpDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection md)
+handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 x (y-playerSpeed)))
+    if md == Just DownDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection $ Just DownDir)
+handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
+    set e (Velocity (V2 x (y+playerSpeed)))
+    if md == Just DownDir
+        then set e (MoveDirection Nothing)
+        else set e (MoveDirection md)
 -- Player shooting
 handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
@@ -135,31 +165,4 @@ handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) 
 -- Exit game
 handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
 handleEvent _ = return () -- base case
-
-translate' :: Position -> Picture -> Picture
-translate' (Position (V2 x y)) = translate x y
-
-triangle, diamond :: Picture
-triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
-diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
-
-draw :: System' Picture
-draw = do
-    player <- foldDraw $ \(Player, pos, Sprite s _ _) -> translate' pos s
-    targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
-    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
-    particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
-        translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
-    wall <- foldDraw $ \(Wall, pos, Sprite s _ _) -> translate' pos s
-    Score s <- get global
-    let score = color white $ translate' (Position scorePos) $ scale 0.1 0.1 $ Text $ "Score: " ++ show s
-    playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    let playerPosText = case playerPos of
-            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
-            Nothing       -> Blank
-    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText
-    let camera = case playerPos of
-            Just (V2 x y) -> translate (-x) (-y) world
-            Nothing       -> world
-    return camera
 

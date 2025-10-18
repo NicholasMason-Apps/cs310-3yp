@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, blockPlayer, loadSpritePicture) where
+module Sprite (spriteDimensions, blockPlayer, loadSprite, stepAnimations) where
 
 import Apecs
 import Apecs.Gloss
@@ -17,12 +17,13 @@ import System.Exit
 import Linear
 import Control.Monad
 import Types
-import Data.Maybe ( fromMaybe )
+import Data.Maybe ( isJust )
 import System.IO.Unsafe ( unsafePerformIO )
--- import Graphics.Gloss.Juicy ( loadJuicy )
+import Graphics.Gloss
+import Codec.Picture
 
 spriteDimensions :: Sprite -> (Int, Int)
-spriteDimensions (Sprite s (w,h) Nothing) = (w, h)
+spriteDimensions (Sprite _ (w,h) Nothing) = (w, h)
 spriteDimensions (Sprite _ (w,h) (Just a)) = (w `div` frameCount a, h)
 
 -- Block the player from moving into walls
@@ -45,23 +46,37 @@ blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
         let (Position (V2 _ y''')) = posP'''
         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
 
-animateSprites :: System' ()
-animateSprites = cmapM $ \(Sprite pic (w,h) ma) -> do
-    Time t <- get global
-    FPS fps <- get global -- look into bitmaps
-    case ma of
-        Nothing -> return $ Sprite pic (w,h) Nothing
-        Just a -> do
-            let timeSinceLast = timeSinceLastFrame a + (1 / fromIntegral fps)
-                frameDur = 1 / frameSpeed a
-                (newFrame, newTimeSinceLast) = if timeSinceLast >= frameDur
-                                              then ((currentFrame a `mod` frameCount a) + 1, timeSinceLast - frameDur)
-                                              else (currentFrame a, timeSinceLast)
-            return $ Sprite pic (w,h) (Just a { currentFrame = newFrame, timeSinceLastFrame = newTimeSinceLast })
-    
-
---     TODO: add animation rendering by figuring out how to do a rendering rectangle
---     also need to add a frame time component to control animation speed
+stepAnimations :: Float -> System' ()
+stepAnimations dT = do
+    stepPlayerAnimations dT
+    stepNonPlayerAnimations dT
+    where
+        updateAnimation :: Animation -> Sprite -> Bool -> Sprite
+        updateAnimation a (Sprite pic (w,h) _) trigger =
+            if trigger
+            then let
+                newFrame = (currentFrame a `mod` frameCount a) + 1
+                in Sprite pic (w,h) (Just a { currentFrame = newFrame })
+            else Sprite pic (w,h) (Just a)
+        stepPlayerAnimations :: Float -> System' ()
+        stepPlayerAnimations dT = cmapM $ \(Player, Sprite pic (w,h) ma, MoveDirection md) -> do
+            Time t <- get global
+            case ma of
+                Just a -> let
+                        trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                    in return $ if isJust md
+                        then updateAnimation a (Sprite pic (w,h) ma) trigger
+                        else Sprite pic (w,h) (Just a { currentFrame = 1 })
+                Nothing -> return $ Sprite pic (w,h) Nothing
+        stepNonPlayerAnimations :: Float -> System' ()
+        stepNonPlayerAnimations dT = cmapM_ $ \(Sprite pic (w,h) ma, e) -> do
+            Time t <- get global
+            isPlayer <- exists e (Proxy @Player)
+            unless isPlayer $ case ma of
+                    Just a -> let
+                            trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                        in set e $ updateAnimation a (Sprite pic (w,h) ma) trigger
+                    Nothing -> set e $ Sprite pic (w,h) Nothing
 
 -- Boundary box collision detection
 -- Note: Sprite positions are centered based on their Position component
@@ -118,5 +133,9 @@ checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
         top2  = y2 - fromIntegral h2/2
         bottom2 = y2 + fromIntegral h2/2
 
-loadSpritePicture :: FilePath -> Picture 
-loadSpritePicture path = fromMaybe (text "Error loading sprite") $ unsafePerformIO $ loadJuicy ("assets/" ++ path)
+loadSprite :: FilePath -> Image PixelRGBA8
+loadSprite path = let
+    res = unsafePerformIO $ readImage ("assets/" ++ path)
+    in case res of
+        Left err -> error $ "Failed to load sprite '" ++ path ++ "': " ++ show err
+        Right dymImg -> convertRGBA8 dymImg

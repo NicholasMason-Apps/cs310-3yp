@@ -37,7 +37,8 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      apecs
+      JuicyPixels
+    , apecs
     , apecs-gloss
     , base >=4.7 && <5
     , gloss
@@ -57,6 +58,7 @@ executable 3yp-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       3yp
+    , JuicyPixels
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
@@ -78,6 +80,7 @@ test-suite 3yp-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       3yp
+    , JuicyPixels
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
