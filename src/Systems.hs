@@ -16,9 +16,8 @@ import System.Random
 import System.Exit
 import Linear
 import Control.Monad
-import Data.Monoid
-import Data.Semigroup (Semigroup)
 import Types
+import Sprite
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 170
@@ -38,8 +37,8 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), StaticSprite (color white $ rectangleSolid 10 10) (10,10) )
-    wallEntity <- newEntity (Wall, Position (V2 150 150), StaticSprite (color blue $ rectangleSolid 50 50) (50,50) )
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite (color white $ rectangleSolid 10 10) (10,10) (Just $ Animation { frameCount = 1, currentFrame = 1, frameSpeed = 0.1, timeSinceLastFrame = 0 }) )
+    wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (color blue $ rectangleSolid 50 50) (50,50) Nothing )
     return ()
 
 stepPositionFormula :: Float -> Position -> Velocity -> Position
@@ -88,115 +87,10 @@ handleCollisions = cmapM_ $ \(Target, Position posT, entityT) ->
             spawnParticles 15 (Position posB) (-500,500) (200,-50)
             modify global $ \(Score s) -> Score (s + hitBonus)
 
--- handlePlayerCollisions :: System' ()
--- handlePlayerCollisions = cmapM $ \(Player, posP, v, sp) ->
---     cmapM $ \(Wall, Position posW, sw) -> do
---         Time t <- get global
---         let (Position posP') = stepPositionFormula t posP v -- Predict next position
---         case checkBoundaryBoxIntersection posP' sp posW sw of
---             Just dir -> case dir of
---                 North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
---                 South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
---                 East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
---                 West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
---             Nothing -> return ()
-
--- handlePlayerCollisions :: System' ()
--- handlePlayerCollisions = cmapM $ \(Player, posP, v, s1) ->
---     cmapM $ \(Wall, Position posW, s2) -> let
---             (Position posP') = stepPositionFormula dT posP v -- Predict next position
---         in
---             case checkBoundaryBoxIntersection posP' s1 posW s2 of
---                 Just dir -> case dir of
---                     North -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy + playerSpeed))
---                     South -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 vx (vy - playerSpeed))
---                     East  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx + playerSpeed) vy)
---                     West  -> cmap $ \(Player, Velocity (V2 vx vy)) -> Velocity (V2 (vx - playerSpeed) vy)
---                 Nothing -> return ()
-
--- Boundary box collision detection
--- Note: Sprite positions are centered based on their Position component
-checkBoundayBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundayBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2 = True
-    | otherwise = False
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-checkBoundayBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundayBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2 = True
-    | otherwise = False
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-checkBoundayBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundayBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2 = True
-    | otherwise = False
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-checkBoundayBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundayBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2
-    | right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2 = True
-    | otherwise = False
-    where
-        (w1,h1) = case s1 of
-            StaticSprite _ (w,h) -> (toEnum w,toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        (w2,h2) = case s2 of
-            StaticSprite _ (w,h) -> (toEnum w, toEnum h)
-            SpriteSheet _ (w,h) n -> (toEnum $ w `div` n, toEnum h)
-        left1 = x1 - w1/2
-        right1 = x1 + w1/2
-        top1  = y1 - h1/2
-        bottom1 = y1 + h1/2
-        left2 = x2 - w2/2
-        right2 = x2 + w2/2
-        top2  = y2 - h2/2
-        bottom2 = y2 + h2/2
-
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
-triggerEvery dT period phase sys = do
+triggerEvery dT period offset sys = do
     Time t <- get global
-    let t' = t + phase
+    let t' = t + offset
         trigger = floor (t'/period) /= floor ((t'+dT)/period)
     when trigger $ void sys
 
@@ -213,9 +107,10 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
-    handlePlayerCollisions
+    -- handlePlayerCollisions
     stepPosition dT
     clampPlayer
+    blockPlayer
     clearTargets
     clearBullets
     stepParticles dT
@@ -224,23 +119,6 @@ step dT = do
     triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
 handleEvent :: Event -> System' ()
--- Player movement with collision detection
--- handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM $ \(Wall, Position posW, sw) -> 
---     cmapM $ \(Player, posP, Velocity (V2 x y), sp) -> do
---         Time t <- get global
---         let (Position posP') = stepPositionFormula t posP (Velocity (V2 (x - playerSpeed) y)) -- Predict next position
---         case checkBoundaryBoxIntersection posP' sp posW sw of
---             Just East -> return $ Velocity (V2 x y) -- Collision, do not move
---             _         -> return $ Velocity (V2 (x - playerSpeed) y) -- No collision
--- handleEvent (EventKey (SpecialKey KeyLeft) Up _ _) = cmapM $ \(Wall, Position posW, sw) -> 
---     cmapM $ \(Player, posP, Velocity (V2 x y), sp) -> do
---         Time t <- get global
---         let (Position posP') = stepPositionFormula t posP (Velocity (V2 (x + playerSpeed) y)) -- Predict next position
---         case checkBoundaryBoxIntersection posP' sp posW sw of
---             Just East -> return $ Velocity (V2 x y) -- Collision, do not move
---             _         -> return $ Velocity (V2 (x + playerSpeed) y) -- No collision
-
-
 -- Player movement
 handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x-playerSpeed) y)
 handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmap $ \(Player, Velocity (V2 x y)) -> Velocity (V2 (x+playerSpeed) y)
@@ -265,32 +143,23 @@ triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
--- renderSprite :: Sprite -> Position -> Picture
--- renderSprite (Sprite path (ox,oy) (w,h)) pos = translate' pos $ color white $ 
-
 draw :: System' Picture
 draw = do
-    player <- foldDraw $ \(Player, pos, StaticSprite s _) -> translate' pos s -- TODO: adapt types to not have non-exhaustive pattern matching
+    player <- foldDraw $ \(Player, pos, Sprite s _ _) -> translate' pos s
     targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
-    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 $ diamond
+    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
-    wall <- foldDraw $ \(Wall, pos, StaticSprite s _) -> translate' pos s
+    wall <- foldDraw $ \(Wall, pos, Sprite s _ _) -> translate' pos s
     Score s <- get global
     let score = color white $ translate' (Position scorePos) $ scale 0.1 0.1 $ Text $ "Score: " ++ show s
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    -- let dot = color blue $ translate' (Position (V2 0 0)) $ rectangleSolid 1 1
-    collisionRes <- cfoldM (\_ (Player, Position p1, s1) ->
-            cfold (\_ (Wall, Position p2, s2) -> checkBoundaryBoxIntersection p1 s1 p2 s2) Nothing) Nothing
-    let collisionText = case collisionRes of
-            Just dir -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text $ "Collision: " ++ show dir
-            Nothing  -> color white $ translate 10 10 $ scale 0.1 0.1 $ Text "Collision: None"
-    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText <> collisionText
-    -- let camera = case playerPos of
-    --         Just (V2 x y) -> translate (-x) (-y) world
-    --         Nothing       -> world
-    return world
+    let world = player <> targets <> bullets <> score <> particles <> wall <> playerPosText
+    let camera = case playerPos of
+            Just (V2 x y) -> translate (-x) (-y) world
+            Nothing       -> world
+    return camera
 
