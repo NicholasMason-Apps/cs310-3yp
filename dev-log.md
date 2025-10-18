@@ -17,3 +17,11 @@ Adapting how you work with game dev code from a more GUI focused system with thi
 - Big issue with boundary box collision is to do with how apecs works under the hood. For boundary box collision, two attempts have been made: attempting to pre-emptively check for a collision in the event handler which was ineffective since it seems that it is only considered once the key is lifted; and doing a System' () function for it, which also has been ineffective
     - May need to split functions up into separate ones for checking a collision overlap, that may work
     - also look into how `clampPlayer` works to diagnose
+
+- After implementing animation rendering, I learnt a lot:
+    - Learnt about how to do clipping and also only loading things once from IO
+        - Done by storing the loaded sprite as an Image and its RBG data and then cropping rectroactively to get the Picture for an animation frame
+    - Also learnt more about apecs and how apecs allows for component updates and exposes the entity
+        - Naturally, only one update to one component can occur from the result of cmap or the return value of cmapM
+        - However using cmapM_, since we do not care about the return value, we can access the entity itself and use set to modify multiple components through side effects
+        - Whilst this violates functional best practices, there is no alternative, so from now on code will make use of cmapM_ as little as possible
