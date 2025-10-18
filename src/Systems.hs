@@ -37,7 +37,7 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite (color white $ rectangleSolid 10 10) (10,10) (Just $ Animation { frameCount = 1, currentFrame = 1, frameSpeed = 0.1, timeSinceLastFrame = 0 }) )
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), Sprite (color white $ loadSpritePicture "player.bmp") (72,24) (Just $ Animation { frameCount = 1, currentFrame = 1, frameSpeed = 0.1, timeSinceLastFrame = 0 }) )
     wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (color blue $ rectangleSolid 50 50) (50,50) Nothing )
     return ()
 

@@ -26,6 +26,7 @@ dependencies:
 - gloss
 - random
 - linear
+- gloss-juicy
 
 ghc-options:
 - -Wall

@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, blockPlayer) where
+module Sprite (spriteDimensions, blockPlayer, loadSpritePicture) where
 
 import Apecs
 import Apecs.Gloss
@@ -17,9 +17,12 @@ import System.Exit
 import Linear
 import Control.Monad
 import Types
+import Data.Maybe ( fromMaybe )
+import System.IO.Unsafe ( unsafePerformIO )
+-- import Graphics.Gloss.Juicy ( loadJuicy )
 
 spriteDimensions :: Sprite -> (Int, Int)
-spriteDimensions (Sprite _ (w,h) Nothing) = (w, h)
+spriteDimensions (Sprite s (w,h) Nothing) = (w, h)
 spriteDimensions (Sprite _ (w,h) (Just a)) = (w `div` frameCount a, h)
 
 -- Block the player from moving into walls
@@ -43,14 +46,18 @@ blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
 
 animateSprites :: System' ()
-animateSprites = cmapM $ \(Sprite pic (w,h) (Just a)) -> do
+animateSprites = cmapM $ \(Sprite pic (w,h) ma) -> do
     Time t <- get global
     FPS fps <- get global -- look into bitmaps
-    let timeSinceLast = timeSinceLastFrame a + (1 / fromIntegral fps)
-        frameDur = 1 / frameSpeed a
-        (newFrame, newTimeSinceLast) = if timeSinceLast >= frameDur
-                                      then ((currentFrame a `mod` frameCount a) + 1, timeSinceLast - frameDur)
-                                      else (currentFrame a, timeSinceLast)
+    case ma of
+        Nothing -> return $ Sprite pic (w,h) Nothing
+        Just a -> do
+            let timeSinceLast = timeSinceLastFrame a + (1 / fromIntegral fps)
+                frameDur = 1 / frameSpeed a
+                (newFrame, newTimeSinceLast) = if timeSinceLast >= frameDur
+                                              then ((currentFrame a `mod` frameCount a) + 1, timeSinceLast - frameDur)
+                                              else (currentFrame a, timeSinceLast)
+            return $ Sprite pic (w,h) (Just a { currentFrame = newFrame, timeSinceLastFrame = newTimeSinceLast })
     
 
 --     TODO: add animation rendering by figuring out how to do a rendering rectangle
@@ -110,3 +117,6 @@ checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
         right2 = x2 + fromIntegral w2/2
         top2  = y2 - fromIntegral h2/2
         bottom2 = y2 + fromIntegral h2/2
+
+loadSpritePicture :: FilePath -> Picture 
+loadSpritePicture path = fromMaybe (text "Error loading sprite") $ unsafePerformIO $ loadJuicy ("assets/" ++ path)

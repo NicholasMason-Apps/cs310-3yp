@@ -1,0 +1,48 @@
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+module Draw where
+
+import Apecs
+import Apecs.Gloss
+import Linear
+import Types
+import Sprite
+import Graphics.Gloss ( Picture, pictures, translate )
+
+translate' :: Position -> Picture -> Picture
+translate' (Position (V2 x y)) = translate x y
+
+triangle, diamond :: Picture
+triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
+diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
+
+spriteDraw :: Sprite -> Picture
+spriteDraw (Sprite pic (w,h) Nothing) = pic
+spriteDraw (Sprite pic (w,h) (Just a)) = 
+
+draw :: System' Picture
+draw = do
+    player <- foldDraw $ \(Player, pos, Sprite s _ _) -> translate' pos s
+    targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
+    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
+    particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
+        translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
+    wall <- foldDraw $ \(Wall, pos, Sprite s _ _) -> translate' pos s
+    Score s <- get global
+    playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
+    let playerPosText = case playerPos of
+            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
+            Nothing       -> Blank
+    let world = player <> targets <> bullets <> particles <> wall <> playerPosText
+    let camera = case playerPos of
+            Just (V2 x y) -> translate (-x) (-y) world
+            Nothing       -> world
+    return camera
