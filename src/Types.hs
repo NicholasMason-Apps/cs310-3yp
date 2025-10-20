@@ -64,6 +64,9 @@ data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
                            } deriving (Show)
 
+-- Procedural generation types
+data RoomType = StartRoom | 
+
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,

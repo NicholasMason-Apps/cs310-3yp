@@ -25,3 +25,8 @@ Adapting how you work with game dev code from a more GUI focused system with thi
         - Naturally, only one update to one component can occur from the result of cmap or the return value of cmapM
         - However using cmapM_, since we do not care about the return value, we can access the entity itself and use set to modify multiple components through side effects
         - Whilst this violates functional best practices, there is no alternative, so from now on code will make use of cmapM_ as little as possible
+
+# Term 1 Week 3
+- Since time is on my side, doing procedural generation early
+    - Basing it off the gungeon procedural generation since it is not only functional and really well implemented, but also uses a tree-like structure
+    - Sourcing information from https://www.boristhebrave.com/2019/07/28/dungeon-generation-in-enter-the-gungeon/, which is an article detailing the decompilation of Enter the Gungeon
