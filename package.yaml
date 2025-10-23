@@ -1,10 +1,10 @@
 name:                3yp
 version:             0.1.0.0
-github:              "githubuser/3yp"
+github:              "NicholasMason-Apps/3yp"
 license:             BSD-3-Clause
-author:              "Author name here"
+author:              "Nicholas Mason-Apps"
 maintainer:          "example@example.com"
-copyright:           "2025 Author name here"
+copyright:           "2025 Nicholas Mason-Apps"
 
 extra-source-files:
 - README.md
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/3yp#readme>
+description:         Please see the README on GitHub at <https://github.com/NicholasMason-Apps/3yp#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -28,6 +28,7 @@ dependencies:
 - linear
 - gloss-juicy
 - JuicyPixels
+- containers
 
 ghc-options:
 - -Wall

@@ -65,7 +65,7 @@ data Animation = Animation { frameCount :: Int
                            } deriving (Show)
 
 -- Procedural generation types
-data RoomType = StartRoom | 
+data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom deriving (Show, Eq)
 
 -- Define all the components in the world
 makeWorld "World" [''Position,

@@ -6,12 +6,12 @@ cabal-version: 2.2
 
 name:           3yp
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/3yp#readme>
-homepage:       https://github.com/githubuser/3yp#readme
-bug-reports:    https://github.com/githubuser/3yp/issues
-author:         Author name here
+description:    Please see the README on GitHub at <https://github.com/NicholasMason-Apps/3yp#readme>
+homepage:       https://github.com/NicholasMason-Apps/3yp#readme
+bug-reports:    https://github.com/NicholasMason-Apps/3yp/issues
+author:         Nicholas Mason-Apps
 maintainer:     example@example.com
-copyright:      2025 Author name here
+copyright:      2025 Nicholas Mason-Apps
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/3yp
+  location: https://github.com/NicholasMason-Apps/3yp
 
 library
   exposed-modules:
@@ -42,6 +42,7 @@ library
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , containers
     , gloss
     , gloss-juicy
     , linear
@@ -63,6 +64,7 @@ executable 3yp-exe
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , containers
     , gloss
     , gloss-juicy
     , linear
@@ -85,6 +87,7 @@ test-suite 3yp-test
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , containers
     , gloss
     , gloss-juicy
     , linear
