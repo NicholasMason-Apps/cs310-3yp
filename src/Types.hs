@@ -38,6 +38,9 @@ instance Component Particle where type Storage Particle = Map Particle
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
+data Floor = Floor deriving Show
+instance Component Floor where type Storage Floor = Map Floor
+
 data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
 instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
 

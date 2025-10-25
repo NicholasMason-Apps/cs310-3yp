@@ -55,26 +55,6 @@ recursiveGenerate t depth = do
             r <- randomRIO (1, 10) :: IO Int
             return $ if r <= 6 then NormalRoom else HubRoom
 
--- addBossRoom :: Tree RoomType -> Tree RoomType
--- addBossRoom t = fst $ addBossRoom' t
---     where
---         addBossRoom' :: Tree RoomType -> (Tree RoomType, Bool)
---         addBossRoom' t
---             | null (subForest t) =
---                 ( t { subForest = [Node { rootLabel = BossRoom, subForest = [] }] }, True )
---             | otherwise =
---                 let (newChildren, added) = foldl
---                         (\(acc, done) child ->
---                         if done
---                             then (acc ++ [child], True)
---                             else
---                             let (child', addedHere) = addBossRoom' child
---                             in (acc ++ [child'], addedHere)
---                         )
---                         ([], False)
---                         (subForest t)
---                 in (t { subForest = newChildren }, added)
-
 -- Given a Tree, collect into a list the depth of each leaf, and their path
 collectLeavesWithDepth :: Tree a -> [(Int, [Int])]
 collectLeavesWithDepth = go [] 0
@@ -96,3 +76,10 @@ addBossRoom tree =
     (_, deepestPath) = maximumBy (\(d1, _) (d2, _) -> compare d1 d2) leaves
   in
     updateAtPath deepestPath (\leaf -> leaf { subForest = [Node BossRoom []] }) tree
+
+convertRoomToGameSpace :: RoomType -> System' ()
+convertRoomToGameSpace rt = case rt of
+    StartRoom -> return ()
+    NormalRoom -> return ()
+    HubRoom -> return ()
+    BossRoom -> return ()
