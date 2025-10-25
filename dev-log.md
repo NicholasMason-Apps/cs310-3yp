@@ -30,5 +30,7 @@ Adapting how you work with game dev code from a more GUI focused system with thi
 - Since time is on my side, doing procedural generation early
     - Basing it off the gungeon procedural generation since it is not only functional and really well implemented, but also uses a tree-like structure
     - Sourcing information from https://www.boristhebrave.com/2019/07/28/dungeon-generation-in-enter-the-gungeon/, which is an article detailing the decompilation of Enter the Gungeon
+- Completed an initial function for generating the abstract game tree. Since this did not interact with any of the apecs system, it was relatively simple and streamlined to implement. Knowledge from CS141 was very helpful, since we covered trees and manipulating trees, zipping, etc.
+- Started implementation of tree -> map conversion, although need to devise how each room will be represented
 
 for tree -> map conversion, most likely use a constrained BFS
