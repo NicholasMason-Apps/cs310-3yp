@@ -26,29 +26,40 @@ import Data.List ( maximumBy )
 
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
-    depth <- randomRIO (3, 7) :: IO Int
-    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) depth
+    depth <- randomRIO (5, 7) :: IO Int
+    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) depth hubRoomCount
     return $ addBossRoom t
+    where
+      hubRoomCount = 2
 
-addRoom :: Tree RoomType -> RoomType -> Tree RoomType
-addRoom t rt = Node { rootLabel = rootLabel t, subForest = subForest t ++ [Node { rootLabel = rt, subForest = [] }] }
+addRoom :: Tree RoomType -> Tree RoomType -> Tree RoomType
+addRoom t rt = Node { rootLabel = rootLabel t, subForest = subForest t ++ [rt] }
 
-recursiveGenerate :: Tree RoomType -> Int -> IO (Tree RoomType)
-recursiveGenerate t 0 = case rootLabel t of
+recursiveGenerate :: Tree RoomType -> Int -> Int -> IO (Tree RoomType)
+recursiveGenerate t 0 _ = case rootLabel t of
     HubRoom -> do
-        n <- randomRIO (2, 4) :: IO Int
+        n <- randomRIO (2, 3) :: IO Int
         foldM (\acc _ -> do
-            return (addRoom acc NormalRoom)) t [1..n]
+            let newRoom = Node { rootLabel = NormalRoom, subForest = [] }
+            child <- recursiveGenerate newRoom 0 0
+            return (addRoom acc child)) t [1..n]
     _ -> return t
-recursiveGenerate t depth = do
+recursiveGenerate t depth hubRoomCount = do
     newRoom <- randomRoomType
-    newTree <- case newRoom of
-            HubRoom -> do
-                n <- randomRIO (2, 4) :: IO Int
-                foldM (\acc _ -> do
-                    addRoom acc <$> randomRoomType) t [1..n]
-            _ -> return $ addRoom t newRoom
-    recursiveGenerate newTree (depth - 1)
+    let newNode = Node { rootLabel = newRoom, subForest = []}
+    case rootLabel newNode of
+      HubRoom -> do
+          if hubRoomCount > 0 then do 
+            n <- randomRIO (2, 3) :: IO Int
+            foldM (\acc _ -> do
+                child <- recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
+                return (addRoom acc child)) newNode [1..n]
+          else do
+              child <- recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) 0
+              return $ addRoom t child
+      _ -> do
+          child <- recursiveGenerate newNode (depth - 1) hubRoomCount
+          return $ addRoom t child
     where
         randomRoomType :: IO RoomType
         randomRoomType = do
@@ -79,7 +90,18 @@ addBossRoom tree =
 
 convertRoomToGameSpace :: RoomType -> System' ()
 convertRoomToGameSpace rt = case rt of
-    StartRoom -> return ()
-    NormalRoom -> return ()
-    HubRoom -> return ()
-    BossRoom -> return ()
+  StartRoom -> return ()
+  NormalRoom -> return ()
+  HubRoom -> return ()
+  BossRoom -> return ()
+
+-- TODO: figure out a way to represent each room type
+startRoomLayouts :: Int -> [[Char]]
+startRoomLayouts _ = [ "WWWWWWWWWW"
+                     , "W        W"
+                     , "W   P    W"
+                     , "W        W"
+                     , "WWWWCWWWWW"
+                     ]
+normalRoomLayouts :: Int -> [[Char]]
+normalRoomLayouts 1 = 
