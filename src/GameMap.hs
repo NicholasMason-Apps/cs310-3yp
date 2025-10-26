@@ -51,9 +51,9 @@ recursiveGenerate t depth hubRoomCount = do
       HubRoom -> do
           if hubRoomCount > 0 then do 
             n <- randomRIO (2, 3) :: IO Int
-            foldM (\acc _ -> do
-                child <- recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
-                return (addRoom acc child)) newNode [1..n]
+            children <- replicateM n $ recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
+            let hubNode = newNode { subForest = children }
+            return $ addRoom t hubNode
           else do
               child <- recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) 0
               return $ addRoom t child
@@ -96,12 +96,12 @@ convertRoomToGameSpace rt = case rt of
   BossRoom -> return ()
 
 -- TODO: figure out a way to represent each room type
-startRoomLayouts :: Int -> [[Char]]
-startRoomLayouts _ = [ "WWWWWWWWWW"
-                     , "W        W"
-                     , "W   P    W"
-                     , "W        W"
-                     , "WWWWCWWWWW"
-                     ]
-normalRoomLayouts :: Int -> [[Char]]
-normalRoomLayouts 1 = 
+-- startRoomLayouts :: Int -> [[Char]]
+-- startRoomLayouts _ = [ "WWWWWWWWWW"
+--                      , "W        W"
+--                      , "W   P    W"
+--                      , "W        W"
+--                      , "WWWWCWWWWW"
+--                      ]
+-- normalRoomLayouts :: Int -> [[Char]]
+-- normalRoomLayouts 1 = 
