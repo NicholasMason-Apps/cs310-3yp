@@ -24,6 +24,33 @@ import Codec.Picture
 import Data.Tree
 import Data.List ( maximumBy )
 
+gameRoomLayouts :: [[String]]
+gameRoomLayouts = [
+    [ "WWWWWDWWWW"
+    , "W        W"
+    , "D   S    D"
+    , "W        W"
+    , "WWWWDWWWWW"
+    ],
+    [ "WWWWWWWDWWWWWWW"
+    , "W             W"
+    , "D             D"
+    , "W             W"
+    , "WWWWWWDWWWWWWWW"
+    ],
+    [ "____WWWDWWW____" 
+    , "____W     W____" 
+    , "____W     W____"
+    , "WWWWW     WWWWW"
+    , "W             W"
+    , "D             D"
+    , "W             W"
+    , "WWWWW     WWWWW"
+    , "____W     W____"
+    , "____W     W____"
+    , "____WWWDWWW____"  ]
+  ]
+
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (5, 7) :: IO Int
@@ -88,20 +115,11 @@ addBossRoom tree =
   in
     updateAtPath deepestPath (\leaf -> leaf { subForest = [Node BossRoom []] }) tree
 
-convertRoomToGameSpace :: RoomType -> System' ()
-convertRoomToGameSpace rt = case rt of
-  StartRoom -> return ()
-  NormalRoom -> return ()
-  HubRoom -> return ()
-  BossRoom -> return ()
+generateMap :: System' ()
+generateMap = do
+  gameMapTree <- generateMapTree
+  
 
--- TODO: figure out a way to represent each room type
--- startRoomLayouts :: Int -> [[Char]]
--- startRoomLayouts _ = [ "WWWWWWWWWW"
---                      , "W        W"
---                      , "W   P    W"
---                      , "W        W"
---                      , "WWWWCWWWWW"
---                      ]
--- normalRoomLayouts :: Int -> [[Char]]
--- normalRoomLayouts 1 = 
+roomTypeToGameRoom :: RoomType -> Int -> GameRoom
+roomTypeToGameRoom StartRoom _ = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts }
+roomTypeToGameRoom rt n = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts) }

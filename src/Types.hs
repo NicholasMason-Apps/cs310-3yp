@@ -70,6 +70,12 @@ data Animation = Animation { frameCount :: Int
 -- Procedural generation types
 data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom deriving (Show, Eq)
 
+data GameRoom = GameRoom { roomType :: RoomType,
+                           roomLayout :: [[Char]]
+                         } deriving (Show)
+instance Component GameRoom where type Storage GameRoom = Map GameRoom
+
+
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
