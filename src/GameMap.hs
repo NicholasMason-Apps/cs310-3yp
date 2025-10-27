@@ -118,7 +118,9 @@ addBossRoom tree =
 generateMap :: System' ()
 generateMap = do
   gameMapTree <- generateMapTree
-  
+  -- IDEA - implement a generic bfs which applies a function to each node
+  -- make the function it applies a monadic function which checks for intersections across each GameRoom in the entity system currently
+  -- and sets the position accordingly, and also inserts it into the map
 
 roomTypeToGameRoom :: RoomType -> Int -> GameRoom
 roomTypeToGameRoom StartRoom _ = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts }
