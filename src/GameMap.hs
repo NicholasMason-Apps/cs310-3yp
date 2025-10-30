@@ -24,6 +24,12 @@ import Codec.Picture
 import Data.Tree
 import Data.List ( maximumBy )
 
+tileSize :: Float
+tileSize = 64
+
+getRoomSize :: [String] -> (Float, Float)
+getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegral (length layout) * tileSize)
+
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
     [ "WWWWWDWWWW"
@@ -38,8 +44,8 @@ gameRoomLayouts = [
     , "W             W"
     , "WWWWWWDWWWWWWWW"
     ],
-    [ "____WWWDWWW____" 
-    , "____W     W____" 
+    [ "____WWWDWWW____"
+    , "____W     W____"
     , "____W     W____"
     , "WWWWW     WWWWW"
     , "W             W"
@@ -76,7 +82,7 @@ recursiveGenerate t depth hubRoomCount = do
     let newNode = Node { rootLabel = newRoom, subForest = []}
     case rootLabel newNode of
       HubRoom -> do
-          if hubRoomCount > 0 then do 
+          if hubRoomCount > 0 then do
             n <- randomRIO (2, 3) :: IO Int
             children <- replicateM n $ recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
             let hubNode = newNode { subForest = children }
@@ -117,7 +123,31 @@ addBossRoom tree =
 
 generateMap :: System' ()
 generateMap = do
-  gameMapTree <- generateMapTree
+  tree <- liftIO generateMapTree
+  bfsM insertGameRoom tree
+  where
+    insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
+    insertGameRoom parent node = do
+      n <- randomRIO (2, length gameRoomLayouts - 1)
+      -- TODO: use cfold to check for intersections and adjust position accordingly
+      case parent of
+        Nothing -> do
+          let gr = roomTypeToGameRoom (rootLabel node) 1
+          newEntity (gr, Position (V2 0 0))
+        Just p -> do
+          Position (V2 px py) <- get p
+          grP <- get p :: System' GameRoom
+          let (pw, ph) = getRoomSize (roomLayout grP)
+              (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
+          dir <- randomRIO (minBound :: Direction, maxBound :: Direction)
+          let newPos = case dir of
+            UpDir -> 
+          
+          -- let (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
+          -- -- For simplicity, place new rooms to the right of the parent room
+          -- let newPos = Position (V2 (px + rw + tileSize) py)
+          -- let gr = roomTypeToGameRoom (rootLabel node) n
+          -- newEntity (gr, newPos)
   -- IDEA - implement a generic bfs which applies a function to each node
   -- make the function it applies a monadic function which checks for intersections across each GameRoom in the entity system currently
   -- and sets the position accordingly, and also inserts it into the map
@@ -125,3 +155,15 @@ generateMap = do
 roomTypeToGameRoom :: RoomType -> Int -> GameRoom
 roomTypeToGameRoom StartRoom _ = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts }
 roomTypeToGameRoom rt n = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts) }
+
+-- BFS which keeps track of the parent node, and applies a monadic function to each node
+-- The monadic function takes Maybe b as the parent node, and Tree a as the current node
+-- and returns m b as the result for the current node
+-- b is the type of value to be passed down the tree (e.g., Entity)
+bfsM :: Monad m => (Maybe b -> Tree a -> m b) -> Tree a -> m ()
+bfsM f tree = go Nothing [tree]
+  where
+    go _ [] = return ()
+    go p (n:ns) = do
+      n' <- f p n
+      go (Just n') (ns ++ subForest n)

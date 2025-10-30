@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Types where
 
@@ -44,7 +45,14 @@ instance Component Floor where type Storage Floor = Map Floor
 data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
 instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
 
-data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq)
+data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq, Enum, Bounded)
+instance Random Direction where
+    randomR :: RandomGen g => (Direction, Direction) -> g -> (Direction, g)
+    randomR (lo, hi) g = let
+        (x',g') = randomR (fromEnum lo, fromEnum hi) g
+        in (toEnum x', g')
+    random :: RandomGen g => g -> (Direction, g)
+    random = randomR (minBound, maxBound)
 
 data Wall = Wall deriving Show
 instance Component Wall where type Storage Wall = Map Wall
@@ -79,16 +87,17 @@ instance Component GameRoom where type Storage GameRoom = Map GameRoom
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
-                    ''Player, 
-                    ''Target, 
-                    ''Bullet, 
-                    ''Score, 
-                    ''Time, 
-                    ''Particle, 
-                    ''Camera, 
+                    ''Player,
+                    ''Target,
+                    ''Bullet,
+                    ''Score,
+                    ''Time,
+                    ''Particle,
+                    ''Camera,
                     ''Sprite,
                     ''Wall,
-                    ''MoveDirection]
+                    ''MoveDirection,
+                    ''GameRoom]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

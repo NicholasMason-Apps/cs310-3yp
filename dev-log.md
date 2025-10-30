@@ -34,3 +34,6 @@ Adapting how you work with game dev code from a more GUI focused system with thi
 - Started implementation of tree -> map conversion, although need to devise how each room will be represented
 
 for tree -> map conversion, most likely use a constrained BFS
+
+for unit tests, could use it to "simulate" the game world and trivially test if inputs such as move right, up, etc. are handled appropriately.
+if time does not permit, make sure to discuss it in the report, saying how a purely functional language helps to simulate these trivially
