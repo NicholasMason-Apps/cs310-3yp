@@ -47,6 +47,7 @@ library
     , gloss-juicy
     , linear
     , random
+    , random-shuffle
   default-language: Haskell2010
 
 executable 3yp-exe
@@ -69,6 +70,7 @@ executable 3yp-exe
     , gloss-juicy
     , linear
     , random
+    , random-shuffle
   default-language: Haskell2010
 
 test-suite 3yp-test
@@ -92,4 +94,5 @@ test-suite 3yp-test
     , gloss-juicy
     , linear
     , random
+    , random-shuffle
   default-language: Haskell2010

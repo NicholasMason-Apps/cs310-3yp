@@ -23,6 +23,7 @@ import Graphics.Gloss
 import Codec.Picture
 import Data.Tree
 import Data.List ( maximumBy )
+-- import System.Random.Shuffle ( shuffleM )
 
 tileSize :: Float
 tileSize = 64
@@ -144,7 +145,7 @@ generateMap = do
           grP <- get p :: System' GameRoom
           let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection (head (exits grP))) exits')
               (pw, ph) = getRoomSize (roomLayout grP)
-              (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
+              (rw, rh) = getRoomSize (roomLayout newGr)
               (e:es) = exits grP
               newPos = case e of
                           UpDir    -> Position (V2 px (py + ph/2 + rh/2 + roomOffset))
@@ -155,11 +156,23 @@ generateMap = do
           -- TODO: use cfoldM to check for intersections between other rooms and adjust position
           -- ISSUE: determining which "face" of the intersection of a room is not as simple as player intersection
           -- since rooms can be of varying sizes and therefore intersect in multiple ways
-          let newPos' = cfold (\acc (gr, pos, entityR) -> 
-                          if entityR /= p then
-
-            
-              
+          -- IDEA: first we find what faces the new room is intersecting with (e.g. if we are adding a room to the bottom of the parent room,
+          --  then we find whether it is intersecting with the left, right, or top faces of any room) and then for each direction the room is
+          --  intersecting with, we find the minimum offset in tileSize increments to move the room out of intersection
+          -- NEW IDEA - since we are using BFS, we can guarantee things like not needing to do a nested cmap
+          --            we can use the add direction of this child, and the add direction of the parent
+          --            to restrict the possible directions to move in
+          let newPos = cfold $ (\acc (gr, Position (V2 xGR, yGR), entityGR) -> 
+                  if entityGR /= p then
+                    let (rw', rh') = getRoomSize (roomLayout gr)
+                        (Position (V2 nx ny)) = acc
+                        
+                    in case e of
+                         UpDir    -> Position (V2 nx (ny - rh' - roomOffset))
+                         DownDir  -> Position (V2 nx (ny + rh' + roomOffset))
+                         LeftDir  -> Position (V2 (nx - rw' - roomOffset) ny)
+                         RightDir -> Position (V2 (nx + rw' + roomOffset) ny)
+                  else acc) newPos
 
 
 
@@ -176,9 +189,7 @@ roomTypeToGameRoom :: RoomType -> Int -> [Direction] -> GameRoom
 roomTypeToGameRoom StartRoom _ exits = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits }
 roomTypeToGameRoom rt n exits = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts), exits = exits }
 
-generateRandomExitOrder :: IO [Direction]
-generateRandomExitOrder = do
-  shuffle [UpDir, DownDir, LeftDir, RightDir]
+generateRandomExitOrder = shuffleM [UpDir, DownDir, LeftDir, RightDir]
 
 oppositeDirection :: Direction -> Direction
 oppositeDirection UpDir = DownDir
