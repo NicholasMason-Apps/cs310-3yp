@@ -45,14 +45,7 @@ instance Component Floor where type Storage Floor = Map Floor
 data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
 instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
 
-data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq, Enum, Bounded)
-instance Random Direction where
-    randomR :: RandomGen g => (Direction, Direction) -> g -> (Direction, g)
-    randomR (lo, hi) g = let
-        (x',g') = randomR (fromEnum lo, fromEnum hi) g
-        in (toEnum x', g')
-    random :: RandomGen g => g -> (Direction, g)
-    random = randomR (minBound, maxBound)
+data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq)
 
 data Wall = Wall deriving Show
 instance Component Wall where type Storage Wall = Map Wall
@@ -79,7 +72,8 @@ data Animation = Animation { frameCount :: Int
 data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom deriving (Show, Eq)
 
 data GameRoom = GameRoom { roomType :: RoomType,
-                           roomLayout :: [[Char]]
+                           roomLayout :: [[Char]],
+                           exits :: [Direction]
                          } deriving (Show)
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 

@@ -37,3 +37,9 @@ for tree -> map conversion, most likely use a constrained BFS
 
 for unit tests, could use it to "simulate" the game world and trivially test if inputs such as move right, up, etc. are handled appropriately.
 if time does not permit, make sure to discuss it in the report, saying how a purely functional language helps to simulate these trivially
+
+# Term 1 Week 4
+- Started truly developing the tree to map conversion
+- Overall it has not been too bad - has taught me a lot of what it means to work in a monadic state (e.g. IO) and how much power (and also issues it brings). E.g. when working in a monadic context you get the power of side effects, but that in itself is also a downside, especially when you have a function which takes a monadic function, e.g. `bfsM` since that means whoever uses the function can do any sort of side effect they like
+- Broken it down into multiple functions, but a single entry function called `generateMap`
+    - Works by first generating the Tree since it is in a monadic context, and then using a monadic BFS it applies a function which converts the current room in the tree it is at into an entity for `apecs`, but also applies a conditional check to ensure no overlaps occur between rooms by adjusting the position accordingly

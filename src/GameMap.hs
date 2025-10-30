@@ -27,6 +27,9 @@ import Data.List ( maximumBy )
 tileSize :: Float
 tileSize = 64
 
+roomOffset :: Float
+roomOffset = 5 * tileSize
+
 getRoomSize :: [String] -> (Float, Float)
 getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegral (length layout) * tileSize)
 
@@ -132,17 +135,34 @@ generateMap = do
       -- TODO: use cfold to check for intersections and adjust position accordingly
       case parent of
         Nothing -> do
-          let gr = roomTypeToGameRoom (rootLabel node) 1
+          exits' <- generateRandomExitOrder
+          let gr = roomTypeToGameRoom (rootLabel node) 1 exits'
           newEntity (gr, Position (V2 0 0))
         Just p -> do
           Position (V2 px py) <- get p
+          exits' <- generateRandomExitOrder
           grP <- get p :: System' GameRoom
-          let (pw, ph) = getRoomSize (roomLayout grP)
+          let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection (head (exits grP))) exits')
+              (pw, ph) = getRoomSize (roomLayout grP)
               (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
-          dir <- randomRIO (minBound :: Direction, maxBound :: Direction)
-          let newPos = case dir of
-            UpDir -> 
-          
+              (e:es) = exits grP
+              newPos = case e of
+                          UpDir    -> Position (V2 px (py + ph/2 + rh/2 + roomOffset))
+                          DownDir  -> Position (V2 px (py - ph/2 - rh/2 - roomOffset))
+                          LeftDir  -> Position (V2 (px - pw/2 - rw/2 - roomOffset) py)
+                          RightDir -> Position (V2 (px + pw/2 + rw/2 + roomOffset) py)
+          set p grP { exits = es }
+          -- TODO: use cfoldM to check for intersections between other rooms and adjust position
+          -- ISSUE: determining which "face" of the intersection of a room is not as simple as player intersection
+          -- since rooms can be of varying sizes and therefore intersect in multiple ways
+          let newPos' = cfold (\acc (gr, pos, entityR) -> 
+                          if entityR /= p then
+
+            
+              
+
+
+
           -- let (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
           -- -- For simplicity, place new rooms to the right of the parent room
           -- let newPos = Position (V2 (px + rw + tileSize) py)
@@ -152,9 +172,19 @@ generateMap = do
   -- make the function it applies a monadic function which checks for intersections across each GameRoom in the entity system currently
   -- and sets the position accordingly, and also inserts it into the map
 
-roomTypeToGameRoom :: RoomType -> Int -> GameRoom
-roomTypeToGameRoom StartRoom _ = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts }
-roomTypeToGameRoom rt n = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts) }
+roomTypeToGameRoom :: RoomType -> Int -> [Direction] -> GameRoom
+roomTypeToGameRoom StartRoom _ exits = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits }
+roomTypeToGameRoom rt n exits = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts), exits = exits }
+
+generateRandomExitOrder :: IO [Direction]
+generateRandomExitOrder = do
+  shuffle [UpDir, DownDir, LeftDir, RightDir]
+
+oppositeDirection :: Direction -> Direction
+oppositeDirection UpDir = DownDir
+oppositeDirection DownDir = UpDir
+oppositeDirection LeftDir = RightDir
+oppositeDirection RightDir = LeftDir
 
 -- BFS which keeps track of the parent node, and applies a monadic function to each node
 -- The monadic function takes Maybe b as the parent node, and Tree a as the current node
