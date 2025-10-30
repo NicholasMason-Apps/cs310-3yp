@@ -166,12 +166,15 @@ generateMap = do
                   if entityGR /= p then
                     let (rw', rh') = getRoomSize (roomLayout gr)
                         (Position (V2 nx ny)) = acc
-                        
-                    in case e of
-                         UpDir    -> Position (V2 nx (ny - rh' - roomOffset))
-                         DownDir  -> Position (V2 nx (ny + rh' + roomOffset))
-                         LeftDir  -> Position (V2 (nx - rw' - roomOffset) ny)
-                         RightDir -> Position (V2 (nx + rw' + roomOffset) ny)
+                        intersectsX = abs (nx - xGR) < (rw/2 + rw'/2)
+                        intersectsY = abs (ny - yGR) < (rh/2 + rh'/2)
+                    in if intersectsX && intersectsY
+                        then case e of
+                            UpDir    -> Position (V2 nx (yGR + rh'/2 + rh/2 + roomOffset))
+                            DownDir  -> Position (V2 nx (yGR - rh'/2 - rh/2 - roomOffset))
+                            LeftDir  -> Position (V2 (xGR - rw'/2 - rw/2 - roomOffset) ny)
+                            RightDir -> Position (V2 (xGR + rw'/2 + rw/2 + roomOffset) ny)
+                        else acc
                   else acc) newPos
 
 
