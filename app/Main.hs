@@ -12,13 +12,10 @@ import Data.Monoid
 import Data.Semigroup (Semigroup)
 import Types
 import Draw
-import GameMap ( generateMapTree )
 
 main :: IO ()
 main = do
-    -- w <- initWorld
-    -- runWith w $ do
-    --     initialize
-    --     play (InWindow "Shmup" (1280, 720) (10, 10)) black 60 draw handleEvent step
-    tree <- generateMapTree
-    print tree
+    w <- initWorld
+    runWith w $ do
+        initialize
+        play (InWindow "Shmup" (1280, 720) (10, 10)) black 60 draw handleEvent step

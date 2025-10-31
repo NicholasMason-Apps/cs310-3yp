@@ -77,6 +77,8 @@ data GameRoom = GameRoom { roomType :: RoomType,
                          } deriving (Show)
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 
+data Tile = Tile deriving Show
+instance Component Tile where type Storage Tile = Map Tile
 
 -- Define all the components in the world
 makeWorld "World" [''Position,
@@ -91,7 +93,8 @@ makeWorld "World" [''Position,
                     ''Sprite,
                     ''Wall,
                     ''MoveDirection,
-                    ''GameRoom]
+                    ''GameRoom,
+                    ''Tile]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

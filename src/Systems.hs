@@ -18,6 +18,7 @@ import Linear
 import Control.Monad
 import Types
 import Sprite
+import GameMap
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 170
@@ -38,7 +39,7 @@ scorePos  = V2 xmin (-170)
 initialize :: System' ()
 initialize = do
     playerEntity <- newEntity (Player, MoveDirection Nothing, Position playerPos, Velocity (V2 0 0), Sprite (loadSprite "player.png") (72,24) (Just $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1 }) )
-    wallEntity <- newEntity (Wall, Position (V2 150 150), Sprite (loadSprite "wall.png") (64,64) Nothing )
+    generateMap
     return ()
 
 stepPositionFormula :: Float -> Position -> Velocity -> Position

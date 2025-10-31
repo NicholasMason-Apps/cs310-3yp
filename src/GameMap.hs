@@ -8,27 +8,23 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module GameMap ( generateMapTree ) where
+module GameMap ( generateMap ) where
 
 import Apecs
-import Apecs.Gloss
 import System.Random
-import System.Exit
 import Linear
 import Control.Monad
 import Types
-import Data.Maybe ( isJust )
-import System.IO.Unsafe ( unsafePerformIO )
-import Graphics.Gloss
-import Codec.Picture
 import Data.Tree
-import Data.List ( maximumBy )
--- import System.Random.Shuffle ( shuffleM )
+import Data.List ( maximumBy, minimumBy )
+import Data.Ord ( comparing )
+import System.Random.Shuffle ( shuffleM )
+import Sprite ( loadSprite )
 
-tileSize :: Float
+tileSize :: Num a => a
 tileSize = 64
 
-roomOffset :: Float
+roomOffset :: Num a => a
 roomOffset = 5 * tileSize
 
 getRoomSize :: [String] -> (Float, Float)
@@ -37,27 +33,27 @@ getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegr
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
     [ "WWWWWDWWWW"
-    , "W        W"
-    , "D   S    D"
-    , "W        W"
+    , "WTTTTTTTTW"
+    , "DTTTSTTTTD"
+    , "WTTTTTTTTW"
     , "WWWWDWWWWW"
     ],
     [ "WWWWWWWDWWWWWWW"
-    , "W             W"
-    , "D             D"
-    , "W             W"
+    , "WTTTTTTTTTTTTTW"
+    , "DTTTTTTTTTTTTTD"
+    , "WTTTTTTTTTTTTTW"
     , "WWWWWWDWWWWWWWW"
     ],
     [ "____WWWDWWW____"
-    , "____W     W____"
-    , "____W     W____"
-    , "WWWWW     WWWWW"
-    , "W             W"
-    , "D             D"
-    , "W             W"
-    , "WWWWW     WWWWW"
-    , "____W     W____"
-    , "____W     W____"
+    , "____WTTTTTW____"
+    , "____WTTTTTW____"
+    , "WWWWWTTTTTWWWWW"
+    , "WTTTTTTTTTTTTTW"
+    , "DTTTTTTTTTTTTTD"
+    , "WTTTTTTTTTTTTTW"
+    , "WWWWWTTTTTWWWWW"
+    , "____WTTTTTW____"
+    , "____WTTTTTW____"
     , "____WWWDWWW____"  ]
   ]
 
@@ -129,6 +125,21 @@ generateMap :: System' ()
 generateMap = do
   tree <- liftIO generateMapTree
   bfsM insertGameRoom tree
+  cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
+    let layout = roomLayout gr
+        w = length $ head layout
+        h = length layout
+        adjust dim = if even dim then tileSize / 2 else 0
+        offsetX = grx - (fromIntegral w * tileSize / 2) + adjust w + tileSize / 2
+        offsetY = gry - (fromIntegral h * tileSize / 2) + adjust h + tileSize / 2
+        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize)), c) 
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, c /= '_' && c /= ' ', let s = if c == 'W' then loadSprite "wall.png" else loadSprite "tile.png" ]
+    forM_ spriteList $ \(s, p, c) -> do
+        case c of
+          'W' -> void $ newEntity (Wall, p, s)
+          _ -> void $ newEntity (Tile, p, s)
+    destroy e (Proxy @Position)
+    
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
     insertGameRoom parent node = do
@@ -146,36 +157,38 @@ generateMap = do
           let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection (head (exits grP))) exits')
               (pw, ph) = getRoomSize (roomLayout grP)
               (rw, rh) = getRoomSize (roomLayout newGr)
-              (e:es) = exits grP
-              newPos = case e of
+              newPos = case head $ exits grP of
                           UpDir    -> Position (V2 px (py + ph/2 + rh/2 + roomOffset))
                           DownDir  -> Position (V2 px (py - ph/2 - rh/2 - roomOffset))
                           LeftDir  -> Position (V2 (px - pw/2 - rw/2 - roomOffset) py)
                           RightDir -> Position (V2 (px + pw/2 + rw/2 + roomOffset) py)
-          set p grP { exits = es }
-          -- TODO: use cfoldM to check for intersections between other rooms and adjust position
-          -- ISSUE: determining which "face" of the intersection of a room is not as simple as player intersection
-          -- since rooms can be of varying sizes and therefore intersect in multiple ways
-          -- IDEA: first we find what faces the new room is intersecting with (e.g. if we are adding a room to the bottom of the parent room,
-          --  then we find whether it is intersecting with the left, right, or top faces of any room) and then for each direction the room is
-          --  intersecting with, we find the minimum offset in tileSize increments to move the room out of intersection
-          -- NEW IDEA - since we are using BFS, we can guarantee things like not needing to do a nested cmap
-          --            we can use the add direction of this child, and the add direction of the parent
-          --            to restrict the possible directions to move in
-          let newPos = cfold $ (\acc (gr, Position (V2 xGR, yGR), entityGR) -> 
-                  if entityGR /= p then
-                    let (rw', rh') = getRoomSize (roomLayout gr)
-                        (Position (V2 nx ny)) = acc
-                        intersectsX = abs (nx - xGR) < (rw/2 + rw'/2)
-                        intersectsY = abs (ny - yGR) < (rh/2 + rh'/2)
-                    in if intersectsX && intersectsY
-                        then case e of
-                            UpDir    -> Position (V2 nx (yGR + rh'/2 + rh/2 + roomOffset))
-                            DownDir  -> Position (V2 nx (yGR - rh'/2 - rh/2 - roomOffset))
-                            LeftDir  -> Position (V2 (xGR - rw'/2 - rw/2 - roomOffset) ny)
-                            RightDir -> Position (V2 (xGR + rw'/2 + rw/2 + roomOffset) ny)
-                        else acc
-                  else acc) newPos
+          set p grP { exits = drop 1 $ exits grP }
+          (finalPos, _) <- cfold (\acc (gr, Position (V2 xGR yGR), entityGR) ->
+            if entityGR == p then
+              acc
+            else
+              let (rw', rh') = getRoomSize (roomLayout gr)
+                  (Position (V2 nx ny)) = fst acc
+                  intersectsX = abs (nx - xGR) < (rw/2 + rw'/2)
+                  intersectsY = abs (ny - yGR) < (rh/2 + rh'/2)
+              in 
+                if intersectsX && intersectsY then
+                  let dx = (rw/2 + rw'/2) - abs (nx - xGR)
+                      dy = (rh/2 + rh'/2) - abs (ny - yGR)
+                      shifts = filter (\(dir, _, _) -> dir /= oppositeDirection (head (exits grP))) [ (UpDir, ceiling (dy / tileSize), Position (V2 nx (ny + fromIntegral (ceiling (dy / tileSize) * tileSize))))
+                              , (DownDir, ceiling (dy / tileSize), Position (V2 nx (ny - fromIntegral (ceiling (dy / tileSize) * tileSize))))
+                              , (LeftDir, ceiling (dx / tileSize), Position (V2 (nx - fromIntegral (ceiling (dx / tileSize) * tileSize)) ny))
+                              , (RightDir, ceiling (dx / tileSize), Position (V2 (nx + fromIntegral (ceiling (dx / tileSize) * tileSize)) ny))
+                              ]
+                      (_, bestSteps, bestPos) = minimumBy (comparing (\(_, s, _) -> s)) shifts
+                      in
+                        case snd acc of
+                          Nothing -> (bestPos, Just bestSteps)
+                          Just s -> if bestSteps < s then (bestPos, Just bestSteps) else acc
+                else acc) (newPos, Nothing)
+          newEntity (newGr, finalPos)
+
+
 
 
 
@@ -189,10 +202,11 @@ generateMap = do
   -- and sets the position accordingly, and also inserts it into the map
 
 roomTypeToGameRoom :: RoomType -> Int -> [Direction] -> GameRoom
-roomTypeToGameRoom StartRoom _ exits = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits }
-roomTypeToGameRoom rt n exits = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts), exits = exits }
+roomTypeToGameRoom StartRoom _ exits' = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits' }
+roomTypeToGameRoom rt n exits' = GameRoom { roomType = rt, roomLayout = gameRoomLayouts !! (n `mod` length gameRoomLayouts), exits = exits' }
 
-generateRandomExitOrder = shuffleM [UpDir, DownDir, LeftDir, RightDir]
+generateRandomExitOrder :: SystemT World IO [Direction]
+generateRandomExitOrder = liftIO $ shuffleM [UpDir, DownDir, LeftDir, RightDir]
 
 oppositeDirection :: Direction -> Direction
 oppositeDirection UpDir = DownDir
