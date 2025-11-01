@@ -34,8 +34,8 @@ getSpritePicture (Sprite sheet (w,h) (Just a)) = let
 draw :: System' Picture
 draw = do
     player <- foldDraw $ \(Player, pos, s) -> translate' pos $ getSpritePicture s
-    targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
-    bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
+    -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
+    -- bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
     walls <- foldDraw $ \(Wall, pos, s) -> translate' pos $ getSpritePicture s
@@ -45,7 +45,7 @@ draw = do
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let world = player <> targets <> bullets <> particles <> walls <> playerPosText
+    let world = player <> particles <> playerPosText <> walls
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world

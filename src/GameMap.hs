@@ -32,29 +32,29 @@ getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegr
 
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
-    [ "WWWWWDWWWW"
+    [ "WWWWW1WWWW"
     , "WTTTTTTTTW"
-    , "DTTTSTTTTD"
+    , "4TTTSTTTT2"
     , "WTTTTTTTTW"
-    , "WWWWDWWWWW"
+    , "WWWW3WWWWW"
     ],
-    [ "WWWWWWWDWWWWWWW"
+    [ "WWWWWWW1WWWWWWW"
     , "WTTTTTTTTTTTTTW"
-    , "DTTTTTTTTTTTTTD"
+    , "4TTTTTTTTTTTTT2"
     , "WTTTTTTTTTTTTTW"
-    , "WWWWWWDWWWWWWWW"
+    , "WWWWWW3WWWWWWWW"
     ],
-    [ "____WWWDWWW____"
+    [ "____WWW1WWW____"
     , "____WTTTTTW____"
     , "____WTTTTTW____"
     , "WWWWWTTTTTWWWWW"
     , "WTTTTTTTTTTTTTW"
-    , "DTTTTTTTTTTTTTD"
+    , "4TTTTTTTTTTTTT2"
     , "WTTTTTTTTTTTTTW"
     , "WWWWWTTTTTWWWWW"
     , "____WTTTTTW____"
     , "____WTTTTTW____"
-    , "____WWWDWWW____"  ]
+    , "____WWW3WWW____"  ]
   ]
 
 generateMapTree :: IO (Tree RoomType)
@@ -129,17 +129,23 @@ generateMap = do
     let layout = roomLayout gr
         w = length $ head layout
         h = length layout
+        tileCheck :: Char -> Bool
+        tileCheck c = c == '_' || c == ' ' ||
+                      (c == '1' && UpDir `elem` exits gr) ||
+                      (c == '2' && DownDir `elem` exits gr) ||
+                      (c == '3' && LeftDir `elem` exits gr) ||
+                      (c == '4' && RightDir `elem` exits gr)
         adjust dim = if even dim then tileSize / 2 else 0
         offsetX = grx - (fromIntegral w * tileSize / 2) + adjust w + tileSize / 2
         offsetY = gry - (fromIntegral h * tileSize / 2) + adjust h + tileSize / 2
-        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize)), c) 
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, c /= '_' && c /= ' ', let s = if c == 'W' then loadSprite "wall.png" else loadSprite "tile.png" ]
+        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize)), c)
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, not $ tileCheck c, let s = if c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' then loadSprite "wall.png" else loadSprite "tile.png" ]
     forM_ spriteList $ \(s, p, c) -> do
         case c of
           'W' -> void $ newEntity (Wall, p, s)
           _ -> void $ newEntity (Tile, p, s)
     destroy e (Proxy @Position)
-    
+
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
     insertGameRoom parent node = do
@@ -171,7 +177,7 @@ generateMap = do
                   (Position (V2 nx ny)) = fst acc
                   intersectsX = abs (nx - xGR) < (rw/2 + rw'/2)
                   intersectsY = abs (ny - yGR) < (rh/2 + rh'/2)
-              in 
+              in
                 if intersectsX && intersectsY then
                   let dx = (rw/2 + rw'/2) - abs (nx - xGR)
                       dy = (rh/2 + rh'/2) - abs (ny - yGR)
