@@ -129,7 +129,6 @@ generateMap = do
   tree <- liftIO generateMapTree
   bfsM insertGameRoom tree
   cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
-    liftIO $ putStrLn $ "Game Room exits: " ++ show (exits gr)
     let layout = roomLayout gr
         w = length $ head layout
         h = length layout
@@ -155,15 +154,14 @@ generateMap = do
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
     insertGameRoom parent node = do
       n <- randomRIO (1, length gameRoomLayouts - 1)
+      exits' <- generateRandomExitOrder
       -- TODO: use cfold to check for intersections and adjust position accordingly
       case parent of
         Nothing -> do
-          exits' <- generateRandomExitOrder
           let gr = roomTypeToGameRoom (rootLabel node) 1 exits'
           newEntity (gr, Position (V2 0 0))
         Just p -> do
           Position (V2 px py) <- get p
-          exits' <- generateRandomExitOrder
           grP <- get p :: System' GameRoom
           -- let newGr = roomTypeToGameRoom (rootLabel node) n []
           --     (rw, rh) = getRoomSize (roomLayout newGr)
@@ -183,7 +181,7 @@ generateMap = do
           -- --       else acc) (newPos, Nothing)
           -- Attempt to find the first direction which does not intersect
           let newLayout = getRoomLayout n
-          intersections <- mapM (\dir -> checkRoomIntersectionInDirection (Position (V2 px py)) grP dir newLayout) (exits grP)
+          intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
           let res = foldl' (\acc (intersects, dir) ->
                 case acc of
                   Just _ -> acc
@@ -284,17 +282,24 @@ connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoor
 --           errList = [ (col - mx, my - row, c) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, show c `elem` ["'1'", "'2'", "'3'", "'4'"] ]
 --         in error $ "No connection found in specified direction " ++ show dir ++ " for layout: " ++ show layout ++ " found connections at: " ++ show errList ++ " (mx,my): " ++ show (mx,my) ++ " (length layout): " ++ show (length layout, length (head layout))
 
-checkRoomIntersectionInDirection :: Position -> GameRoom -> Direction -> [[Char]] -> System' Bool
-checkRoomIntersectionInDirection (Position (V2 x y)) gr dir newLayout = do
+checkRoomIntersectionInDirection ::  Entity -> Direction -> [[Char]] -> System' Bool
+checkRoomIntersectionInDirection e dir newLayout = do
+  Position (V2 x y) <- get e :: System' Position
+  gr <- get e :: System' GameRoom
   let
     (cx, cy) = connectionPosition dir (roomLayout gr) newLayout
     (nx, ny) = (x + cx, y + cy)
-  cfold (\acc (gr', Position (V2 xgr ygr)) ->
-    acc || (let (rw', rh') = getRoomSize (roomLayout gr')
-                intersectsX = abs (nx - xgr) < (rw'/2)
-                intersectsY = abs (ny - ygr) < (rh'/2)
-            in
-              intersectsX && intersectsY)) False
+    (rw, rh) = getRoomSize newLayout
+  cfold (\acc (gr', Position (V2 xgr ygr), e') ->
+    if e' == e then
+      acc
+    else
+      let
+        (rw', rh') = getRoomSize (roomLayout gr')
+        intersectsX = abs (nx - xgr) < (rw/2 + rw'/2)
+        intersectsY = abs (ny - ygr) < (rh/2 + rh'/2)
+      in
+        acc || (intersectsX && intersectsY)) False
 
 roomTypeToGameRoom :: RoomType -> Int -> [Direction] -> GameRoom
 roomTypeToGameRoom StartRoom _ exits' = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits' }

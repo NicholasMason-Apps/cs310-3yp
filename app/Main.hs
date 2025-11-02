@@ -4,13 +4,6 @@ import Types
 import Systems
 import Apecs
 import Apecs.Gloss
-import System.Random
-import System.Exit
-import Linear
-import Control.Monad
-import Data.Monoid
-import Data.Semigroup (Semigroup)
-import Types
 import Draw
 
 main :: IO ()
