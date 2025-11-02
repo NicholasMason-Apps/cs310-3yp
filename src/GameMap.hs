@@ -63,7 +63,7 @@ gameRoomLayouts = [
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (5, 7) :: IO Int
-    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) 1 hubRoomCount
+    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) 3 hubRoomCount
     return $ addBossRoom t
     where
       hubRoomCount = 2
@@ -129,11 +129,12 @@ generateMap = do
   tree <- liftIO generateMapTree
   bfsM insertGameRoom tree
   cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
+    liftIO $ putStrLn $ "Game Room exits: " ++ show (exits gr)
     let layout = roomLayout gr
         w = length $ head layout
         h = length layout
         tileCheck :: Char -> Bool
-        tileCheck c = c == '_' || c == ' ' ||
+        tileCheck c = (c `notElem` " _1234") ||
                       (c == '1' && UpDir `elem` exits gr) ||
                       (c == '2' && RightDir `elem` exits gr) ||
                       (c == '3' && DownDir `elem` exits gr) ||
@@ -142,12 +143,13 @@ generateMap = do
         offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
         offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
         spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, not $ tileCheck c, let s = if c `elem` "W1234" then loadSprite "wall.png" else loadSprite "tile.png" ]
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let s = if c `elem` "W1234" then loadSprite "wall.png" else loadSprite "tile.png" ]
     forM_ spriteList $ \(s, p, c) -> do
-        case c of
-          'W' -> void $ newEntity (Wall, p, s)
+        if c `elem` "W1234" then
+          void $ newEntity (Wall, p, s)
           -- _ -> void $ newEntity (Tile, p, s)
-          _ -> return ()
+        else
+          return ()
     destroy e (Proxy @Position)
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
@@ -181,48 +183,46 @@ generateMap = do
           -- --       else acc) (newPos, Nothing)
           -- Attempt to find the first direction which does not intersect
           let newLayout = getRoomLayout n
-              dir = head (exits grP)
-              (fx, fy) = connectionPosition dir (roomLayout grP) newLayout
-          -- intersections <- mapM (\dir -> checkRoomIntersectionInDirection (Position (V2 px py)) grP dir newLayout) (exits grP)
-          -- let res = foldl' (\acc (intersects, dir) ->
-          --       case acc of
-          --         Just _ -> acc
-          --         Nothing -> if not intersects then
-          --             Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
-          --           else Nothing) Nothing (zip intersections (exits grP))
-          -- case res of
-          --   Just (dir, finalPos) -> do
-          --     let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits')
-          --     set p (grP { exits = filter (/= dir) (exits grP) })
-          --     newEntity (newGr, finalPos)
-          --   Nothing -> do
-          --     -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
-          --     let dir = head (exits grP)
-          --         (cx, cy) = connectionPosition dir (roomLayout grP) newLayout
-          --         distanceToClear dir' (cX, cY) (cW, cH) (oX, oY) (oW, oH) = let
-          --             raw = case dir' of
-          --               UpDir -> (oY + oH / 2) - (cY - cH / 2)
-          --               DownDir -> (cY + cH / 2) - (oY - oH / 2)
-          --               LeftDir -> (cX + cW / 2) - (oX - oW / 2)
-          --               RightDir -> (oX + oW / 2) - (cX - cW / 2)
-          --           in
-          --             ceiling (raw / tileSize) * tileSize
-          --     (fx,fy) <- cfoldM (\acc (gr, Position (V2 grX grY)) -> do
-          --         let (rw', rh') = getRoomSize (roomLayout gr)
-          --             intersectsX = abs ((px + cx + fst acc) - grX) < (fst (getRoomSize newLayout)/2 + rw'/2)
-          --             intersectsY = abs ((py + cy + snd acc) - grY) < (snd (getRoomSize newLayout)/2 + rh'/2)
-          --             shiftAmount = fromIntegral $ distanceToClear dir (px + cx + fst acc, py + cy + snd acc) (fst (getRoomSize newLayout), snd (getRoomSize newLayout)) (grX, grY) (rw', rh')
-          --         if intersectsX && intersectsY then
-          --             case dir of
-          --               UpDir -> return (fst acc, snd acc + shiftAmount + roomOffset)
-          --               DownDir -> return (fst acc, snd acc - shiftAmount - roomOffset)
-          --               LeftDir -> return (fst acc - shiftAmount - roomOffset, snd acc)
-          --               RightDir -> return (fst acc + shiftAmount + roomOffset, snd acc)
-          --         else
-          --           return acc) (cx,cy)
-          set p (grP { exits = filter (/= dir) (exits grP) })
-          _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
-          newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
+          intersections <- mapM (\dir -> checkRoomIntersectionInDirection (Position (V2 px py)) grP dir newLayout) (exits grP)
+          let res = foldl' (\acc (intersects, dir) ->
+                case acc of
+                  Just _ -> acc
+                  Nothing -> if not intersects then
+                      Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
+                    else Nothing) Nothing (zip intersections (exits grP))
+          case res of
+            Just (dir, finalPos) -> do
+              let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits')
+              set p (grP { exits = filter (/= dir) (exits grP) })
+              newEntity (newGr, finalPos)
+            Nothing -> do
+              -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
+              let dir = head (exits grP)
+                  (cx, cy) = connectionPosition dir (roomLayout grP) newLayout
+                  distanceToClear dir' (cX, cY) (cW, cH) (oX, oY) (oW, oH) = let
+                      raw = case dir' of
+                        UpDir -> (oY + oH / 2) - (cY - cH / 2)
+                        DownDir -> (cY + cH / 2) - (oY - oH / 2)
+                        LeftDir -> (cX + cW / 2) - (oX - oW / 2)
+                        RightDir -> (oX + oW / 2) - (cX - cW / 2)
+                    in
+                      ceiling (raw / tileSize) * tileSize
+              (fx,fy) <- cfoldM (\acc (gr, Position (V2 grX grY)) -> do
+                  let (rw', rh') = getRoomSize (roomLayout gr)
+                      intersectsX = abs ((px + cx + fst acc) - grX) < (fst (getRoomSize newLayout)/2 + rw'/2)
+                      intersectsY = abs ((py + cy + snd acc) - grY) < (snd (getRoomSize newLayout)/2 + rh'/2)
+                      shiftAmount = fromIntegral $ distanceToClear dir (px + cx + fst acc, py + cy + snd acc) (fst (getRoomSize newLayout), snd (getRoomSize newLayout)) (grX, grY) (rw', rh')
+                  if intersectsX && intersectsY then
+                      case dir of
+                        UpDir -> return (fst acc, snd acc + shiftAmount + roomOffset)
+                        DownDir -> return (fst acc, snd acc - shiftAmount - roomOffset)
+                        LeftDir -> return (fst acc - shiftAmount - roomOffset, snd acc)
+                        RightDir -> return (fst acc + shiftAmount + roomOffset, snd acc)
+                  else
+                    return acc) (cx,cy)
+              set p (grP { exits = filter (/= dir) (exits grP) })
+              _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
+              newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
 
 
 
