@@ -22,6 +22,7 @@ import System.Random.Shuffle ( shuffleM )
 import Sprite ( loadSprite )
 import Data.Maybe ( listToMaybe )
 import Data.Foldable ( foldl' )
+import Data.Char (intToDigit)
 
 tileSize :: Num a => a
 tileSize = 64
@@ -35,10 +36,10 @@ getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegr
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
     [ "WWWWW1WWWW"
+    , "WTTTTTTTT2"
+    , "4TTTSTTTTW"
     , "WTTTTTTTTW"
-    , "4TTTSTTTT2"
-    , "WTTTTTTTTW"
-    , "WWWW3WWWWW"
+    , "WW3WWWWWWW"
     ],
     [ "WWWWWWW1WWWWWWW"
     , "WTTTTTTTTTTTTTW"
@@ -134,14 +135,14 @@ generateMap = do
         tileCheck :: Char -> Bool
         tileCheck c = c == '_' || c == ' ' ||
                       (c == '1' && UpDir `elem` exits gr) ||
-                      (c == '2' && DownDir `elem` exits gr) ||
-                      (c == '3' && LeftDir `elem` exits gr) ||
-                      (c == '4' && RightDir `elem` exits gr)
-        adjust dim = if even dim then tileSize / 2 else 0
-        offsetX = grx - (fromIntegral w * tileSize / 2) + adjust w + tileSize / 2
-        offsetY = gry - (fromIntegral h * tileSize / 2) + adjust h + tileSize / 2
-        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize)), c)
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, not $ tileCheck c, let s = if c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' then loadSprite "wall.png" else loadSprite "tile.png" ]
+                      (c == '2' && RightDir `elem` exits gr) ||
+                      (c == '3' && DownDir `elem` exits gr) ||
+                      (c == '4' && LeftDir `elem` exits gr)
+        halfAdjust v = if even v then tileSize / 2 else 0
+        offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
+        offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
+        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, not $ tileCheck c, let s = if c `elem` "W1234" then loadSprite "wall.png" else loadSprite "tile.png" ]
     forM_ spriteList $ \(s, p, c) -> do
         case c of
           'W' -> void $ newEntity (Wall, p, s)
@@ -220,8 +221,8 @@ generateMap = do
           --         else
           --           return acc) (cx,cy)
           set p (grP { exits = filter (/= dir) (exits grP) })
-          _ <- newEntity (Tile, Position (V2 fx fy), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
-          newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 fx fy))
+          _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
+          newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
 
 
 
@@ -235,28 +236,53 @@ generateMap = do
   -- make the function it applies a monadic function which checks for intersections across each GameRoom in the entity system currently
   -- and sets the position accordingly, and also inserts it into the map
 
-
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
-connectionPosition dir layout newLayout = let
-    directionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, show c == "'" ++ show (fromEnum dir) ++ "'" ]
-    oppDirectionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, show c == "'" ++ show (fromEnum $ oppositeDirection dir) ++ "'" ]
-    (my,mx) = (fromIntegral (length layout - 1) / 2, fromIntegral (length (head layout) - 1) / 2)
-    (moy, mox) = (fromIntegral (length newLayout - 1) / 2, fromIntegral (length (head newLayout) - 1) / 2)
-    (newX, newY) = getRoomSize newLayout
-    (offsetX, offsetY) = case oppDirectionCoord of
-      Just (r,c) -> case dir of
-          UpDir -> (-((r - mox) * tileSize), roomOffset + newY)
-          DownDir -> (-((r - mox) * tileSize), -roomOffset - newY)
-          LeftDir -> (-roomOffset - newX, -((c - moy) * tileSize))
-          RightDir -> (roomOffset + newX, -((c - moy) * tileSize))
-      Nothing -> error $ "No opposite connection found in specified direction " ++ show (oppositeDirection dir) ++ " for layout: " ++ show layout
+connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoord) of
+    (Just (rA, cA), Just (rB, cB)) -> let
+        wA = length (head layout)
+        hA = length layout
+        wB = length (head newLayout)
+        hB = length newLayout
+        (offXA, offYA) = tileToWorld wA hA cA rA tileSize
+        (offXB, offYB) = tileToWorld wB hB cB rB tileSize
+        cxB = offXA - offXB
+        cyB = offYA - offYB
+      in
+        (cxB, cyB)
+    _ -> error $ "No connection found for direction " ++ show dir ++ " in layouts: " ++ show layout ++ " and " ++ show newLayout
+  where
+    directionCoord = listToMaybe [ (r,c) | (r, row) <- zip [0..] layout, (c, ch) <- zip [0..] row, ch == intToDigit (fromEnum dir) ]
+    oppDirectionCoord = listToMaybe [ (r,c) | (r, row) <- zip [0..] newLayout, (c, ch) <- zip [0..] row, ch == intToDigit (fromEnum (oppositeDirection dir)) ]
+    tileToWorld w h tx ty size = let
+        halfAdjust v = if even v then size / 2 else 0
+        offsetX = (fromIntegral tx - fromIntegral (w - 1) / 2) * size + halfAdjust w
+        offsetY = (fromIntegral (h - 1) / 2 - fromIntegral ty) * size + halfAdjust h
+      in
+        (offsetX, offsetY)
+-- connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
+-- connectionPosition dir layout newLayout = let
+--     directionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, c == head (show $ fromEnum dir) ]
+--     oppDirectionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] newLayout, (col, c) <- zip [0..] line, c == head (show $ fromEnum (oppositeDirection dir)) ]
+--     (my,mx) = (fromIntegral (length layout - 1) / 2, fromIntegral (length (head layout) - 1) / 2)
+--     (moy, mox) = (fromIntegral (length newLayout - 1) / 2, fromIntegral (length (head newLayout) - 1) / 2)
+--     (newX, newY) = getRoomSize newLayout
+--     (offsetX, offsetY) = case oppDirectionCoord of
+--       Just (r,c) -> let 
+--           (toX, toY) = (-((c - mox) * tileSize), -((moy - r) * tileSize))
+--         in
+--           case dir of
+--             UpDir -> (0, roomOffset + newY + toY)
+--             DownDir -> (0, -roomOffset - newY + toY)
+--             LeftDir -> (-roomOffset - newX + toX, 0)
+--             RightDir -> (roomOffset + newX + toX, 0)
+--       Nothing -> error $ "No opposite connection found in specified direction " ++ show (oppositeDirection dir) ++ " for layout: " ++ show layout
 
-  in
-    case directionCoord of
-      Just (r,c) -> ((r - mx) * tileSize + offsetX, (c - my) * tileSize + offsetY)
-      Nothing -> let
-          errList = [ (row - mx, col - my) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line ]
-        in error $ "No connection found in specified direction " ++ show dir ++ " for layout: " ++ show layout ++ " found connections at: " ++ show errList ++ " test: " ++ show (fromEnum dir) ++ " test: " ++ show '1'
+--   in
+--     case directionCoord of
+--       Just (r,c) -> ((c - mx) * tileSize + offsetX, (r - my) * tileSize + offsetY)
+--       Nothing -> let
+--           errList = [ (col - mx, my - row, c) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, show c `elem` ["'1'", "'2'", "'3'", "'4'"] ]
+--         in error $ "No connection found in specified direction " ++ show dir ++ " for layout: " ++ show layout ++ " found connections at: " ++ show errList ++ " (mx,my): " ++ show (mx,my) ++ " (length layout): " ++ show (length layout, length (head layout))
 
 checkRoomIntersectionInDirection :: Position -> GameRoom -> Direction -> [[Char]] -> System' Bool
 checkRoomIntersectionInDirection (Position (V2 x y)) gr dir newLayout = do
