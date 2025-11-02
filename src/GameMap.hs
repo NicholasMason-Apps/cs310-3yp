@@ -155,7 +155,6 @@ generateMap = do
     insertGameRoom parent node = do
       n <- randomRIO (1, length gameRoomLayouts - 1)
       exits' <- generateRandomExitOrder
-      -- TODO: use cfold to check for intersections and adjust position accordingly
       case parent of
         Nothing -> do
           let gr = roomTypeToGameRoom (rootLabel node) 1 exits'
@@ -163,22 +162,6 @@ generateMap = do
         Just p -> do
           Position (V2 px py) <- get p
           grP <- get p :: System' GameRoom
-          -- let newGr = roomTypeToGameRoom (rootLabel node) n []
-          --     (rw, rh) = getRoomSize (roomLayout newGr)
-          --     (cx, cy) = connectionPosition (head (exits grP)) (roomLayout grP)
-          --     newPos = Position (V2 (px + cx) (py + cy))
-          -- -- (finalPos, _) <- cfold (\acc (gr, Position (V2 xgr ygr), entityGR) ->
-          -- --   if entityGR == p then
-          -- --     acc
-          -- --   else
-          -- --     let (rw', rh') = getRoomSize (roomLayout gr)
-          -- --         (Position (V2 nx ny)) = fst acc
-          -- --         intersectsX = abs (nx - xgr) < (rw/2 + rw'/2)
-          -- --         intersectsY = abs (ny - ygr) < (rh/2 + rh'/2)
-          -- --     in
-          -- --       if intersectsX && intersectsY then
-
-          -- --       else acc) (newPos, Nothing)
           -- Attempt to find the first direction which does not intersect
           let newLayout = getRoomLayout n
           intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
@@ -222,18 +205,6 @@ generateMap = do
               _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
               newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
 
-
-
-
-          -- let (rw, rh) = getRoomSize (roomLayout (roomTypeToGameRoom (rootLabel node) n))
-          -- -- For simplicity, place new rooms to the right of the parent room
-          -- let newPos = Position (V2 (px + rw + tileSize) py)
-          -- let gr = roomTypeToGameRoom (rootLabel node) n
-          -- newEntity (gr, newPos)
-  -- IDEA - implement a generic bfs which applies a function to each node
-  -- make the function it applies a monadic function which checks for intersections across each GameRoom in the entity system currently
-  -- and sets the position accordingly, and also inserts it into the map
-
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
 connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoord) of
     (Just (rA, cA), Just (rB, cB)) -> let
@@ -257,30 +228,6 @@ connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoor
         offsetY = (fromIntegral (h - 1) / 2 - fromIntegral ty) * size + halfAdjust h
       in
         (offsetX, offsetY)
--- connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
--- connectionPosition dir layout newLayout = let
---     directionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, c == head (show $ fromEnum dir) ]
---     oppDirectionCoord = listToMaybe $ [ (row, col) | (row, line) <- zip [0..] newLayout, (col, c) <- zip [0..] line, c == head (show $ fromEnum (oppositeDirection dir)) ]
---     (my,mx) = (fromIntegral (length layout - 1) / 2, fromIntegral (length (head layout) - 1) / 2)
---     (moy, mox) = (fromIntegral (length newLayout - 1) / 2, fromIntegral (length (head newLayout) - 1) / 2)
---     (newX, newY) = getRoomSize newLayout
---     (offsetX, offsetY) = case oppDirectionCoord of
---       Just (r,c) -> let 
---           (toX, toY) = (-((c - mox) * tileSize), -((moy - r) * tileSize))
---         in
---           case dir of
---             UpDir -> (0, roomOffset + newY + toY)
---             DownDir -> (0, -roomOffset - newY + toY)
---             LeftDir -> (-roomOffset - newX + toX, 0)
---             RightDir -> (roomOffset + newX + toX, 0)
---       Nothing -> error $ "No opposite connection found in specified direction " ++ show (oppositeDirection dir) ++ " for layout: " ++ show layout
-
---   in
---     case directionCoord of
---       Just (r,c) -> ((c - mx) * tileSize + offsetX, (r - my) * tileSize + offsetY)
---       Nothing -> let
---           errList = [ (col - mx, my - row, c) | (row, line) <- zip [0..] layout, (col, c) <- zip [0..] line, show c `elem` ["'1'", "'2'", "'3'", "'4'"] ]
---         in error $ "No connection found in specified direction " ++ show dir ++ " for layout: " ++ show layout ++ " found connections at: " ++ show errList ++ " (mx,my): " ++ show (mx,my) ++ " (length layout): " ++ show (length layout, length (head layout))
 
 checkRoomIntersectionInDirection ::  Entity -> Direction -> [[Char]] -> System' Bool
 checkRoomIntersectionInDirection e dir newLayout = do
