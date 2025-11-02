@@ -39,13 +39,13 @@ draw = do
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
     walls <- foldDraw $ \(Wall, pos, s) -> translate' pos $ getSpritePicture s
-    -- tiles <- foldDraw $ \(Tile, pos, s) -> translate' pos $ getSpritePicture s
+    tiles <- foldDraw $ \(Tile, pos, s) -> translate' pos $ getSpritePicture s
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     -- TODO: map drawing
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let world = player <> particles <> playerPosText <> walls
+    let world = player <> particles <> playerPosText <> walls <> tiles
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world

@@ -46,6 +46,18 @@ data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
 instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
 
 data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq)
+instance Enum Direction where
+    fromEnum :: Direction -> Int
+    fromEnum UpDir = 1
+    fromEnum RightDir = 2
+    fromEnum DownDir = 3
+    fromEnum LeftDir = 4
+    toEnum :: Int -> Direction
+    toEnum 1 = UpDir
+    toEnum 2 = RightDir
+    toEnum 3 = DownDir
+    toEnum 4 = LeftDir
+    toEnum _ = error "Invalid enum value for Direction"
 
 data Wall = Wall deriving Show
 instance Component Wall where type Storage Wall = Map Wall
