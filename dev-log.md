@@ -47,3 +47,8 @@ if time does not permit, make sure to discuss it in the report, saying how a pur
     - `bfsM` and the code for converting a game room entity into tiles works fine, but the actual positining code is flawed. Multiple attempts at differnet implementations have been made, but both attempts fundamentally use a single `cfoldM`. Fundamentally the position code without the actual intersection fixing is flawed, most likely to do with position calculations
 - Also noticed that performance degrades as the program is ran for longer. Not sure what causes it - whether it is a apecs/gloss issue, or an issue with my code
 - Also need to check if code is efficient. Theoretically since I am running the `initialize` function once the room gen is only done once, but want to clarify with supervisor
+
+# Term 1 Week 5
+Talking points for meeting:
+- Discuss performance issues, sources, and how to solve (e.g. ensured it is not to do with the entities in the system, it is the drawing)
+- ask about sources for the report (e.g. is the article on procedural generation appropriate even tho it is not a paper?)
