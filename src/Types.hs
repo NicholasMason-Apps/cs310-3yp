@@ -72,7 +72,7 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Sprite = Sprite (Image PixelRGBA8) (Int, Int) (Maybe Animation)
+data Sprite = Sprite (Image PixelRGBA8) (Int, Int) (Maybe Animation) -- Change Image into a list of precomputed pictures (or vectors)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
 data Animation = Animation { frameCount :: Int

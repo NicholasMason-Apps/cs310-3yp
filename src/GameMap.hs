@@ -63,7 +63,7 @@ gameRoomLayouts = [
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (5, 7) :: IO Int
-    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) 3 hubRoomCount
+    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) 1 hubRoomCount
     return $ addBossRoom t
     where
       hubRoomCount = 2

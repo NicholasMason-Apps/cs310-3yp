@@ -50,9 +50,10 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -O2
     - -threaded
     - -rtsopts
-    - -with-rtsopts=-N
+    - -with-rtsopts=-N --nonmoving-gc # LOOK INTO
     dependencies:
     - 3yp
 
