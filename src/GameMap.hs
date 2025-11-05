@@ -19,7 +19,7 @@ import Data.Tree
 import Data.List ( maximumBy, minimumBy )
 import Data.Ord ( comparing )
 import System.Random.Shuffle ( shuffleM )
-import Sprite ( loadSprite )
+import Sprite ( loadStaticSprite )
 import Data.Maybe ( listToMaybe )
 import Data.Foldable ( foldl' )
 import Data.Char (intToDigit)
@@ -141,15 +141,15 @@ generateMap = do
         halfAdjust v = if even v then tileSize / 2 else 0
         offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
         offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
-        spriteList = [ (Sprite s (tileSize, tileSize) Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let s = if c `elem` "W1234" then loadSprite "wall.png" else loadSprite "tile.png" ]
+        spriteList = [ (Sprite (tileSize, tileSize) (Left s), Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let s = if c `elem` "W1234" then loadStaticSprite "wall.png" else loadStaticSprite "tile.png" ]
     forM_ spriteList $ \(s, p, c) -> do
         if c `elem` "W1234" then
           void $ newEntity (Wall, p, s)
           -- _ -> void $ newEntity (Tile, p, s)
         else
           return ()
-    destroy e (Proxy @Position)
+    destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
     insertGameRoom parent node = do
@@ -202,7 +202,7 @@ generateMap = do
                   else
                     return acc) (cx,cy)
               set p (grP { exits = filter (/= dir) (exits grP) })
-              _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (loadSprite "tile.png") (tileSize, tileSize) Nothing)
+              _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (tileSize, tileSize) (Left $ loadStaticSprite "tile.png"))
               newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
 
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)

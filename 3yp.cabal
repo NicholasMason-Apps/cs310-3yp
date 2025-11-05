@@ -48,6 +48,7 @@ library
     , linear
     , random
     , random-shuffle
+    , vector
   default-language: Haskell2010
 
 executable 3yp-exe
@@ -58,7 +59,7 @@ executable 3yp-exe
       Paths_3yp
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N --nonmoving-gc
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=--nonmoving-gc
   build-depends:
       3yp
     , JuicyPixels
@@ -71,6 +72,7 @@ executable 3yp-exe
     , linear
     , random
     , random-shuffle
+    , vector
   default-language: Haskell2010
 
 test-suite 3yp-test
@@ -95,4 +97,5 @@ test-suite 3yp-test
     , linear
     , random
     , random-shuffle
+    , vector
   default-language: Haskell2010

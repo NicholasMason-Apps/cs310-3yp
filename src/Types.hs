@@ -20,6 +20,7 @@ import Control.Monad
 import Data.Monoid
 import Data.Semigroup (Semigroup)
 import Codec.Picture
+import qualified Data.Vector as V
 
 newtype Position = Position (V2 Float) deriving (Show)
 instance Component Position where type Storage Position = Map Position
@@ -72,12 +73,13 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Sprite = Sprite (Image PixelRGBA8) (Int, Int) (Maybe Animation) -- Change Image into a list of precomputed pictures (or vectors)
+data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
 data Animation = Animation { frameCount :: Int
                            , currentFrame :: Int
                            , frameSpeed :: Float
+                           , sprites :: V.Vector Picture
                            } deriving (Show)
 
 -- Procedural generation types

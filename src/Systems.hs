@@ -38,7 +38,7 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, MoveDirection Nothing, Position playerPos, Velocity (V2 0 0), Sprite (loadSprite "player.png") (72,24) (Just $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1 }) )
+    playerEntity <- newEntity (Player, MoveDirection Nothing, Position playerPos, Velocity (V2 0 0), Sprite (72,24) (Right $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1, sprites = loadAnimatedSprite "player.png" 3 (72,24) }))
     generateMap
     return ()
 
@@ -112,12 +112,12 @@ step dT = do
     stepAnimations dT
     -- clampPlayer
     blockPlayer
-    -- clearTargets
-    -- clearBullets
+    clearTargets
+    clearBullets
     stepParticles dT
     handleCollisions
-    -- triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
-    -- triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
+    triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
+    triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
 handleEvent :: Event -> System' ()
 -- Player movement

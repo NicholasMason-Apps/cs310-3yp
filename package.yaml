@@ -30,6 +30,7 @@ dependencies:
 - JuicyPixels
 - containers
 - random-shuffle
+- vector
 
 ghc-options:
 - -Wall
@@ -53,7 +54,8 @@ executables:
     - -O2
     - -threaded
     - -rtsopts
-    - -with-rtsopts=-N --nonmoving-gc # LOOK INTO
+    - -with-rtsopts=-N
+    - -with-rtsopts=--nonmoving-gc
     dependencies:
     - 3yp
 
