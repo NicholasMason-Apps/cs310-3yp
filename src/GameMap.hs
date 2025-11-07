@@ -37,7 +37,7 @@ gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
     [ "WWWWW1WWWW"
     , "WTTTTTTTT2"
-    , "4TTTSTTTTW"
+    , "4TTTTTTTTW"
     , "WTTTTTTTTW"
     , "WW3WWWWWWW"
     ],
@@ -57,13 +57,14 @@ gameRoomLayouts = [
     , "WWWWWTTTTTWWWWW"
     , "____WTTTTTW____"
     , "____WTTTTTW____"
-    , "____WWW3WWW____"  ]
+    , "____WWW3WWW____"
+    ]
   ]
 
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (5, 7) :: IO Int
-    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) 1 hubRoomCount
+    t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) depth hubRoomCount
     return $ addBossRoom t
     where
       hubRoomCount = 2
@@ -144,11 +145,9 @@ generateMap = do
         spriteList = [ (Sprite (tileSize, tileSize) (Left s), Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
                         | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let s = if c `elem` "W1234" then loadStaticSprite "wall.png" else loadStaticSprite "tile.png" ]
     forM_ spriteList $ \(s, p, c) -> do
-        if c `elem` "W1234" then
-          void $ newEntity (Wall, p, s)
-          -- _ -> void $ newEntity (Tile, p, s)
-        else
-          return ()
+        when (c `elem` "W1234T") $ case c of
+            'T' -> void $ newEntity (Tile, p, s)
+            _   -> void $ newEntity (Wall, p, s)
     destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity

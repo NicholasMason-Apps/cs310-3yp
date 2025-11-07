@@ -112,12 +112,12 @@ step dT = do
     stepAnimations dT
     -- clampPlayer
     blockPlayer
-    clearTargets
+    -- clearTargets
     clearBullets
     stepParticles dT
     handleCollisions
-    triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
-    triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
+    -- triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
+    -- triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
 handleEvent :: Event -> System' ()
 -- Player movement
