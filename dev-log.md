@@ -52,3 +52,9 @@ if time does not permit, make sure to discuss it in the report, saying how a pur
 Talking points for meeting:
 - Discuss performance issues, sources, and how to solve (e.g. ensured it is not to do with the entities in the system, it is the drawing)
 - ask about sources for the report (e.g. is the article on procedural generation appropriate even tho it is not a paper?)
+- To fix performance issues, adjusted the sprite/animation system from using `Image PixelRGBA8` to instead create the `Picture`s instantly, and for animations splice the image once and store the `Picture`s in a Vector for O(1) lookup. This was extremely effective
+    - A potential reason for this is that since the final `Picture`s in the original set up for animations were being computed each frame, and then discarded when the animation switched, Gloss or apecs could not cache them, resulting in substantial memory overhead as more and more Pictures were being created
+- Also implemented occlusion culling, which simply checks if a sprite is outside the viewport and just does not draw it.
+- Both of these in conjunction were very effective in fixing performance
+- Added actual sprite images into the map generation. Was not that hard - just had to consider edge cases such as picking the correct sprite for a corner in each section of a room, etc.
+- Also changed MoveDirection to use a Set instead of a Maybe to fix some bugs with animations when pressing multiple keys. Used a Set over a List or Vector since we have O(log n) insertion, deletion, and member checking compared to O(n)

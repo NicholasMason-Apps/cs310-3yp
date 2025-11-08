@@ -18,6 +18,8 @@ import Codec.Picture
 import Graphics.Gloss.Juicy (fromDynamicImage)
 import Data.Maybe
 import qualified Data.Vector as V
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 translate' :: Position -> Picture -> Picture
 translate' (Position (V2 x y)) = translate x y
@@ -49,7 +51,10 @@ isSpriteInView Nothing _ _ = True
 draw :: System' Picture
 draw = do
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    player <- foldDraw $ \(Player, pos, s) -> translate' pos $ getSpritePicture s
+    player <- foldDraw $ \(Player, pos, s, MoveDirection md) -> let
+            playerPic = getSpritePicture s
+        in
+            if LeftDir `Set.member` md && RightDir `Set.notMember` md then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
@@ -63,7 +68,7 @@ draw = do
     let playerPosText = case playerPos of
             Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let world = walls <> tiles <> bullets <> player <> playerPosText <> particles
+    let world = tiles <> walls <> bullets <> player <> playerPosText <> particles
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world

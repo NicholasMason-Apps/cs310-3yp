@@ -20,6 +20,8 @@ import Graphics.Gloss ( Picture (Blank) )
 import Graphics.Gloss.Juicy ( loadJuicy, fromDynamicImage )
 import Codec.Picture
 import qualified Data.Vector as V
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 spriteDimensions :: Sprite -> (Int, Int)
 spriteDimensions (Sprite (w,h) (Left _)) = (w, h)
@@ -65,7 +67,7 @@ stepAnimations dT = do
                 Left l -> return $ Sprite (w,h) (Left l)
                 Right a -> let
                         trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
-                    in return $ if isJust md
+                    in return $ if not (Set.null md) && not (Set.member UpDir md && Set.member DownDir md) && not (Set.member LeftDir md && Set.member RightDir md)
                         then updateAnimation (Sprite (w,h) (Right a)) trigger
                         else Sprite (w,h) (Right a { currentFrame = 1 })
         stepNonPlayerAnimations :: Float -> System' ()

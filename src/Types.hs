@@ -21,6 +21,8 @@ import Data.Monoid
 import Data.Semigroup (Semigroup)
 import Codec.Picture
 import qualified Data.Vector as V
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 newtype Position = Position (V2 Float) deriving (Show)
 instance Component Position where type Storage Position = Map Position
@@ -43,10 +45,10 @@ instance Component Player where type Storage Player = Unique Player
 data Floor = Floor deriving Show
 instance Component Floor where type Storage Floor = Map Floor
 
-data MoveDirection = MoveDirection (Maybe Direction) deriving (Show)
+data MoveDirection = MoveDirection (Set.Set Direction) deriving (Show)
 instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
 
-data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq)
+data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq, Ord)
 instance Enum Direction where
     fromEnum :: Direction -> Int
     fromEnum UpDir = 1

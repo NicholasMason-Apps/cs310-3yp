@@ -23,9 +23,32 @@ import Sprite ( loadStaticSprite )
 import Data.Maybe ( listToMaybe )
 import Data.Foldable ( foldl' )
 import Data.Char (intToDigit)
+import Graphics.Gloss
+import System.IO.Unsafe ( unsafePerformIO )
 
 tileSize :: Num a => a
 tileSize = 64
+
+tileCount :: Integer
+tileCount = 12
+
+wallBottomCount :: Integer
+wallBottomCount = 4
+
+wallLeftCount :: Integer
+wallLeftCount = 2
+
+wallRightCount :: Integer
+wallRightCount = 2
+
+wallBottomLeftElbowCount :: Integer
+wallBottomLeftElbowCount = 2
+
+wallBottomRightElbowCount :: Integer
+wallBottomRightElbowCount = 2
+
+wallTopCount :: Integer
+wallTopCount = 3
 
 roomOffset :: Num a => a
 roomOffset = 4 * tileSize
@@ -43,7 +66,9 @@ gameRoomLayouts = [
     ],
     [ "WWWWWWW1WWWWWWW"
     , "WTTTTTTTTTTTTTW"
+    , "WTTTTTTTTTTTTTW"
     , "4TTTTTTTTTTTTT2"
+    , "WTTTTTTTTTTTTTW"
     , "WTTTTTTTTTTTTTW"
     , "WWWWWWW3WWWWWWW"
     ],
@@ -63,11 +88,11 @@ gameRoomLayouts = [
 
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
-    depth <- randomRIO (5, 7) :: IO Int
+    depth <- randomRIO (4, 6) :: IO Int
     t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) depth hubRoomCount
     return $ addBossRoom t
     where
-      hubRoomCount = 2
+      hubRoomCount = 1
 
 addRoom :: Tree RoomType -> Tree RoomType -> Tree RoomType
 addRoom t rt = Node { rootLabel = rootLabel t, subForest = subForest t ++ [rt] }
@@ -87,8 +112,7 @@ recursiveGenerate t depth hubRoomCount = do
     case rootLabel newNode of
       HubRoom -> do
           if hubRoomCount > 0 then do
-            n <- randomRIO (2, 3) :: IO Int
-            children <- replicateM n $ recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
+            children <- replicateM 2 $ recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
             let hubNode = newNode { subForest = children }
             return $ addRoom t hubNode
           else do
@@ -133,21 +157,95 @@ generateMap = do
     let layout = roomLayout gr
         w = length $ head layout
         h = length layout
+        selectSprite :: Char -> (Int,Int) -> IO (Picture, Char)
+        selectSprite c (x,y)
+          | c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' = do
+              if (c == '1' && UpDir `notElem` exits gr) ||
+                  (c == '2' && RightDir `notElem` exits gr) ||
+                  (c == '3' && DownDir `notElem` exits gr) ||
+                  (c == '4' && LeftDir `notElem` exits gr) then do -- Not blocked exit
+                n <- randomRIO (1, tileCount) :: IO Integer
+                return (loadStaticSprite $ "tiles/tile" ++ show n ++ ".png", 'T')
+              else if fromIntegral x <= midW && fromIntegral y <= midH then do -- Top left
+                if layout !! (y+1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Elbow
+                  n <- randomRIO (1, wallTopCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-top" ++ show n ++ ".png", 'W')
+                else if y > 0 && layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Up Elbow
+                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", 'W')
+                else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall 
+                  n <- randomRIO (1, wallLeftCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-left" ++ show n ++ ".png", 'W')
+                else do -- Top Wall
+                  n <- randomRIO (1, wallTopCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-top" ++ show n ++ ".png", 'W')
+              else if fromIntegral x > midW && fromIntegral y <= midH then do -- Top right
+                if layout !! (y+1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Elbow
+                  n <- randomRIO (1, wallTopCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-top" ++ show n ++ ".png", 'W')
+                else if y > 0 && layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Up Elbow
+                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", 'W')
+                else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
+                  n <- randomRIO (1, wallRightCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-right" ++ show n ++ ".png", 'W')
+                else do -- Top Wall
+                  n <- randomRIO (1, wallTopCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-top" ++ show n ++ ".png", 'W')
+              else if fromIntegral x <= midW && fromIntegral y > midH then do -- Bottom left
+                if (layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr) ||
+                   (layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr) ||
+                   (layout !! (y-1) !! x == 'T' && layout !! y !! (x+1) == 'T') then do -- Left Elbow
+                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", 'W')
+                else if x > 0 && layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr then do -- Right elbow
+                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", 'W')
+                else if layout !! (y-1) !! x == 'W' && layout !! y !! (x+1) == 'W' then do -- Bottom Left Corner
+                  return (loadStaticSprite "tiles/wall-bottom-left.png", 'W')
+                else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall
+                  n <- randomRIO (1, wallLeftCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-left" ++ show n ++ ".png", 'W')
+                else do -- Bottom Wall
+                  n <- randomRIO (1, wallBottomCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom" ++ show n ++ ".png", 'W')
+              else -- Bottom right
+                if (layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr) ||
+                   (layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr) ||
+                   (layout !! (y-1) !! x == 'T' && layout !! y !! (x-1) == 'T') then do -- Right Elbow
+                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", 'W')
+                else if x < (w - 1) && layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr then do -- Left Elbow
+                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", 'W')
+                else if layout !! (y-1) !! x == 'W' && layout !! y !! (x-1) == 'W' then do -- Bottom Right Corner
+                  return (loadStaticSprite "tiles/wall-bottom-right.png", 'W')
+                else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
+                  n <- randomRIO (1, wallRightCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-right" ++ show n ++ ".png", 'W')
+                else do -- Bottom Wall
+                  n <- randomRIO (1, wallBottomCount) :: IO Integer
+                  return (loadStaticSprite $ "tiles/wall-bottom" ++ show n ++ ".png", 'W')
+          | otherwise = do
+            n <- randomRIO (1, tileCount) :: IO Integer
+            return (loadStaticSprite $ "tiles/tile" ++ show n ++ ".png", 'T')
+          where
+            midW :: Float
+            midW = fromIntegral (w - 1) / 2
+            midH :: Float
+            midH = fromIntegral (h - 1) / 2
+
         tileCheck :: Char -> Bool
-        tileCheck c = (c `notElem` " _1234") ||
-                      (c == '1' && UpDir `elem` exits gr) ||
-                      (c == '2' && RightDir `elem` exits gr) ||
-                      (c == '3' && DownDir `elem` exits gr) ||
-                      (c == '4' && LeftDir `elem` exits gr)
+        tileCheck c = c `notElem` " _"
         halfAdjust v = if even v then tileSize / 2 else 0
         offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
         offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
-        spriteList = [ (Sprite (tileSize, tileSize) (Left s), Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), c)
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let s = if c `elem` "W1234" then loadStaticSprite "wall.png" else loadStaticSprite "tile.png" ]
-    forM_ spriteList $ \(s, p, c) -> do
-        when (c `elem` "W1234T") $ case c of
-            'T' -> void $ newEntity (Tile, p, s)
-            _   -> void $ newEntity (Wall, p, s)
+        spriteList = [ (Sprite (tileSize, tileSize) (Left s), Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), t)
+                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let (s,t) = unsafePerformIO $ selectSprite c (x,y) ]
+    forM_ spriteList $ \(s, p, t) -> do
+        case t of
+          'T' -> void $ newEntity (Tile, p, s)
+          _   -> void $ newEntity (Wall, p, s)
     destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
@@ -177,6 +275,7 @@ generateMap = do
               newEntity (newGr, finalPos)
             Nothing -> do
               -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
+              liftIO $ print $ zip intersections (exits grP)
               let dir = head (exits grP)
                   (cx, cy) = connectionPosition dir (roomLayout grP) newLayout
                   distanceToClear dir' (cX, cY) (cW, cH) (oX, oY) (oW, oH) = let
@@ -200,10 +299,10 @@ generateMap = do
                         RightDir -> return (fst acc + shiftAmount + roomOffset, snd acc)
                   else
                     return acc) (cx,cy)
-              set p (grP { exits = filter (/= dir) (exits grP) })
-              _ <- newEntity (Tile, Position (V2 (fx + px) (fy + py)), Sprite (tileSize, tileSize) (Left $ loadStaticSprite "tile.png"))
+              set p (grP { exits = drop 1 $ exits grP })
               newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
 
+-- Given a direction and two room layouts, finds the position for the new layout relative to the current layout
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
 connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoord) of
     (Just (rA, cA), Just (rB, cB)) -> let
@@ -216,7 +315,11 @@ connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoor
         cxB = offXA - offXB
         cyB = offYA - offYB
       in
-        (cxB, cyB)
+        case dir of
+          UpDir    -> (cxB, cyB + tileSize)
+          DownDir  -> (cxB, cyB - tileSize)
+          LeftDir  -> (cxB - tileSize, cyB)
+          RightDir -> (cxB + tileSize, cyB)
     _ -> error $ "No connection found for direction " ++ show dir ++ " in layouts: " ++ show layout ++ " and " ++ show newLayout
   where
     directionCoord = listToMaybe [ (r,c) | (r, row) <- zip [0..] layout, (c, ch) <- zip [0..] row, ch == intToDigit (fromEnum dir) ]
@@ -228,6 +331,7 @@ connectionPosition dir layout newLayout = case (directionCoord, oppDirectionCoor
       in
         (offsetX, offsetY)
 
+-- Checks if placing a room in a given direction would intersect with any existing rooms
 checkRoomIntersectionInDirection ::  Entity -> Direction -> [[Char]] -> System' Bool
 checkRoomIntersectionInDirection e dir newLayout = do
   Position (V2 x y) <- get e :: System' Position
@@ -268,9 +372,10 @@ oppositeDirection RightDir = LeftDir
 -- and returns m b as the result for the current node
 -- b is the type of value to be passed down the tree (e.g., Entity)
 bfsM :: Monad m => (Maybe b -> Tree a -> m b) -> Tree a -> m ()
-bfsM f tree = go Nothing [tree]
+bfsM f tree = go [(Nothing, tree)]
   where
-    go _ [] = return ()
-    go p (n:ns) = do
-      n' <- f p n
-      go (Just n') (ns ++ subForest n)
+    go [] = return ()
+    go ((parent, node):xs) = do
+      b <- f parent node
+      let children = map (\child -> (Just b, child)) (subForest node)
+      go (xs ++ children)

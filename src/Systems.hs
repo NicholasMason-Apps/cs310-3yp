@@ -19,9 +19,11 @@ import Control.Monad
 import Types
 import Sprite
 import GameMap
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
-playerSpeed = 170
+playerSpeed = 500
 bulletSpeed = 500
 enemySpeed  = 80
 xmin = -640
@@ -38,16 +40,13 @@ scorePos  = V2 xmin (-170)
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    playerEntity <- newEntity (Player, MoveDirection Nothing, Position playerPos, Velocity (V2 0 0), Sprite (72,24) (Right $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1, sprites = loadAnimatedSprite "player.png" 3 (72,24) }))
+    playerEntity <- newEntity (Player, MoveDirection Set.empty, Position playerPos, Velocity (V2 0 0), Sprite (72,24) (Right $ Animation { frameCount = 3, currentFrame = 1, frameSpeed = 0.1, sprites = loadAnimatedSprite "player.png" 3 (72,24) }))
     generateMap
     return ()
 
-stepPositionFormula :: Float -> Position -> Velocity -> Position
-stepPositionFormula dT (Position p) (Velocity v) = Position (p + dT *^ v)
-
 -- Update positions based on velocity and delta time
 stepPosition :: Float -> System' ()
-stepPosition dT = cmap $ uncurry (stepPositionFormula dT)
+stepPosition dT = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
 
 -- Lock the player's position within the screen bounds
 clampPlayer :: System' ()
@@ -111,7 +110,7 @@ step dT = do
     stepPosition dT
     stepAnimations dT
     -- clampPlayer
-    blockPlayer
+    -- blockPlayer
     -- clearTargets
     clearBullets
     stepParticles dT
@@ -121,44 +120,30 @@ step dT = do
 
 handleEvent :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection _, e) -> do
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 (x - playerSpeed) y))
-    set e (MoveDirection $ Just LeftDir)
+    set e (MoveDirection $ Set.insert LeftDir md)
 handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 (x+playerSpeed) y))
-    if md == Just LeftDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection md)
+    set e (MoveDirection $ Set.delete LeftDir md)
 handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 (x+playerSpeed) y))
-    if md == Just RightDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection $ Just RightDir)
+    set e (MoveDirection $ Set.insert RightDir md)
 handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 (x-playerSpeed) y))
-    if md == Just RightDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection md)
+    set e (MoveDirection $ Set.delete RightDir md)
 handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
-        set e (Velocity (V2 x (y+playerSpeed)))
-        if md == Just UpDir
-            then set e (MoveDirection Nothing)
-            else set e (MoveDirection $ Just UpDir)
+    set e (Velocity (V2 x (y+playerSpeed)))
+    set e (MoveDirection $ Set.insert UpDir md)
 handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 x (y-playerSpeed)))
-    if md == Just UpDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection md)
+    set e (MoveDirection $ Set.delete UpDir md)
 handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 x (y-playerSpeed)))
-    if md == Just DownDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection $ Just DownDir)
+    set e (MoveDirection $ Set.insert DownDir md)
 handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, e) -> do
     set e (Velocity (V2 x (y+playerSpeed)))
-    if md == Just DownDir
-        then set e (MoveDirection Nothing)
-        else set e (MoveDirection md)
+    set e (MoveDirection $ Set.delete DownDir md)
 -- Player shooting
 handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
