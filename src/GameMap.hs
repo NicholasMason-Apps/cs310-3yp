@@ -25,33 +25,7 @@ import Data.Foldable ( foldl' )
 import Data.Char (intToDigit)
 import Graphics.Gloss
 import System.IO.Unsafe ( unsafePerformIO )
-
-tileSize :: Num a => a
-tileSize = 64
-
-tileCount :: Integer
-tileCount = 12
-
-wallBottomCount :: Integer
-wallBottomCount = 4
-
-wallLeftCount :: Integer
-wallLeftCount = 2
-
-wallRightCount :: Integer
-wallRightCount = 2
-
-wallBottomLeftElbowCount :: Integer
-wallBottomLeftElbowCount = 2
-
-wallBottomRightElbowCount :: Integer
-wallBottomRightElbowCount = 2
-
-wallTopCount :: Integer
-wallTopCount = 3
-
-roomOffset :: Num a => a
-roomOffset = 4 * tileSize
+import Utils
 
 getRoomSize :: [String] -> (Float, Float)
 getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegral (length layout) * tileSize)

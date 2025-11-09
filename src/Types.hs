@@ -75,8 +75,14 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
+data Sprite = Sprite (Int, Int) (Either Picture Animations) deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
+
+data Animations = Animations {
+    idle :: Animation,
+    walk :: Animation,
+    current :: Animation
+} deriving Show
 
 data Animation = Animation { frameCount :: Int
                            , currentFrame :: Int

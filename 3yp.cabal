@@ -30,6 +30,7 @@ library
       Sprite
       Systems
       Types
+      Utils
   other-modules:
       Paths_3yp
   autogen-modules:

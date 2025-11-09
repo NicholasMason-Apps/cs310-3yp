@@ -30,20 +30,17 @@ diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
 getSpritePicture :: Sprite -> Picture
 getSpritePicture (Sprite _ (Left p)) = p
-getSpritePicture (Sprite _ (Right a)) = sprites a V.! (currentFrame a - 1)
+getSpritePicture (Sprite _ (Right a)) = sprites (current a) V.! (currentFrame (current a) - 1)
 
 isSpriteInView :: Maybe (V2 Float) -> Sprite -> Position -> Bool
-isSpriteInView (Just (V2 px py)) (Sprite (w,h) p) (Position (V2 sx sy)) =
+isSpriteInView (Just (V2 px py)) (Sprite (w,h) _) (Position (V2 sx sy)) =
     let
-        w' = case p of
-            Left _ -> w
-            Right a -> w `div` frameCount a
         vw = 1280
         vh = 720
         inViewTop = py + vh / 2 >= sy - fromIntegral h / 2
         inViewBottom = py - vh / 2 <= sy + fromIntegral h / 2
-        inViewLeft = px - vw / 2 <= sx + fromIntegral w' / 2
-        inViewRight = px + vw / 2 >= sx - fromIntegral w' / 2
+        inViewLeft = px - vw / 2 <= sx + fromIntegral w / 2
+        inViewRight = px + vw / 2 >= sx - fromIntegral w / 2
     in
         inViewTop && inViewBottom && inViewLeft && inViewRight
 isSpriteInView Nothing _ _ = True
@@ -51,6 +48,7 @@ isSpriteInView Nothing _ _ = True
 draw :: System' Picture
 draw = do
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
+    playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
     player <- foldDraw $ \(Player, pos, s, MoveDirection md) -> let
             playerPic = getSpritePicture s
         in
@@ -66,9 +64,12 @@ draw = do
         then translate' pos $ getSpritePicture s
         else Blank
     let playerPosText = case playerPos of
-            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "(" ++ show (round x) ++ "," ++ show (round y) ++ ")"
+            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
-    let world = tiles <> walls <> bullets <> player <> playerPosText <> particles
+    let playerVelocityText = case (playerVelocity, playerPos) of
+            (Just (V2 vx vy), Just (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
+            _         -> Blank
+    let world = tiles <> walls <> bullets <> player <> playerPosText <> playerVelocityText <> particles
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world

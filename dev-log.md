@@ -58,3 +58,7 @@ Talking points for meeting:
 - Both of these in conjunction were very effective in fixing performance
 - Added actual sprite images into the map generation. Was not that hard - just had to consider edge cases such as picking the correct sprite for a corner in each section of a room, etc.
 - Also changed MoveDirection to use a Set instead of a Maybe to fix some bugs with animations when pressing multiple keys. Used a Set over a List or Vector since we have O(log n) insertion, deletion, and member checking compared to O(n)
+
+# Term 1 Week 6
+Talking points for meeting:
+- Discuss best way to do the animation storing - currently it duplicates data which is bad, but also do not want to interact with IO more than is necessary since memory fetching is slow

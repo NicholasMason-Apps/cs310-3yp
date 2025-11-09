@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, blockPlayer, loadStaticSprite, loadAnimatedSprite, stepAnimations) where
+module Sprite (spriteDimensions, blockPlayer, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula) where
 
 import Apecs
 import Linear
@@ -22,30 +22,47 @@ import Codec.Picture
 import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Utils
 
 spriteDimensions :: Sprite -> (Int, Int)
-spriteDimensions (Sprite (w,h) (Left _)) = (w, h)
-spriteDimensions (Sprite (w,h) (Right a)) = (w `div` frameCount a, h)
+spriteDimensions (Sprite (w,h) _) = (w, h)
 
 -- Block the player from moving into walls
-blockPlayer :: System' ()
-blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
-    cmapM $ \(Player, Position posP, spriteP) -> do
-        let top = checkBoundaryBoxTopIntersection posP spriteP posW spriteW
-            bottom = checkBoundaryBoxBottomIntersection posP spriteP posW spriteW
-            left = checkBoundaryBoxLeftIntersection posP spriteP posW spriteW
-            right = checkBoundaryBoxRightIntersection posP spriteP posW spriteW
-            (wp, hp) = spriteDimensions spriteP
-            (ww, hw) = spriteDimensions spriteW
-            (V2 x _) = posP
-            (V2 xw yw) = posW
-        posP' <- if top then return $ Position (V2 x (yw + (fromIntegral hw / 2) + (fromIntegral hp / 2))) else return $ Position posP
-        let (Position (V2 x' _)) = posP'
-        posP'' <- if bottom then return $ Position (V2 x' (yw - (fromIntegral hw / 2) - (fromIntegral hp / 2))) else return posP'
-        let (Position (V2 _ y'')) = posP''
-        posP''' <- if left then return $ Position (V2 (xw - (fromIntegral ww / 2) - (fromIntegral wp / 2)) y'') else return posP''
-        let (Position (V2 _ y''')) = posP'''
-        return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
+blockPlayer :: Float -> System' ()
+-- blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
+--     cmapM $ \(Player, Position posP, spriteP) -> do
+--         let top = checkBoundaryBoxTopIntersection posP spriteP posW spriteW
+--             bottom = checkBoundaryBoxBottomIntersection posP spriteP posW spriteW
+--             left = checkBoundaryBoxLeftIntersection posP spriteP posW spriteW
+--             right = checkBoundaryBoxRightIntersection posP spriteP posW spriteW
+--             (wp, hp) = spriteDimensions spriteP
+--             (ww, hw) = spriteDimensions spriteW
+--             (V2 x _) = posP
+--             (V2 xw yw) = posW
+--         posP' <- if top then return $ Position (V2 x (yw + (fromIntegral hw / 2) + (fromIntegral hp / 2))) else return $ Position posP
+--         let (Position (V2 x' _)) = posP'
+--         posP'' <- if bottom then return $ Position (V2 x' (yw - (fromIntegral hw / 2) - (fromIntegral hp / 2))) else return posP'
+--         let (Position (V2 _ y'')) = posP''
+--         posP''' <- if left then return $ Position (V2 (xw - (fromIntegral ww / 2) - (fromIntegral wp / 2)) y'') else return posP''
+--         let (Position (V2 _ y''')) = posP'''
+--         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
+blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), spriteP) -> do
+    let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
+    cfold (\acc (Wall, Position posW, spriteW) ->
+        let
+            top = checkBoundaryBoxTopIntersection tempPos spriteP posW spriteW
+            bottom = checkBoundaryBoxBottomIntersection tempPos spriteP posW spriteW
+            left = checkBoundaryBoxLeftIntersection tempPos spriteP posW spriteW
+            right = checkBoundaryBoxRightIntersection tempPos spriteP posW spriteW
+            (Velocity (V2 avx avy)) = acc
+        in
+            if (top && vy < 0) || (bottom && vy > 0) then
+                Velocity (V2 avx 0)
+            else if (left && vx > 0) || (right && vx < 0) then
+                Velocity (V2 0 avy)
+            else
+                acc) (Velocity (V2 vx vy))
+
 
 stepAnimations :: Float -> System' ()
 stepAnimations dT = do
@@ -57,8 +74,8 @@ stepAnimations dT = do
         updateAnimation (Sprite (w,h) (Right a)) trigger =
             if trigger
             then let
-                newFrame = (currentFrame a `mod` frameCount a) + 1
-                in Sprite (w,h) (Right a { currentFrame = newFrame })
+                newFrame = (currentFrame (current a) `mod` frameCount (current a)) + 1
+                in Sprite (w,h) (Right a { current = (current a) { currentFrame = newFrame } })
             else Sprite (w,h) (Right a)
         stepPlayerAnimations :: Float -> System' ()
         stepPlayerAnimations dT = cmapM $ \(Player, Sprite (w,h) e, MoveDirection md) -> do
@@ -66,10 +83,8 @@ stepAnimations dT = do
             case e of
                 Left l -> return $ Sprite (w,h) (Left l)
                 Right a -> let
-                        trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
-                    in return $ if not (Set.null md) && not (Set.member UpDir md && Set.member DownDir md) && not (Set.member LeftDir md && Set.member RightDir md)
-                        then updateAnimation (Sprite (w,h) (Right a)) trigger
-                        else Sprite (w,h) (Right a { currentFrame = 1 })
+                        trigger = floor (t / frameSpeed (current a)) /= floor ((t + dT) / frameSpeed (current a))
+                    in return $ updateAnimation (Sprite (w,h) (Right a)) trigger
         stepNonPlayerAnimations :: Float -> System' ()
         stepNonPlayerAnimations dT = cmapM_ $ \(Sprite (w,h) e', e) -> do
             Time t <- get global
@@ -77,7 +92,7 @@ stepAnimations dT = do
             unless isPlayer $ case e' of
                 Left _ -> return ()
                 Right a -> let
-                        trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                        trigger = floor (t / frameSpeed (current a)) /= floor ((t + dT) / frameSpeed (current a))
                     in set e $ updateAnimation (Sprite (w,h) (Right a)) trigger
 
 -- Boundary box collision detection
