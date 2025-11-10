@@ -38,9 +38,32 @@ initialize = do
     generateMap
     return ()
 
+updatePlayerDirection :: System' ()
+updatePlayerDirection = cmapM $ \(Player, MoveDirection md) -> do
+    Keys pressedKeys <- get global :: System' Keys
+    let md' = if Set.member KeyLeft pressedKeys then Set.insert LeftDir md else Set.delete LeftDir md
+        md'' = if Set.member KeyRight pressedKeys then Set.insert RightDir md' else Set.delete RightDir md'
+        md''' = if Set.member KeyUp pressedKeys then Set.insert UpDir md'' else Set.delete UpDir md''
+        md'''' = if Set.member KeyDown pressedKeys then Set.insert DownDir md''' else Set.delete DownDir md'''
+    return $ MoveDirection md''''
+
+setVelocity :: System' ()
+setVelocity = cmap $ \(Velocity _, MoveDirection md) ->
+    let vx'
+          | Set.member LeftDir md && Set.notMember RightDir md = -playerSpeed
+          | Set.member RightDir md && Set.notMember LeftDir md = playerSpeed
+          | otherwise = 0
+        vy'
+          | Set.member UpDir md && Set.notMember DownDir md = playerSpeed
+          | Set.member DownDir md && Set.notMember UpDir md = -playerSpeed
+          | otherwise = 0
+    in Velocity (V2 vx' vy')
+
 -- Update positions based on velocity and delta time
 stepPosition :: Float -> System' ()
-stepPosition dT = cmap $ uncurry (stepPositionFormula dT)
+stepPosition dT = cmapM_ $ \(Position p, Velocity v, e) -> do
+    set e (stepPositionFormula dT (Position p) (Velocity v))
+    -- set e (Velocity (V2 0 0)) -- Reset velocity after moving
 
 -- Lock the player's position within the screen bounds
 clampPlayer :: System' ()
@@ -101,6 +124,8 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
+    updatePlayerDirection
+    setVelocity
     blockPlayer dT
     stepPosition dT
     stepAnimations dT
@@ -114,72 +139,80 @@ step dT = do
 
 handleEvent :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    set e (Velocity (V2 (x - playerSpeed) y))
-    set e (MoveDirection $ Set.insert LeftDir md)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    let newSet = Set.delete LeftDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
-    if Set.member RightDir newSet then
-        set e (Velocity (V2 (x + playerSpeed) y))
-    else
-        set e (Velocity (V2 0 y))
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    set e (Velocity (V2 (x+playerSpeed) y))
-    set e (MoveDirection $ Set.insert RightDir md)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    let newSet = Set.delete RightDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
-    if Set.member LeftDir newSet then
-        set e (Velocity (V2 (x - playerSpeed) y))
-    else
-        set e (Velocity (V2 0 y))
-handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    set e (Velocity (V2 x (y+playerSpeed)))
-    let newSet = Set.insert UpDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    let newSet = Set.delete UpDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
-    if Set.member DownDir newSet then
-        set e (Velocity (V2 x (y - playerSpeed)))
-    else
-        set e (Velocity (V2 x 0))
-handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    set e (Velocity (V2 x (y-playerSpeed)))
-    let newSet = Set.insert DownDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
-    let newSet = Set.delete DownDir md
-    set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
-    if Set.member UpDir newSet then
-        set e (Velocity (V2 x (y + playerSpeed)))
-    else
-        set e (Velocity (V2 x 0))
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = modify global $ \(Keys ks) -> Keys (Set.insert KeyLeft ks)
+handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = modify global $ \(Keys ks) -> Keys (Set.delete KeyLeft ks)
+handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = modify global $ \(Keys ks) -> Keys (Set.insert KeyRight ks)
+handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = modify global $ \(Keys ks) -> Keys (Set.delete KeyRight ks)
+handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = modify global $ \(Keys ks) -> Keys (Set.insert KeyUp ks)
+handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = modify global $ \(Keys ks) -> Keys (Set.delete KeyUp ks)
+handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = modify global $ \(Keys ks) -> Keys (Set.insert KeyDown ks)
+handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = modify global $ \(Keys ks) -> Keys (Set.delete KeyDown ks)
+-- handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     set e (Velocity (V2 (x - playerSpeed) y))
+--     set e (MoveDirection $ Set.insert LeftDir md)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
+-- handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     let newSet = Set.delete LeftDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+--     if Set.member RightDir newSet then
+--         set e (Velocity (V2 (x + playerSpeed) y))
+--     else
+--         set e (Velocity (V2 0 y))
+-- handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     set e (Velocity (V2 (x+playerSpeed) y))
+--     set e (MoveDirection $ Set.insert RightDir md)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
+-- handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     let newSet = Set.delete RightDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+--     if Set.member LeftDir newSet then
+--         set e (Velocity (V2 (x - playerSpeed) y))
+--     else
+--         set e (Velocity (V2 0 y))
+-- handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     set e (Velocity (V2 x (y+playerSpeed)))
+--     let newSet = Set.insert UpDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
+-- handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     let newSet = Set.delete UpDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+--     if Set.member DownDir newSet then
+--         set e (Velocity (V2 x (y - playerSpeed)))
+--     else
+--         set e (Velocity (V2 x 0))
+-- handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     set e (Velocity (V2 x (y-playerSpeed)))
+--     let newSet = Set.insert DownDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
+-- handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+--     let newSet = Set.delete DownDir md
+--     set e (MoveDirection newSet)
+--     case lr of
+--         Left _ -> return ()
+--         Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+--     if Set.member UpDir newSet then
+--         set e (Velocity (V2 x (y + playerSpeed)))
+--     else
+--         set e (Velocity (V2 x 0))
 -- Player shooting
 handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
