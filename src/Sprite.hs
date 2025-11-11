@@ -24,6 +24,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Utils
 
+spriteDimensions :: Sprite -> (Int, Int)
+spriteDimensions (Sprite (w,h) _) = (w, h)
 
 -- Block the player from moving into walls
 blockPlayer :: Float -> System' ()
@@ -45,10 +47,9 @@ blockPlayer :: Float -> System' ()
 --         let (Position (V2 _ y''')) = posP'''
 --         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
 blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), spriteP) -> do
-    -- let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
+    let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
     cfold (\acc (Wall, Position posW, spriteW) ->
         let
-            (Position tempPos) = stepPositionFormula t (Position posP) acc
             top = checkBoundaryBoxTopIntersection tempPos spriteP posW spriteW
             bottom = checkBoundaryBoxBottomIntersection tempPos spriteP posW spriteW
             left = checkBoundaryBoxLeftIntersection tempPos spriteP posW spriteW
@@ -93,6 +94,61 @@ stepAnimations dT = do
                 Right a -> let
                         trigger = floor (t / frameSpeed (current a)) /= floor ((t + dT) / frameSpeed (current a))
                     in set e $ updateAnimation (Sprite (w,h) (Right a)) trigger
+
+-- Boundary box collision detection
+-- Note: Sprite positions are centered based on their Position component
+checkBoundaryBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2
+    where
+        (w1,h1) = spriteDimensions s1
+        (w2,h2) = spriteDimensions s2
+        left1 = x1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral w1/2
+        top1  = y1 - fromIntegral h1/2
+        bottom1 = y1 + fromIntegral h1/2
+        left2 = x2 - fromIntegral w2/2
+        right2 = x2 + fromIntegral w2/2
+        bottom2 = y2 + fromIntegral h2/2
+checkBoundaryBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2
+    where
+        (w1,h1) = spriteDimensions s1
+        (w2,h2) = spriteDimensions s2
+        left1 = x1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral w1/2
+        top1  = y1 - fromIntegral h1/2
+        bottom1 = y1 + fromIntegral h1/2
+        left2 = x2 - fromIntegral w2/2
+        right2 = x2 + fromIntegral w2/2
+        top2  = y2 - fromIntegral h2/2
+checkBoundaryBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2
+    where
+        (w1,h1) = spriteDimensions s1
+        (w2,h2) = spriteDimensions s2
+        left1 = x1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral w1/2
+        top1  = y1 - fromIntegral h1/2
+        bottom1 = y1 + fromIntegral h1/2
+        left2 = x2 - fromIntegral w2/2
+        top2  = y2 - fromIntegral h2/2
+        bottom2 = y2 + fromIntegral h2/2
+checkBoundaryBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
+checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+    left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2
+    where
+        (w1,h1) = spriteDimensions s1
+        (w2,h2) = spriteDimensions s2
+        left1 = x1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral w1/2
+        top1  = y1 - fromIntegral h1/2
+        bottom1 = y1 + fromIntegral h1/2
+        right2 = x2 + fromIntegral w2/2
+        top2  = y2 - fromIntegral h2/2
+        bottom2 = y2 + fromIntegral h2/2
 
 loadStaticSprite :: FilePath -> Picture
 loadStaticSprite path = let

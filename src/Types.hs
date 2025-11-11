@@ -75,12 +75,6 @@ instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Keys = Keys (Set.Set SpecialKey) deriving Show
-instance Semigroup Keys where
-    (Keys a) <> (Keys b) = Keys (Set.union a b)
-instance Monoid Keys where mempty = Keys Set.empty
-instance Component Keys where type Storage Keys = Global Keys
-
 data Sprite = Sprite (Int, Int) (Either Picture Animations) deriving (Show)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
@@ -122,8 +116,7 @@ makeWorld "World" [''Position,
                     ''Wall,
                     ''MoveDirection,
                     ''GameRoom,
-                    ''Tile,
-                    ''Keys]
+                    ''Tile]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)
