@@ -62,3 +62,7 @@ Talking points for meeting:
 # Term 1 Week 6
 Talking points for meeting:
 - Discuss best way to do the animation storing - currently it duplicates data which is bad, but also do not want to interact with IO more than is necessary since memory fetching is slow
+- Discuss the best way to do the game space storing - when entering combat i envision the scene being switched to something else (e.g. a combat scene) with different background, different environment of input handling, etc. so from that what would be the best "stuff" to store to preserve the information of the game without using a lot of memory but also considering in transition times?
+    - essentially want a near instant transition from dungeon to combat and vice versa, so should i store all the entities of the game map and only draw them when it is a game scene, or store the game rooms and then each time going into combat delete the tiles and then readd them into the component space?? not really sure
+
+- spent a lot of time trying to fix the movement issues but nothing worked. can be seen in the commit history and what i reverted back to. for now just keeping it as it is and doing enemies. the closest i got was keeping a global set of the keys pressed and updating the player velocity exclusively each frame and then calculating whether collisions occurred for every entity which would need it, but this had edge cases of allowing the player to clip.

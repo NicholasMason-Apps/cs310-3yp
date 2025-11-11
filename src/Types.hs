@@ -42,6 +42,9 @@ instance Component Particle where type Storage Particle = Map Particle
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
+data Enemy = Enemy deriving Show
+instance Component Enemy where type Storage Enemy = Map Enemy
+
 data Floor = Floor deriving Show
 instance Component Floor where type Storage Floor = Map Floor
 
