@@ -120,14 +120,43 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
     t <- liftIO $ randomRIO (0.02, 0.3)
     newEntity (Particle t, pos, Velocity (V2 vx vy))
 
+stepPositions :: Float -> System' ()
+stepPositions dT = cmapM $ \(Position p, Velocity _, MoveDirection md, s) -> do
+    let vx'
+          | Set.member LeftDir md && Set.notMember RightDir md = -playerSpeed
+          | Set.member RightDir md && Set.notMember LeftDir md = playerSpeed
+          | otherwise = 0
+        vy'
+          | Set.member UpDir md && Set.notMember DownDir md = playerSpeed
+          | Set.member DownDir md && Set.notMember UpDir md = -playerSpeed
+          | otherwise = 0
+    v' <- cfold (\acc (Wall, Position posW, spriteW) ->
+        let
+            (Position tempPos) = stepPositionFormula dT (Position p) (Velocity (V2 vx' vy'))
+            top = checkBoundaryBoxTopIntersection tempPos s posW spriteW
+            bottom = checkBoundaryBoxBottomIntersection tempPos s posW spriteW
+            left = checkBoundaryBoxLeftIntersection tempPos s posW spriteW
+            right = checkBoundaryBoxRightIntersection tempPos s posW spriteW
+            (V2 avx avy) = acc
+        in
+            if (top && vy' < 0) || (bottom && vy' > 0) then
+                V2 avx 0
+            else if (left && vx' > 0) || (right && vx' < 0) then
+                V2 0 avy
+            else
+                acc) (V2 vx' vy')
+    return $ stepPositionFormula dT (Position p) (Velocity v')
+    
+
 -- TODO: Add boundary box collision check and stop player movement
 step :: Float -> System' ()
 step dT = do
     incrementTime dT
     updatePlayerDirection
-    setVelocity
-    blockPlayer dT
-    stepPosition dT
+    stepPositions dT
+    -- setVelocity
+    -- blockPlayer dT
+    -- stepPosition dT
     stepAnimations dT
     -- clampPlayer
     -- clearTargets
