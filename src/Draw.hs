@@ -54,6 +54,7 @@ draw = do
         in
             if LeftDir `Set.member` md && RightDir `Set.notMember` md then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
+    enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture s
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond
     particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
         translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
@@ -69,7 +70,7 @@ draw = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    let world = tiles <> walls <> bullets <> player <> playerPosText <> playerVelocityText <> particles
+    let world = tiles <> walls <> bullets <> player <> enemies <> playerPosText <> playerVelocityText <> particles
     let camera = case playerPos of
             Just (V2 x y) -> translate (-x) (-y) world
             Nothing       -> world

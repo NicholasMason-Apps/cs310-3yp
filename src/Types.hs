@@ -42,8 +42,10 @@ instance Component Particle where type Storage Particle = Map Particle
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
-data Enemy = Enemy deriving Show
+data Enemy = Enemy { enemyType :: EnemyType } deriving Show
 instance Component Enemy where type Storage Enemy = Map Enemy
+
+data EnemyType = Reaper | Vampire | Skeleton deriving Show
 
 data Floor = Floor deriving Show
 instance Component Floor where type Storage Floor = Map Floor
@@ -87,6 +89,8 @@ data Animations = Animations {
     current :: Animation
 } deriving Show
 
+-- extract sprite sheets 
+
 data Animation = Animation { frameCount :: Int
                            , currentFrame :: Int
                            , frameSpeed :: Float
@@ -119,7 +123,8 @@ makeWorld "World" [''Position,
                     ''Wall,
                     ''MoveDirection,
                     ''GameRoom,
-                    ''Tile]
+                    ''Tile,
+                    ''Enemy]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

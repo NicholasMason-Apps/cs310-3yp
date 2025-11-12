@@ -64,5 +64,17 @@ Talking points for meeting:
 - Discuss best way to do the animation storing - currently it duplicates data which is bad, but also do not want to interact with IO more than is necessary since memory fetching is slow
 - Discuss the best way to do the game space storing - when entering combat i envision the scene being switched to something else (e.g. a combat scene) with different background, different environment of input handling, etc. so from that what would be the best "stuff" to store to preserve the information of the game without using a lot of memory but also considering in transition times?
     - essentially want a near instant transition from dungeon to combat and vice versa, so should i store all the entities of the game map and only draw them when it is a game scene, or store the game rooms and then each time going into combat delete the tiles and then readd them into the component space?? not really sure
+- also never done a turn based system before, so want to ask as well best way to store the e.g. turn order. was thinking a Vector with a pointer to who to use in the turn? so not only expandable to more than 2 enemies/player, but also get O(1) access with a vector
+    - THIS ALSO BRINGS UP ANOTHER POINT of just generally how best is it to store things in apecs. basically compared to smth like c++ you dont have pointers or any explicit pass by reference (afaik everything is pass by value), so what is the best way to reduce redundant memory space (e.g. the animation stuff)
 
 - spent a lot of time trying to fix the movement issues but nothing worked. can be seen in the commit history and what i reverted back to. for now just keeping it as it is and doing enemies. the closest i got was keeping a global set of the keys pressed and updating the player velocity exclusively each frame and then calculating whether collisions occurred for every entity which would need it, but this had edge cases of allowing the player to clip.
+
+IORef - basically a reference
+    - in base, called Data.IORef
+    - look into it, and see if it is worth using over Global in apecs
+
+    - would be nice to store scenes as a single thing and be able to flip between them almost instantly
+    - may be good to use IORef here - map between scene names and IORef which points to apecs objects to be able to load
+
+- One thing which may be good to do is separate boundary box collision from the sprite size
+    - E.g. create a new BoundaryBox component which specifies the width and height of the Box from the entity's centre position
