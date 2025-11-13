@@ -26,6 +26,7 @@ import Utils
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
+    
     playerEntity <- let
             a :: Animations
             a = Animations {

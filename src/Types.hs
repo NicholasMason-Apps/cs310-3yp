@@ -23,6 +23,7 @@ import Codec.Picture
 import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 newtype Position = Position (V2 Float) deriving (Show)
 instance Component Position where type Storage Position = Map Position
@@ -81,7 +82,17 @@ instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
 data Sprite = Sprite (Int, Int) (Either Picture Animations) deriving (Show)
-instance Component Sprite where type Storage Sprite = Map Sprite
+
+newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
+instance Semigroup SpriteMap where
+    (SpriteMap m1) <> (SpriteMap m2) = SpriteMap (m1 `mappend` m2)
+instance Monoid SpriteMap where
+    mempty = SpriteMap mempty
+instance Component SpriteMap where type Storage SpriteMap = Global SpriteMap
+
+
+data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
+instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 
 data Animations = Animations {
     idle :: Animation,
@@ -119,8 +130,8 @@ makeWorld "World" [''Position,
                     ''Time,
                     ''Particle,
                     ''Camera,
-                    ''Sprite,
                     ''Wall,
+                    ''SpriteRef,
                     ''MoveDirection,
                     ''GameRoom,
                     ''Tile,

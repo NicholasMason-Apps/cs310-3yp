@@ -7,10 +7,10 @@ import Apecs.Gloss
 import Draw
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.IORef
 
 main :: IO ()
 main = do
-    initSprites
     w <- initWorld
     runWith w $ do
         initialize
@@ -47,3 +47,4 @@ initSprites = do
                             })
                         )
                      ]
+    spriteMap <- newIORef $ Map.fromList spriteList
