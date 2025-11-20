@@ -78,3 +78,11 @@ IORef - basically a reference
 
 - One thing which may be good to do is separate boundary box collision from the sprite size
     - E.g. create a new BoundaryBox component which specifies the width and height of the Box from the entity's centre position
+
+in global store keep track of current scene
+separate out draw and step functions to pattern match on this scene and offload as necessary
+
+currentScene <- get glob al
+case currentScene of
+	menu -> renderMenu
+	...
