@@ -76,12 +76,28 @@ instance Semigroup Score where (<>) = (+)
 instance Monoid Score where mempty = 0
 instance Component Score where type Storage Score = Global Score
 
+data GameState = MenuState | DungeonState | PauseState | CombatState deriving (Show, Eq)
+instance Semigroup GameState where
+    (<>) :: GameState -> GameState -> GameState
+    _ <> gs2 = gs2
+instance Monoid GameState where
+    mempty :: GameState
+    mempty = DungeonState
+instance Component GameState where type Storage GameState = Global GameState
+
+newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
+instance Semigroup KeysPressed where
+    (KeysPressed s1) <> (KeysPressed s2) = KeysPressed (Set.union s1 s2)
+instance Monoid KeysPressed where
+    mempty = KeysPressed Set.empty
+instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
+
 newtype Time = Time Float deriving (Show, Num)
 instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
-data Sprite = Sprite (Int, Int) (Either Picture Animations) deriving (Show)
+data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
 
 newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
 instance Semigroup SpriteMap where
@@ -90,20 +106,12 @@ instance Monoid SpriteMap where
     mempty = SpriteMap mempty
 instance Component SpriteMap where type Storage SpriteMap = Global SpriteMap
 
-
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
-
-data Animations = Animations {
-    idle :: Animation,
-    walk :: Animation,
-    current :: Animation
-} deriving Show
 
 -- extract sprite sheets 
 
 data Animation = Animation { frameCount :: Int
-                           , currentFrame :: Int
                            , frameSpeed :: Float
                            , sprites :: V.Vector Picture
                            } deriving (Show)
@@ -135,7 +143,10 @@ makeWorld "World" [''Position,
                     ''MoveDirection,
                     ''GameRoom,
                     ''Tile,
-                    ''Enemy]
+                    ''Enemy,
+                    ''GameState,
+                    ''SpriteMap,
+                    ''KeysPressed]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

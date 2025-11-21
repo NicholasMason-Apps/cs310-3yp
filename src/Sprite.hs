@@ -23,6 +23,7 @@ import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Utils
+import Data.Map ((!))
 
 spriteDimensions :: Sprite -> (Int, Int)
 spriteDimensions (Sprite (w,h) _) = (w, h)
@@ -46,54 +47,59 @@ blockPlayer :: Float -> System' ()
 --         posP''' <- if left then return $ Position (V2 (xw - (fromIntegral ww / 2) - (fromIntegral wp / 2)) y'') else return posP''
 --         let (Position (V2 _ y''')) = posP'''
 --         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
-blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), spriteP) -> do
+blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), SpriteRef srP _) -> do
     let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
-    cfold (\acc (Wall, Position posW, spriteW) ->
+    cfoldM (\acc (Wall, Position posW, SpriteRef srW _) -> do
+        SpriteMap smap <- get global
         let
+            spriteP = smap ! srP
+            spriteW = smap ! srW
             top = checkBoundaryBoxTopIntersection tempPos spriteP posW spriteW
             bottom = checkBoundaryBoxBottomIntersection tempPos spriteP posW spriteW
             left = checkBoundaryBoxLeftIntersection tempPos spriteP posW spriteW
             right = checkBoundaryBoxRightIntersection tempPos spriteP posW spriteW
             (Velocity (V2 avx avy)) = acc
-        in
-            if (top && vy < 0) || (bottom && vy > 0) then
-                Velocity (V2 avx 0)
-            else if (left && vx > 0) || (right && vx < 0) then
-                Velocity (V2 0 avy)
-            else
-                acc) (Velocity (V2 vx vy))
-
+        if (top && vy < 0) || (bottom && vy > 0) then
+            return $ Velocity (V2 avx 0)
+        else if (left && vx > 0) || (right && vx < 0) then
+            return $ Velocity (V2 0 avy)
+        else
+            return acc) (Velocity (V2 vx vy))
 
 stepAnimations :: Float -> System' ()
 stepAnimations dT = do
     stepPlayerAnimations dT
     stepNonPlayerAnimations dT
     where
-        updateAnimation :: Sprite -> Bool -> Sprite
-        updateAnimation (Sprite (w,h) (Left l)) _ = Sprite (w,h) (Left l)
-        updateAnimation (Sprite (w,h) (Right a)) trigger =
+        updateAnimation :: SpriteRef -> Bool -> Int -> SpriteRef
+        updateAnimation (SpriteRef sr Nothing) _ _ = SpriteRef sr Nothing
+        updateAnimation (SpriteRef sr (Just a)) trigger fc =
             if trigger
             then let
-                newFrame = (currentFrame (current a) `mod` frameCount (current a)) + 1
-                in Sprite (w,h) (Right a { current = (current a) { currentFrame = newFrame } })
-            else Sprite (w,h) (Right a)
+                newFrame = (a + 1) `mod` fc
+                in SpriteRef sr (Just newFrame)
+            else SpriteRef sr (Just a)
         stepPlayerAnimations :: Float -> System' ()
-        stepPlayerAnimations dT = cmapM $ \(Player, Sprite (w,h) e, MoveDirection md) -> do
+        stepPlayerAnimations dT = cmapM $ \(Player, SpriteRef sr e, MoveDirection md) -> do
             Time t <- get global
-            case e of
-                Left l -> return $ Sprite (w,h) (Left l)
+            SpriteMap smap <- get global
+            let Sprite _ spriteE = smap ! sr
+            case spriteE of
+                Left _ -> return $ SpriteRef sr e
                 Right a -> let
-                        trigger = floor (t / frameSpeed (current a)) /= floor ((t + dT) / frameSpeed (current a))
-                    in return $ updateAnimation (Sprite (w,h) (Right a)) trigger
+                        trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                    in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a)
         stepNonPlayerAnimations :: Float -> System' ()
-        stepNonPlayerAnimations dT = cmapM_ $ \(Sprite (w,h) e', e) -> do
+        stepNonPlayerAnimations dT = cmapM_ $ \(SpriteRef sr e', e) -> do
             Time t <- get global
+            SpriteMap smap <- get global
+            let Sprite _ spriteE = smap ! sr
             isPlayer <- exists e (Proxy @Player)
-            unless isPlayer $ case e' of
+            unless isPlayer $ case spriteE of
                 Left _ -> return ()
                 Right a -> let
-                        trigger = floor (t / frameSpeed (current a)) /= floor ((t + dT) / frameSpeed (current a))
-                    in set e $ updateAnimation (Sprite (w,h) (Right a)) trigger
+                        trigger = floor (t / frameSpeed  a) /= floor ((t + dT) / frameSpeed a)
+                    in set e $ updateAnimation (SpriteRef sr e') trigger (frameCount a)
 
 -- Boundary box collision detection
 -- Note: Sprite positions are centered based on their Position component

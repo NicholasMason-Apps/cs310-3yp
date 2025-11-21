@@ -22,20 +22,56 @@ import GameMap
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Utils
+import Data.Map (Map)
+import qualified Data.Map as Map
 
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
 initialize = do
-    
-    playerEntity <- let
-            a :: Animations
-            a = Animations {
-                idle = Animation { frameCount = 9, currentFrame = 1, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-idle.png" 9 (288,32) },
-                walk = Animation { frameCount = 11, currentFrame = 1, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/player-walk.png" 11 (352,32) },
-                current = Animation { frameCount = 9, currentFrame = 1, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-idle.png" 9 (288,32) }
-            }
-        in
-            newEntity (Player, MoveDirection Set.empty, Position playerPos, Velocity (V2 0 0), Sprite (32,32) (Right a))
+    let spriteList = [
+                        (
+                            "player-idle",
+                            Sprite (32,32) (Right $ Animation { frameCount = 9, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-idle.png" 9 (288,32) })
+                        ),
+                        (
+                            "player-walk",
+                            Sprite (32,32) (Right $ Animation { frameCount = 11, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/player-walk.png" 11 (352,32) })
+                        ),
+                        (
+                            "skeleton-idle",
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64) })
+                        ),
+                        (
+                            "skeleton-walk",
+                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/walk.png" 10 (640,64) })
+                        ),
+                        (
+                            "reaper-idle",
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/reaper/idle.png" 6 (384,64) })
+                        ),
+                        (
+                            "reaper-walk",
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/walk.png" 8 (512,64) })
+                        ),
+                        (
+                            "vampire-idle",
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/vampire/idle.png" 6 (384,64) })
+                        ),
+                        (
+                            "vampire-walk",
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/walk.png" 8 (512,64) })
+                        )
+                     ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ ("wall-bottom-right", Sprite (64,64) (Left $ loadStaticSprite "tiles/wall-bottom-right.png") ), ("wall-bottom-left", Sprite (64,64) (Left $ loadStaticSprite "tiles/wall-bottom-left.png") ) ]
+    set global (SpriteMap $ Map.fromList spriteList)
+    playerEntity <- newEntity (Player, MoveDirection Set.empty, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0))
     generateMap
     return ()
 
@@ -113,79 +149,69 @@ step dT = do
     -- triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
     -- triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
-handleEvent :: Event -> System' ()
+handleEventGame :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+handleEventGame (EventKey (SpecialKey KeyLeft) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     set e (Velocity (V2 (x - playerSpeed) y))
     set e (MoveDirection $ Set.insert LeftDir md)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+    set e (SpriteRef "player-walk" (Just 0))
+handleEventGame (EventKey (SpecialKey KeyLeft) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     let newSet = Set.delete LeftDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+    when (Set.null newSet) $ set e (SpriteRef "player-idle" (Just 0))
     if Set.member RightDir newSet then
         set e (Velocity (V2 (x + playerSpeed) y))
     else
         set e (Velocity (V2 0 y))
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+handleEventGame (EventKey (SpecialKey KeyRight) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     set e (Velocity (V2 (x+playerSpeed) y))
     set e (MoveDirection $ Set.insert RightDir md)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+    set e (SpriteRef "player-walk" (Just 0))
+handleEventGame (EventKey (SpecialKey KeyRight) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     let newSet = Set.delete RightDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+    when (Set.null newSet) $ set e (SpriteRef "player-idle" (Just 0))
     if Set.member LeftDir newSet then
         set e (Velocity (V2 (x - playerSpeed) y))
     else
         set e (Velocity (V2 0 y))
-handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+handleEventGame (EventKey (SpecialKey KeyUp) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     set e (Velocity (V2 x (y+playerSpeed)))
     let newSet = Set.insert UpDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+    set e (SpriteRef "player-walk" (Just 0))
+handleEventGame (EventKey (SpecialKey KeyUp) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     let newSet = Set.delete UpDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+    when (Set.null newSet) $ set e (SpriteRef "player-idle" (Just 0))
     if Set.member DownDir newSet then
         set e (Velocity (V2 x (y - playerSpeed)))
     else
         set e (Velocity (V2 x 0))
-handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+handleEventGame (EventKey (SpecialKey KeyDown) Down _ _) = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     set e (Velocity (V2 x (y-playerSpeed)))
     let newSet = Set.insert DownDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> set e (Sprite (w,h) (Right a { current = walk a }))
-handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, Sprite (w,h) lr, e) -> do
+    set e (SpriteRef "player-walk" (Just 0))
+handleEventGame (EventKey (SpecialKey KeyDown) Up _ _)   = cmapM_ $ \(Player, Velocity (V2 x y), MoveDirection md, SpriteRef _ _, e) -> do
     let newSet = Set.delete DownDir md
     set e (MoveDirection newSet)
-    case lr of
-        Left _ -> return ()
-        Right a -> when (Set.null newSet) $ set e (Sprite (w,h) (Right a { current = idle a }))
+    when (Set.null newSet) $ set e (SpriteRef "player-idle" (Just 0))
     if Set.member UpDir newSet then
         set e (Velocity (V2 x (y + playerSpeed)))
     else
         set e (Velocity (V2 x 0))
 -- Player shooting
-handleEvent (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
+handleEventGame (EventKey (SpecialKey KeySpace) Down _ _) = cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
     spawnParticles 7 pos (-80,80) (10,100)
 -- Exit game
-handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
-handleEvent _ = return () -- base case
+handleEventGame (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+handleEventGame _ = return () -- base case
 
+handleEvent :: Event -> System' ()
+handleEvent e = do
+    gs <- get global :: System' GameState
+    case gs of
+        DungeonState -> handleEventGame e
+        _      -> return ()
