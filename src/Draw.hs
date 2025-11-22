@@ -59,13 +59,14 @@ isSpriteInView Nothing _ _ = True
 
 drawGame :: System' Picture
 drawGame = do
+    KeysPressed ks <- get global
     SpriteMap smap <- get global
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
-    player <- foldDraw $ \(Player, pos, s, MoveDirection md) -> let
+    player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
         in
-            if LeftDir `Set.member` md && RightDir `Set.notMember` md then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
+            if KeyLeft `Set.member` ks && KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture smap s
     bullets <- foldDraw $ \(Bullet, pos) -> translate' pos $ color yellow $ scale 4 4 diamond

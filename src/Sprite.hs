@@ -68,8 +68,15 @@ blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), SpriteRef 
 
 stepAnimations :: Float -> System' ()
 stepAnimations dT = do
-    stepPlayerAnimations dT
-    stepNonPlayerAnimations dT
+    cmapM $ \(SpriteRef sr e) -> do
+        Time t <- get global
+        SpriteMap smap <- get global
+        let Sprite _ spriteE = smap ! sr
+        case spriteE of
+            Left _ -> return $ SpriteRef sr e
+            Right a -> let
+                    trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a)
     where
         updateAnimation :: SpriteRef -> Bool -> Int -> SpriteRef
         updateAnimation (SpriteRef sr Nothing) _ _ = SpriteRef sr Nothing
@@ -79,27 +86,6 @@ stepAnimations dT = do
                 newFrame = (a + 1) `mod` fc
                 in SpriteRef sr (Just newFrame)
             else SpriteRef sr (Just a)
-        stepPlayerAnimations :: Float -> System' ()
-        stepPlayerAnimations dT = cmapM $ \(Player, SpriteRef sr e, MoveDirection md) -> do
-            Time t <- get global
-            SpriteMap smap <- get global
-            let Sprite _ spriteE = smap ! sr
-            case spriteE of
-                Left _ -> return $ SpriteRef sr e
-                Right a -> let
-                        trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
-                    in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a)
-        stepNonPlayerAnimations :: Float -> System' ()
-        stepNonPlayerAnimations dT = cmapM_ $ \(SpriteRef sr e', e) -> do
-            Time t <- get global
-            SpriteMap smap <- get global
-            let Sprite _ spriteE = smap ! sr
-            isPlayer <- exists e (Proxy @Player)
-            unless isPlayer $ case spriteE of
-                Left _ -> return ()
-                Right a -> let
-                        trigger = floor (t / frameSpeed  a) /= floor ((t + dT) / frameSpeed a)
-                    in set e $ updateAnimation (SpriteRef sr e') trigger (frameCount a)
 
 -- Boundary box collision detection
 -- Note: Sprite positions are centered based on their Position component

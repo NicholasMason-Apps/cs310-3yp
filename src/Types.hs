@@ -85,7 +85,7 @@ instance Monoid GameState where
     mempty = DungeonState
 instance Component GameState where type Storage GameState = Global GameState
 
-newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
+newtype KeysPressed = KeysPressed (Set.Set SpecialKey) deriving Show
 instance Semigroup KeysPressed where
     (KeysPressed s1) <> (KeysPressed s2) = KeysPressed (Set.union s1 s2)
 instance Monoid KeysPressed where
