@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, blockPlayer, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula) where
+module Sprite (spriteDimensions, blockPlayer, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula, checkBoundaryBoxIntersection) where
 
 import Apecs
 import Linear
@@ -47,17 +47,14 @@ blockPlayer :: Float -> System' ()
 --         posP''' <- if left then return $ Position (V2 (xw - (fromIntegral ww / 2) - (fromIntegral wp / 2)) y'') else return posP''
 --         let (Position (V2 _ y''')) = posP'''
 --         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
-blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), SpriteRef srP _) -> do
+blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
     let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
-    cfoldM (\acc (Wall, Position posW, SpriteRef srW _) -> do
-        SpriteMap smap <- get global
+    cfoldM (\acc (Wall, Position posW, bbw) -> do
         let
-            spriteP = smap ! srP
-            spriteW = smap ! srW
-            top = checkBoundaryBoxTopIntersection tempPos spriteP posW spriteW
-            bottom = checkBoundaryBoxBottomIntersection tempPos spriteP posW spriteW
-            left = checkBoundaryBoxLeftIntersection tempPos spriteP posW spriteW
-            right = checkBoundaryBoxRightIntersection tempPos spriteP posW spriteW
+            top = checkBoundaryBoxTopIntersection tempPos bbp posW bbw
+            bottom = checkBoundaryBoxBottomIntersection tempPos bbp posW bbw
+            left = checkBoundaryBoxLeftIntersection tempPos bbp posW bbw
+            right = checkBoundaryBoxRightIntersection tempPos bbp posW bbw
             (Velocity (V2 avx avy)) = acc
         if (top && vy < 0) || (bottom && vy > 0) then
             return $ Velocity (V2 avx 0)
@@ -88,59 +85,56 @@ stepAnimations dT = do
             else SpriteRef sr (Just a)
 
 -- Boundary box collision detection
+checkBoundaryBoxIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
+checkBoundaryBoxIntersection v1 bb1 v2 bb2 = checkBoundaryBoxTopIntersection v1 bb1 v2 bb2 ||
+                                            checkBoundaryBoxBottomIntersection v1 bb1 v2 bb2 ||
+                                            checkBoundaryBoxLeftIntersection v1 bb1 v2 bb2 ||
+                                            checkBoundaryBoxRightIntersection v1 bb1 v2 bb2
 -- Note: Sprite positions are centered based on their Position component
-checkBoundaryBoxTopIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxTopIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+checkBoundaryBoxTopIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
+checkBoundaryBoxTopIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
     bottom1 < top2 && top1 > top2 && right1 > left2 && left1 < right2
     where
-        (w1,h1) = spriteDimensions s1
-        (w2,h2) = spriteDimensions s2
-        left1 = x1 - fromIntegral w1/2
-        right1 = x1 + fromIntegral w1/2
-        top1  = y1 + fromIntegral h1/2
-        bottom1 = y1 - fromIntegral h1/2
-        left2 = x2 - fromIntegral w2/2
-        right2 = x2 + fromIntegral w2/2
-        top2 = y2 + fromIntegral h2/2
-checkBoundaryBoxBottomIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxBottomIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+        left1 = x1 + fromIntegral box1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral box1 + fromIntegral w1/2
+        top1  = y1 + fromIntegral boy1 + fromIntegral h1/2
+        bottom1 = y1 + fromIntegral boy1 - fromIntegral h1/2
+        left2 = x2 + fromIntegral box2 - fromIntegral w2/2
+        right2 = x2 + fromIntegral box2 + fromIntegral w2/2
+        top2 = y2 + fromIntegral boy2 + fromIntegral h2/2
+checkBoundaryBoxBottomIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
+checkBoundaryBoxBottomIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
     top1 > bottom2 && bottom1 < bottom2 && right1 > left2 && left1 < right2
     where
-        (w1,h1) = spriteDimensions s1
-        (w2,h2) = spriteDimensions s2
-        left1 = x1 - fromIntegral w1/2
-        right1 = x1 + fromIntegral w1/2
-        top1  = y1 + fromIntegral h1/2
-        bottom1 = y1 - fromIntegral h1/2
-        left2 = x2 - fromIntegral w2/2
-        right2 = x2 + fromIntegral w2/2
-        bottom2 = y2 - fromIntegral h2/2
-checkBoundaryBoxLeftIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxLeftIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+        left1 = x1 + fromIntegral box1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral box1 + fromIntegral w1/2
+        top1  = y1 + fromIntegral boy1 + fromIntegral h1/2
+        bottom1 = y1 + fromIntegral boy1 - fromIntegral h1/2
+        left2 = x2 + fromIntegral box2 - fromIntegral w2/2
+        right2 = x2 + fromIntegral box2 + fromIntegral w2/2
+        bottom2 = y2 + fromIntegral boy2 - fromIntegral h2/2
+checkBoundaryBoxLeftIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
+checkBoundaryBoxLeftIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
     right1 > left2 && left1 < left2 && bottom1 < top2 && top1 > bottom2
     where
-        (w1,h1) = spriteDimensions s1
-        (w2,h2) = spriteDimensions s2
-        left1 = x1 - fromIntegral w1/2
-        right1 = x1 + fromIntegral w1/2
-        top1  = y1 + fromIntegral h1/2
-        bottom1 = y1 - fromIntegral h1/2
-        left2 = x2 - fromIntegral w2/2
-        top2  = y2 + fromIntegral h2/2
-        bottom2 = y2 - fromIntegral h2/2
-checkBoundaryBoxRightIntersection :: V2 Float -> Sprite -> V2 Float -> Sprite -> Bool
-checkBoundaryBoxRightIntersection (V2 x1 y1) s1 (V2 x2 y2) s2 =
+        left1 = x1 + fromIntegral box1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral box1 + fromIntegral w1/2
+        top1  = y1 + fromIntegral boy1 + fromIntegral h1/2
+        bottom1 = y1 + fromIntegral boy1 - fromIntegral h1/2
+        left2 = x2 + fromIntegral box2 - fromIntegral w2/2
+        top2  = y2 + fromIntegral boy2 + fromIntegral h2/2
+        bottom2 = y2 + fromIntegral boy2 - fromIntegral h2/2
+checkBoundaryBoxRightIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
+checkBoundaryBoxRightIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
     left1 < right2 && right1 > right2 && bottom1 < top2 && top1 > bottom2
     where
-        (w1,h1) = spriteDimensions s1
-        (w2,h2) = spriteDimensions s2
-        left1 = x1 - fromIntegral w1/2
-        right1 = x1 + fromIntegral w1/2
-        top1  = y1 + fromIntegral h1/2
-        bottom1 = y1 - fromIntegral h1/2
-        right2 = x2 + fromIntegral w2/2
-        top2  = y2 + fromIntegral h2/2
-        bottom2 = y2 - fromIntegral h2/2
+        left1 = x1 + fromIntegral box1 - fromIntegral w1/2
+        right1 = x1 + fromIntegral box1 + fromIntegral w1/2
+        top1  = y1 + fromIntegral boy1 + fromIntegral h1/2
+        bottom1 = y1 + fromIntegral boy1 - fromIntegral h1/2
+        right2 = x2 + fromIntegral box2 + fromIntegral w2/2
+        top2  = y2 + fromIntegral boy2 + fromIntegral h2/2
+        bottom2 = y2 + fromIntegral boy2 - fromIntegral h2/2
 
 loadStaticSprite :: FilePath -> Picture
 loadStaticSprite path = let

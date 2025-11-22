@@ -214,12 +214,16 @@ generateMap = do
         halfAdjust v = if even v then tileSize / 2 else 0
         offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
         offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
-        spriteList = [ (SpriteRef s Nothing, Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize)), t)
-                        | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c, let (s,t) = unsafePerformIO $ selectSprite c (x,y) ]
+    spriteList <- liftIO $ sequence [ do
+      (s,t) <- selectSprite c (x,y)
+      let sref = SpriteRef s Nothing
+          pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize))
+      return (sref, pos, t)
+      | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c ]
     forM_ spriteList $ \(s, p, t) -> do
         case t of
           'T' -> void $ newEntity (Tile, p, s)
-          _   -> void $ newEntity (Wall, p, s)
+          _   -> void $ newEntity (Wall, p, s, BoundaryBox (64,64) (0,0))
     destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity

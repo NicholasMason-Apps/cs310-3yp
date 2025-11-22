@@ -2,10 +2,9 @@ module Utils where
 
 import Linear
 import Types
-
-screenWidth, screenHeight :: Int
-screenWidth = 1280
-screenHeight = 720
+import Graphics.Gloss
+import qualified Data.Map as Map
+import qualified Data.Vector  as V
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 300
@@ -51,3 +50,25 @@ roomOffset = 4 * tileSize
 
 stepPositionFormula :: Float -> Position -> Velocity -> Position
 stepPositionFormula dT (Position p) (Velocity v) = Position (p + dT *^ v)
+
+translate' :: Position -> Picture -> Picture
+translate' (Position (V2 x y)) = translate x y
+
+getSpritePicture :: Map.Map String Sprite -> SpriteRef -> Picture
+getSpritePicture smap (SpriteRef sr Nothing) = let
+        sprite = smap Map.! sr
+    in case sprite of
+        Sprite _ (Left pic) -> pic
+        Sprite _ (Right _) -> error "Animated sprite requires frame number"
+getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
+        sprite = smap Map.! sr
+    in case sprite of
+        Sprite _ (Left _) -> error "Static sprite does not support frame number"
+        Sprite _ (Right a) -> sprites a V.! frameNum
+
+-- Transition easing
+easeInOut :: Float -> Float
+easeInOut t = t*t*(3 - 2*t)
+
+lerp :: Float -> Float -> Float -> Float
+lerp a b t = a + t * (b - a)

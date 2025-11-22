@@ -25,51 +25,13 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
-newtype Position = Position (V2 Float) deriving (Show)
-instance Component Position where type Storage Position = Map Position
-
-newtype Velocity = Velocity (V2 Float) deriving (Show)
-instance Component Velocity where type Storage Velocity = Map Velocity
-
-data Target = Target deriving (Show)
-instance Component Target where type Storage Target = Map Target
-
-data Bullet = Bullet deriving (Show)
-instance Component Bullet where type Storage Bullet = Map Bullet
-
-data Particle = Particle Float deriving (Show)
-instance Component Particle where type Storage Particle = Map Particle
-
-data Player = Player deriving Show
-instance Component Player where type Storage Player = Unique Player
-
-data Enemy = Enemy { enemyType :: EnemyType } deriving Show
-instance Component Enemy where type Storage Enemy = Map Enemy
-
-data EnemyType = Reaper | Vampire | Skeleton deriving Show
-
-data Floor = Floor deriving Show
-instance Component Floor where type Storage Floor = Map Floor
-
-data MoveDirection = MoveDirection (Set.Set Direction) deriving (Show)
-instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
-
-data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq, Ord)
-instance Enum Direction where
-    fromEnum :: Direction -> Int
-    fromEnum UpDir = 1
-    fromEnum RightDir = 2
-    fromEnum DownDir = 3
-    fromEnum LeftDir = 4
-    toEnum :: Int -> Direction
-    toEnum 1 = UpDir
-    toEnum 2 = RightDir
-    toEnum 3 = DownDir
-    toEnum 4 = LeftDir
-    toEnum _ = error "Invalid enum value for Direction"
-
-data Wall = Wall deriving Show
-instance Component Wall where type Storage Wall = Map Wall
+-- Global stores
+newtype Viewport = Viewport (Int, Int) deriving Show
+instance Semigroup Viewport where
+    (Viewport (w1, h1)) <> (Viewport (w2, h2)) = Viewport (w1 + w2, h1 + h2)
+instance Monoid Viewport where
+    mempty = Viewport (1280, 720)
+instance Component Viewport where type Storage Viewport = Global Viewport
 
 newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where (<>) = (+)
@@ -92,13 +54,6 @@ instance Monoid KeysPressed where
     mempty = KeysPressed Set.empty
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
 
-newtype Time = Time Float deriving (Show, Num)
-instance Semigroup Time where (<>) = (+)
-instance Monoid Time where mempty = 0
-instance Component Time where type Storage Time = Global Time
-
-data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
-
 newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
 instance Semigroup SpriteMap where
     (SpriteMap m1) <> (SpriteMap m2) = SpriteMap (m1 `mappend` m2)
@@ -106,17 +61,76 @@ instance Monoid SpriteMap where
     mempty = SpriteMap mempty
 instance Component SpriteMap where type Storage SpriteMap = Global SpriteMap
 
+newtype Time = Time Float deriving (Show, Num)
+instance Semigroup Time where (<>) = (+)
+instance Monoid Time where mempty = 0
+instance Component Time where type Storage Time = Global Time
+
+
+-- Movement and position components
+newtype Position = Position (V2 Float) deriving (Show)
+instance Component Position where type Storage Position = Map Position
+
+newtype Velocity = Velocity (V2 Float) deriving (Show)
+instance Component Velocity where type Storage Velocity = Map Velocity
+
+data Particle = Particle Float deriving (Show)
+instance Component Particle where type Storage Particle = Map Particle
+
+
+-- Movement direction component
+data MoveDirection = MoveDirection (Set.Set Direction) deriving (Show)
+instance Component MoveDirection where type Storage MoveDirection = Map MoveDirection
+
+data Direction = UpDir | DownDir | LeftDir | RightDir deriving (Show, Eq, Ord)
+instance Enum Direction where
+    fromEnum :: Direction -> Int
+    fromEnum UpDir = 1
+    fromEnum RightDir = 2
+    fromEnum DownDir = 3
+    fromEnum LeftDir = 4
+    toEnum :: Int -> Direction
+    toEnum 1 = UpDir
+    toEnum 2 = RightDir
+    toEnum 3 = DownDir
+    toEnum 4 = LeftDir
+    toEnum _ = error "Invalid enum value for Direction"
+
+
+-- Visible components
+data Player = Player deriving Show
+instance Component Player where type Storage Player = Unique Player
+
+data EnemyType = Reaper | Vampire | Skeleton deriving Show
+
+data Enemy = Enemy { enemyType :: EnemyType } deriving Show
+instance Component Enemy where type Storage Enemy = Map Enemy
+
+data Floor = Floor deriving Show
+instance Component Floor where type Storage Floor = Map Floor
+
+data Wall = Wall deriving Show
+instance Component Wall where type Storage Wall = Map Wall
+
+data Tile = Tile deriving Show
+instance Component Tile where type Storage Tile = Map Tile
+
+-- BoundaryBox (width, height) (offsetX, offsetY) from centre
+data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
+instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
+
+data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
+
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
-
--- extract sprite sheets 
 
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
                            , sprites :: V.Vector Picture
                            } deriving (Show)
 
--- Procedural generation types
+
+-- Dungeon components
 data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom deriving (Show, Eq)
 
 data GameRoom = GameRoom { roomType :: RoomType,
@@ -125,15 +139,31 @@ data GameRoom = GameRoom { roomType :: RoomType,
                          } deriving (Show)
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 
-data Tile = Tile deriving Show
-instance Component Tile where type Storage Tile = Map Tile
+-- Combat components
+newtype CombatEnemy = CombatEnemy Entity deriving (Show)
+instance Semigroup CombatEnemy where
+    (CombatEnemy e1) <> (CombatEnemy _) = CombatEnemy e1
+instance Monoid CombatEnemy where
+    mempty = mempty
+instance Component CombatEnemy where type Storage CombatEnemy = Map CombatEnemy
+
+data CombatTile = CombatTile deriving (Show)
+instance Component CombatTile where type Storage CombatTile = Map CombatTile
+
+-- Transition Components
+data Transition = Transition {
+    trProgress :: Float, -- 0 to 1
+    trAngle :: Float,    -- angle in radians
+    trSpeed :: Float,
+    trCoverEventFired :: Bool
+} deriving (Show)
+instance Component Transition where type Storage Transition = Unique Transition
+
 
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
                     ''Player,
-                    ''Target,
-                    ''Bullet,
                     ''Score,
                     ''Time,
                     ''Particle,
@@ -146,7 +176,12 @@ makeWorld "World" [''Position,
                     ''Enemy,
                     ''GameState,
                     ''SpriteMap,
-                    ''KeysPressed]
+                    ''KeysPressed,
+                    ''Viewport,
+                    ''BoundaryBox,
+                    ''CombatEnemy,
+                    ''CombatTile,
+                    ''Transition]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)
