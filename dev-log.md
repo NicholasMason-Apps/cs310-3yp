@@ -86,3 +86,6 @@ currentScene <- get glob al
 case currentScene of
 	menu -> renderMenu
 	...
+
+# Term 1 Week 7
+- Making use of the global store for sprites significantly reduced memory usage. Although the memory usage to begin with was low, it went from ~60MB down to ~35MB which is very good
