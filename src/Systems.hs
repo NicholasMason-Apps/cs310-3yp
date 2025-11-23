@@ -36,43 +36,55 @@ initialize = do
     let spriteList = [
                         (
                             "player-idle",
-                            Sprite (32,32) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-idle.png" 7 (224,32) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
                         (
                             "player-walk",
-                            Sprite (32,32) (Right $ Animation { frameCount = 11, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/player-walk.png" 11 (352,32) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/walk.png" 10 (640,64), looping = (True, Nothing) })
                         ),
                         (
-                            "player-knife",
-                            Sprite (32,32) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-knife.png" 7 (224,32) })
+                            "player-knife-attack",
+                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/knife-attack.png" 9 (576,64), looping = (False, Just "player-idle") })
                         ),
                         (
                             "player-staff",
-                            Sprite (32,32) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-staff.png" 7 (224,32) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-staff.png" 7 (448,64), looping = (False, Just "player-idle") })
                         ),
                         (
                             "skeleton-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
                         (
                             "skeleton-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/walk.png" 10 (640,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/walk.png" 10 (640,64), looping = (True, Nothing) })
+                        ),
+                        (
+                            "skeleton-attack",
+                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/attack.png" 9 (576,64), looping = (False, Just "skeleton-idle") })
                         ),
                         (
                             "reaper-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/reaper/idle.png" 6 (384,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/reaper/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
                         (
                             "reaper-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/walk.png" 8 (512,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/walk.png" 8 (512,64), looping = (True, Nothing) })
+                        ),
+                        (
+                            "reaper-attack",
+                            Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/attack.png" 15 (960,64), looping = (False, Just "reaper-idle") })
                         ),
                         (
                             "vampire-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/vampire/idle.png" 6 (384,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/vampire/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
                         (
                             "vampire-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/walk.png" 8 (512,64) })
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/walk.png" 8 (512,64), looping = (True, Nothing) })
+                        ),
+                        (
+                            "vampire-attack",
+                            Sprite (64,64) (Right $ Animation { frameCount = 16, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/attack.png" 16 (1024,64), looping = (False, Just "vampire-idle") })
                         )
                      ] ++
                      [ (name, Sprite (64,64) (Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
@@ -88,7 +100,8 @@ initialize = do
                         ("combat-ui", Sprite (1280,720) (Left $ loadStaticSprite "ui/combat-ui.png") )
                     ]
     set global (SpriteMap $ Map.fromList spriteList)
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0), BoundaryBox (18, 26) (-1, 0))
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11))
+    combatPlayerEntity <- newEntity (CombatPlayer, Position (V2 (-1280 / 3) 0), Velocity (V2 0 0), SpriteRef "player-idle" (Just 0))
     generateMap
     let offsetX = tileSize / 2 - 1280/2
         offsetY = tileSize / 2 - 720/2
@@ -136,7 +149,6 @@ stepTransition dT = cmapM $ \(Transition p ang spd fired, e) -> do
     let p' = p + dT * spd
     when (not fired && p' >= 0.5) $ do
         set global CombatState
-        cmapM_ $ \(Player, eP) -> set eP (SpriteRef "player-knife" (Just 0))
     when (p' >= 1) $ destroy e (Proxy @Transition)
     return $ Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = (fired || p' >= 1) }
 
@@ -155,15 +167,11 @@ step dT = do
 
 handleEvent :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert KeyLeft ks)
-handleEvent (EventKey (SpecialKey KeyLeft) Up _ _)   = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete KeyLeft ks)
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert KeyRight ks)
-handleEvent (EventKey (SpecialKey KeyRight) Up _ _)   = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete KeyRight ks)
-handleEvent (EventKey (SpecialKey KeyUp) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert KeyUp ks)
-handleEvent (EventKey (SpecialKey KeyUp) Up _ _)   = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete KeyUp ks)
-handleEvent (EventKey (SpecialKey KeyDown) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert KeyDown ks)
-handleEvent (EventKey (SpecialKey KeyDown) Up _ _)   = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete KeyDown ks)
--- Exit game
 handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
+handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
+-- Exit game
+handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
+handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
 handleEvent (EventResize sz) = set global (Viewport sz)
 handleEvent _ = return () -- base case

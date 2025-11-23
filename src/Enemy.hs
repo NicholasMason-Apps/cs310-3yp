@@ -44,7 +44,7 @@ stepEnemyAI :: System' ()
 stepEnemyAI = cmapM_ $ \(Player, Position posP) -> do
     cmapM $ \(Enemy _, Position posE, SpriteRef str mn) -> do
         let isInRange = distance posP posE <= enemyAggroRange
-        CombatEnemy ce <- get global
+        ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
         if isInRange && isNothing ce then do
             let dir = normalize (posP - posE)
                 newVel = dir ^* enemySpeed

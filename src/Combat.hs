@@ -17,19 +17,74 @@ import Types
 import Graphics.Gloss
 import Utils
 import Sprite
+import Control.Monad
+import Data.Maybe ( isJust )
+import qualified Data.Set as Set
+
+stepPlayerTurn :: Float -> System' ()
+stepPlayerTurn dT = do
+    KeysPressed ks <- get global
+    when (SpecialKey KeySpace `Set.member` ks) $ do
+        set global $ CombatTurn PlayerAttacking
+        cmapM_ $ \(CombatPlayer, s) -> do
+            set s (SpriteRef "player-knife-attack" (Just 0))
+            set s (Position (V2 ((1280 / 3) - tileSize) 0))
+
+stepPlayerAttack :: Float -> System' ()
+stepPlayerAttack dT = do
+    cmapM_ $ \(CombatPlayer, SpriteRef sr _, e) -> do
+        when (sr == "player-idle") $ do
+            set global $ CombatTurn EnemyTurn
+            set e (Position (V2 ((-1280 / 3)) 0))
+
+stepEnemyAttack :: Float -> System' ()
+stepEnemyAttack dT = do
+    cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
+        when (sr == "skeleton-idle" || sr == "vampire-idle" || sr == "reaper-idle") $ do
+            set global $ CombatTurn PlayerTurn
+            set e (Position (V2 (1280 / 3) 0))
+
+stepEnemyTurn :: Float -> System' ()
+stepEnemyTurn dT = do
+    cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
+        case sr of
+            "skeleton-idle" -> do
+                set e (SpriteRef "skeleton-attack" (Just 0))
+                set e (Position (V2 ((-1280 / 3) + 64) 0))
+                set global $ CombatTurn EnemyAttacking
+            "vampire-idle"  -> do
+                set e (SpriteRef "vampire-attack" (Just 0))
+                set e (Position (V2 ((-1280 / 3) + 64) 0))
+                set global $ CombatTurn EnemyAttacking
+            "reaper-idle"   -> do
+                set e (SpriteRef "reaper-attack" (Just 0))
+                set e (Position (V2 ((-1280 / 3) + 64) 0))
+                set global $ CombatTurn EnemyAttacking
+            _               -> return ()
 
 stepCombat :: Float -> System' ()
 stepCombat dT = do
-    return ()
+    ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
+    CombatTurn turn <- get global
+    case ce of
+        Nothing -> return ()
+        Just e -> case turn of
+            PlayerTurn -> stepPlayerTurn dT
+            EnemyTurn -> stepEnemyTurn dT
+            PlayerAttacking -> stepPlayerAttack dT
+            EnemyAttacking -> stepEnemyAttack dT
+            
 
 drawCombat :: System' Picture
 drawCombat = do
     SpriteMap smap <- get global
-    CombatEnemy e <- get global
-    let ui = getSpritePicture smap (SpriteRef "combat-ui" Nothing)
-    player <- foldDraw $ \(Player, s) -> translate' (Position (V2 (-1280 / 3) 0)) $ scale 2 2 $ getSpritePicture smap s
-    enemy <- case e of
-        Nothing -> return Blank
-        Just ent -> get ent >>= \(Enemy _, s) -> return $ translate' (Position (V2 (1280 / 3) 0)) $ scale (-2) 2 $ getSpritePicture smap s
+    CombatTurn turn <- get global
+    let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
+    player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
+    enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s
+    enemyPlayerLayer <- if turn == PlayerTurn || turn == PlayerAttacking then
+            return $ enemy <> player
+        else
+            return $ player <> enemy
     tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
-    return $ tiles <> enemy <> player <> ui
+    return $ tiles <> enemyPlayerLayer <> ui

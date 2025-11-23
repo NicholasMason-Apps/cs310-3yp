@@ -35,23 +35,31 @@ handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
             acc) Nothing
     case enemyRes of
         Just e -> do
-            CombatEnemy ce <- get global
-            when (isNothing ce) $ do
-                set global (CombatEnemy $ Just e)
-                startTransition (pi / 4) 1.0
+            ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
+            case ce of
+                Just _ -> return ()
+                Nothing -> do
+                    et <- get e :: System' Enemy
+                    let sref = case enemyType et of
+                            Reaper -> SpriteRef "reaper-idle" (Just 0)
+                            Vampire -> SpriteRef "vampire-idle" (Just 0)
+                            Skeleton -> SpriteRef "skeleton-idle" (Just 0)
+                    _ <- newEntity (CombatEnemy e, Position (V2 (1280 / 3) 0), sref)
+                    set global $ CombatTurn PlayerTurn
+                    startTransition (pi / 4) 1.0
         Nothing -> return ()
 
 updatePlayerMovement :: System' ()
 updatePlayerMovement = do
     KeysPressed ks <- get global
-    CombatEnemy enemy <- get global
+    enemy <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
     if isNothing enemy then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
             let (V2 vx vy) = foldl' (\(V2 ax ay) dir -> case dir of
-                                            KeyLeft  -> V2 (ax - playerSpeed) ay
-                                            KeyRight -> V2 (ax + playerSpeed) ay
-                                            KeyUp    -> V2 ax (ay + playerSpeed)
-                                            KeyDown  -> V2 ax (ay - playerSpeed)
+                                            (SpecialKey KeyLeft)  -> V2 (ax - playerSpeed) ay
+                                            (SpecialKey KeyRight) -> V2 (ax + playerSpeed) ay
+                                            (SpecialKey KeyUp)    -> V2 ax (ay + playerSpeed)
+                                            (SpecialKey KeyDown)  -> V2 ax (ay - playerSpeed)
                                             _        -> V2 ax ay) (V2 0 0) (Set.toList ks)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
@@ -60,7 +68,7 @@ updatePlayerMovement = do
             set e (Velocity (V2 vx vy))
             set e newSprite
     else
-        cmapM_ $ \(Player, e) -> do 
+        cmapM_ $ \(Player, e) -> do
             set e (Velocity (V2 0 0))
             set e (SpriteRef "player-idle" (Just 0))
 
@@ -115,7 +123,7 @@ drawDungeon = do
     player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
         in
-            if KeyLeft `Set.member` ks && KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
+            if SpecialKey KeyLeft `Set.member` ks && SpecialKey KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
             boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
         in

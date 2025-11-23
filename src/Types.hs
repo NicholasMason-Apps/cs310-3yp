@@ -47,7 +47,7 @@ instance Monoid GameState where
     mempty = DungeonState
 instance Component GameState where type Storage GameState = Global GameState
 
-newtype KeysPressed = KeysPressed (Set.Set SpecialKey) deriving Show
+newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
 instance Semigroup KeysPressed where
     (KeysPressed s1) <> (KeysPressed s2) = KeysPressed (Set.union s1 s2)
 instance Monoid KeysPressed where
@@ -127,6 +127,7 @@ instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
                            , sprites :: V.Vector Picture
+                           , looping :: (Bool, Maybe String)
                            } deriving (Show)
 
 
@@ -140,12 +141,22 @@ data GameRoom = GameRoom { roomType :: RoomType,
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 
 -- Combat components
-newtype CombatEnemy = CombatEnemy (Maybe Entity) deriving (Show)
-instance Semigroup CombatEnemy where
-    (CombatEnemy e1) <> (CombatEnemy _) = CombatEnemy e1
-instance Monoid CombatEnemy where
-    mempty = CombatEnemy Nothing
-instance Component CombatEnemy where type Storage CombatEnemy = Global CombatEnemy
+newtype CombatEnemy = CombatEnemy Entity deriving (Show)
+instance Component CombatEnemy where type Storage CombatEnemy = Unique CombatEnemy
+
+data CombatPlayer = CombatPlayer deriving (Show)
+instance Component CombatPlayer where type Storage CombatPlayer = Unique CombatPlayer
+
+data CombatTurn = CombatTurn TurnState deriving (Show, Eq)
+instance Semigroup CombatTurn where
+    (<>) :: CombatTurn -> CombatTurn -> CombatTurn
+    _ <> t2 = t2
+instance Monoid CombatTurn where
+    mempty :: CombatTurn
+    mempty = CombatTurn PlayerTurn
+instance Component CombatTurn where type Storage CombatTurn = Global CombatTurn
+
+data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking deriving (Show, Eq)
 
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile
@@ -181,7 +192,9 @@ makeWorld "World" [''Position,
                     ''BoundaryBox,
                     ''CombatEnemy,
                     ''CombatTile,
-                    ''Transition]
+                    ''Transition,
+                    ''CombatPlayer,
+                    ''CombatTurn]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

@@ -38,15 +38,18 @@ stepAnimations dT = do
             Left _ -> return $ SpriteRef sr e
             Right a -> let
                     trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
-                in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a)
+                in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a)
     where
-        updateAnimation :: SpriteRef -> Bool -> Int -> SpriteRef
-        updateAnimation (SpriteRef sr Nothing) _ _ = SpriteRef sr Nothing
-        updateAnimation (SpriteRef sr (Just a)) trigger fc =
+        updateAnimation :: SpriteRef -> Bool -> Int -> (Bool, Maybe String) -> SpriteRef
+        updateAnimation (SpriteRef sr Nothing) _ _ _ = SpriteRef sr Nothing
+        updateAnimation (SpriteRef sr (Just a)) trigger fc l =
             if trigger
             then let
                 newFrame = (a + 1) `mod` fc
-                in SpriteRef sr (Just newFrame)
+                in case l of
+                    (True, _) -> SpriteRef sr (Just newFrame)
+                    (False, Just next) -> if newFrame == fc - 1 then SpriteRef next (Just 0) else SpriteRef sr (Just newFrame)
+                    (False, Nothing) -> SpriteRef sr (Just newFrame)
             else SpriteRef sr (Just a)
 
 -- Boundary box collision detection
