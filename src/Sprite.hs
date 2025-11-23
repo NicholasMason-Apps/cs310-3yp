@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, blockPlayer, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula, checkBoundaryBoxIntersection) where
+module Sprite (spriteDimensions, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula, checkBoundaryBoxIntersection, checkBoundaryBoxBottomIntersection, checkBoundaryBoxTopIntersection, checkBoundaryBoxLeftIntersection, checkBoundaryBoxRightIntersection) where
 
 import Apecs
 import Linear
@@ -27,41 +27,6 @@ import Data.Map ((!))
 
 spriteDimensions :: Sprite -> (Int, Int)
 spriteDimensions (Sprite (w,h) _) = (w, h)
-
--- Block the player from moving into walls
-blockPlayer :: Float -> System' ()
--- blockPlayer = cmapM $ \(Wall, Position posW, spriteW) ->
---     cmapM $ \(Player, Position posP, spriteP) -> do
---         let top = checkBoundaryBoxTopIntersection posP spriteP posW spriteW
---             bottom = checkBoundaryBoxBottomIntersection posP spriteP posW spriteW
---             left = checkBoundaryBoxLeftIntersection posP spriteP posW spriteW
---             right = checkBoundaryBoxRightIntersection posP spriteP posW spriteW
---             (wp, hp) = spriteDimensions spriteP
---             (ww, hw) = spriteDimensions spriteW
---             (V2 x _) = posP
---             (V2 xw yw) = posW
---         posP' <- if top then return $ Position (V2 x (yw + (fromIntegral hw / 2) + (fromIntegral hp / 2))) else return $ Position posP
---         let (Position (V2 x' _)) = posP'
---         posP'' <- if bottom then return $ Position (V2 x' (yw - (fromIntegral hw / 2) - (fromIntegral hp / 2))) else return posP'
---         let (Position (V2 _ y'')) = posP''
---         posP''' <- if left then return $ Position (V2 (xw - (fromIntegral ww / 2) - (fromIntegral wp / 2)) y'') else return posP''
---         let (Position (V2 _ y''')) = posP'''
---         return $ if right then Position (V2 (xw + (fromIntegral ww / 2) + (fromIntegral wp / 2)) y''') else posP'''
-blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
-    let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
-    cfoldM (\acc (Wall, Position posW, bbw) -> do
-        let
-            top = checkBoundaryBoxTopIntersection tempPos bbp posW bbw
-            bottom = checkBoundaryBoxBottomIntersection tempPos bbp posW bbw
-            left = checkBoundaryBoxLeftIntersection tempPos bbp posW bbw
-            right = checkBoundaryBoxRightIntersection tempPos bbp posW bbw
-            (Velocity (V2 avx avy)) = acc
-        if (top && vy < 0) || (bottom && vy > 0) then
-            return $ Velocity (V2 avx 0)
-        else if (left && vx > 0) || (right && vx < 0) then
-            return $ Velocity (V2 0 avy)
-        else
-            return acc) (Velocity (V2 vx vy))
 
 stepAnimations :: Float -> System' ()
 stepAnimations dT = do

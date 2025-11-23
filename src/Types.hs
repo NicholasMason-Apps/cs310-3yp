@@ -101,7 +101,7 @@ instance Enum Direction where
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
-data EnemyType = Reaper | Vampire | Skeleton deriving Show
+data EnemyType = Reaper | Vampire | Skeleton deriving (Show, Enum)
 
 data Enemy = Enemy { enemyType :: EnemyType } deriving Show
 instance Component Enemy where type Storage Enemy = Map Enemy
@@ -140,12 +140,12 @@ data GameRoom = GameRoom { roomType :: RoomType,
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 
 -- Combat components
-newtype CombatEnemy = CombatEnemy Entity deriving (Show)
+newtype CombatEnemy = CombatEnemy (Maybe Entity) deriving (Show)
 instance Semigroup CombatEnemy where
     (CombatEnemy e1) <> (CombatEnemy _) = CombatEnemy e1
 instance Monoid CombatEnemy where
-    mempty = mempty
-instance Component CombatEnemy where type Storage CombatEnemy = Map CombatEnemy
+    mempty = CombatEnemy Nothing
+instance Component CombatEnemy where type Storage CombatEnemy = Global CombatEnemy
 
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile

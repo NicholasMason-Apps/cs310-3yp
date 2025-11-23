@@ -1,3 +1,13 @@
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Utils where
 
 import Linear
@@ -5,11 +15,13 @@ import Types
 import Graphics.Gloss
 import qualified Data.Map as Map
 import qualified Data.Vector  as V
+import Apecs
+import Control.Monad
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
-playerSpeed = 300
+playerSpeed = 250
 bulletSpeed = 500
-enemySpeed  = 80
+enemySpeed  = 275
 xmin = -640
 xmax = 640
 
@@ -72,3 +84,12 @@ easeInOut t = t*t*(3 - 2*t)
 
 lerp :: Float -> Float -> Float -> Float
 lerp a b t = a + t * (b - a)
+
+startTransition :: Float -> Float -> System' ()
+startTransition angle speed = do
+    cmapM_ $ \(Transition _ _ _ _, e) -> destroy e (Proxy @Transition)
+    void $ newEntity (Transition { trProgress = 0, trAngle = angle, trSpeed = speed, trCoverEventFired = False })
+
+-- Update positions based on velocity and delta time
+stepPosition :: Float -> System' ()
+stepPosition dT = cmap $ uncurry (stepPositionFormula dT)

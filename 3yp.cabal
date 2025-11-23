@@ -27,6 +27,7 @@ library
   exposed-modules:
       Combat
       Draw
+      Dungeon
       Enemy
       GameMap
       Sprite
