@@ -89,3 +89,9 @@ case currentScene of
 
 # Term 1 Week 7
 - Making use of the global store for sprites significantly reduced memory usage. Although the memory usage to begin with was low, it went from ~60MB down to ~35MB which is very good
+- Making use of `Global` and `Unique` stores for game state and also the combat was extremely beneficial
+- Turn based combat works by using a `Unique` store for the `CombatPlayer` and `CombatEnemy`
+    - Combat player is a self-contained player entity only rendered in combat scenes. has no interaction with the dungeon player. Stores its own sprite and position components
+    - Combat enemy is used to store the entity reference for the actual enemy in the world such that they can be deleted on a victory, and also stores its own position information, sprite information, etc.
+- Fundamentally at the moment works by using four step functions, and stepping through each phase of a combat sequence, making use of animatiions which do not loop, and check when they have finished to progress the combat order
+    - The `Animation` record was extended to have a looping property to allow animations to loop or not
