@@ -34,7 +34,10 @@ enemyReaperAttackFrames :: Set.Set Int
 enemyReaperAttackFrames = Set.fromList [6, 11]
 
 playerDamage :: Int
-playerDamage = 10
+playerDamage = 20
+
+enemyDamage :: Int
+enemyDamage = 5
 
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
@@ -74,15 +77,15 @@ stepEnemyAttack dT = do
         case enemyType enemy of
             Skeleton -> when (fromMaybe 0 n `Set.member` enemySkeletonAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
                 when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
                     set cp (SpriteRef "player-hit" (Just 1))
             Vampire -> when (fromMaybe 0 n `Set.member` enemyVampireAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
                 when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
                     set cp (SpriteRef "player-hit" (Just 1))
             Reaper -> when (fromMaybe 0 n `Set.member` enemyReaperAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
                 when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
                     set cp (SpriteRef "player-hit" (Just 1))
 stepEnemyTurn :: Float -> System' ()
 stepEnemyTurn dT = do
@@ -106,6 +109,11 @@ stepCombat :: Float -> System' ()
 stepCombat dT = do
     ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
     CombatTurn turn <- get global
+    playerHealth <- cfold (\_ (Player, Health hp) -> Just hp) Nothing
+    when (isJust playerHealth && fromMaybe 0 playerHealth <= 0) $ liftIO $ putStrLn "Player has been defeated!"
+    when (isJust ce) $ do
+        Health enemyHealth <- get (fromMaybe (error "No combat enemy") ce) :: System' Health
+        when (enemyHealth <= 0) $ startTransition (pi / 4) 1.0
     case ce of
         Nothing -> return ()
         Just e -> case turn of

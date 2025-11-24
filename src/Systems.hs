@@ -160,13 +160,32 @@ spawnParticles n pos dvx dvy = replicateM_ n $ do
     t <- liftIO $ randomRIO (0.02, 0.3)
     newEntity (Particle t, pos, Velocity (V2 vx vy))
 
+combatTransitionAction :: System' ()
+combatTransitionAction = do
+    liftIO $ putStrLn "Enemy defeated! Returning to dungeon..."
+    ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
+    case ce of
+        Nothing -> return ()
+        Just e -> do
+            destroy e (Proxy @(Enemy, SpriteRef, Position, Velocity, Health))
+            cmapM_ $ \(CombatEnemy _, e') -> destroy e' (Proxy @(CombatEnemy, SpriteRef, Position))
+            set global DungeonState
+
+dungeonTransitionAction :: System' ()
+dungeonTransitionAction = do
+    set global CombatState
+
 stepTransition :: Float -> System' ()
 stepTransition dT = cmapM $ \(Transition p ang spd fired, e) -> do
     let p' = p + dT * spd
     when (not fired && p' >= 0.5) $ do
-        set global CombatState
+        state <- get global :: System' GameState
+        case state of
+            DungeonState -> dungeonTransitionAction
+            CombatState -> combatTransitionAction
+            _ -> return ()
     when (p' >= 1) $ destroy e (Proxy @Transition)
-    return $ Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = (fired || p' >= 1) }
+    return $ Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = (fired || p' >= 0.5) }
 
 -- TODO: Add boundary box collision check and stop player movement
 step :: Float -> System' ()
