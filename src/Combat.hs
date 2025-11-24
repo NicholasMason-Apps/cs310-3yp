@@ -51,13 +51,18 @@ stepPlayerAttack dT = do
         when (sr == "player-idle") $ do
             set global $ CombatTurn EnemyTurn
             set e (Position (V2 ((-1280 / 3)) 0))
-        when (fromMaybe 0 n `Set.member` playerAttackFrames) $ cmapM_ $ \(CombatEnemy e, SpriteRef sr _, ce) -> do
-            modify e $ \(Health hp) -> Health (hp - playerDamage)
-            enemy <- get e :: System' Enemy
+        when (fromMaybe 0 n `Set.member` playerAttackFrames) $ cmapM_ $ \(CombatEnemy e', SpriteRef sr' _, ce) -> do
+            enemy <- get e' :: System' Enemy
             case enemyType enemy of
-                Reaper -> when (sr /= "reaper-hit") $ set ce (SpriteRef "reaper-hit" (Just 1))
-                Vampire -> when (sr /= "vampire-hit") $ set ce (SpriteRef "vampire-hit" (Just 1))
-                Skeleton -> when (sr /= "skeleton-hit") $ set ce (SpriteRef "skeleton-hit" (Just 1))
+                Reaper -> when (sr' /= "reaper-hit") $ do
+                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                    set ce (SpriteRef "reaper-hit" (Just 1))
+                Vampire -> when (sr' /= "vampire-hit") $ do
+                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                    set ce (SpriteRef "vampire-hit" (Just 1))
+                Skeleton -> when (sr' /= "skeleton-hit") $ do
+                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                    set ce (SpriteRef "skeleton-hit" (Just 1))
 
 stepEnemyAttack :: Float -> System' ()
 stepEnemyAttack dT = do
