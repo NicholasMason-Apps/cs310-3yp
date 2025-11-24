@@ -38,7 +38,8 @@ makeEnemy enemy pos = do
             Reaper -> (SpriteRef "reaper-idle" (Just 0), BoundaryBox (16, 26) (-1, -12))
             Vampire -> (SpriteRef "vampire-idle" (Just 0), BoundaryBox (16, 30) (-6, -11))
             Skeleton -> (SpriteRef "skeleton-idle" (Just 0), BoundaryBox (24, 26) (-2, -11))
-    newEntity (enemy, pos, Velocity (V2 0 0), sref, bbox)
+    n <- liftIO $ randomRIO (50, 100)
+    newEntity (enemy, pos, Velocity (V2 0 0), sref, bbox, Health n)
 
 stepEnemyAI :: System' ()
 stepEnemyAI = cmapM_ $ \(Player, Position posP) -> do

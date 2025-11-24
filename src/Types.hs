@@ -140,6 +140,9 @@ data GameRoom = GameRoom { roomType :: RoomType,
                          } deriving (Show)
 instance Component GameRoom where type Storage GameRoom = Map GameRoom
 
+newtype Health = Health Int deriving (Show, Num)
+instance Component Health where type Storage Health = Map Health
+
 -- Combat components
 newtype CombatEnemy = CombatEnemy Entity deriving (Show)
 instance Component CombatEnemy where type Storage CombatEnemy = Unique CombatEnemy
@@ -194,7 +197,8 @@ makeWorld "World" [''Position,
                     ''CombatTile,
                     ''Transition,
                     ''CombatPlayer,
-                    ''CombatTurn]
+                    ''CombatTurn,
+                    ''Health]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

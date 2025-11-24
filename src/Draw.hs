@@ -43,6 +43,7 @@ draw = do
     gs <- get global
     Viewport (w, h) <- get global
     drawTransitionPic <- drawTransition
+    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
     let
         scaleFactorX = fromIntegral w / 1280
         scaleFactorY = fromIntegral h / 720
@@ -51,4 +52,4 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> drawTransitionPic)
+    return $ scale scaleFactor scaleFactor (p <> drawTransitionPic <> playerHealth)

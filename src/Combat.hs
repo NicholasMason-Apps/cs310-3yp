@@ -18,8 +18,23 @@ import Graphics.Gloss
 import Utils
 import Sprite
 import Control.Monad
-import Data.Maybe ( isJust )
+import Data.Maybe ( isJust, fromMaybe )
 import qualified Data.Set as Set
+
+playerAttackFrames :: Set.Set Int
+playerAttackFrames = Set.fromList [7]
+
+enemySkeletonAttackFrames :: Set.Set Int
+enemySkeletonAttackFrames = Set.fromList [7]
+
+enemyVampireAttackFrames :: Set.Set Int
+enemyVampireAttackFrames = Set.fromList [11]
+
+enemyReaperAttackFrames :: Set.Set Int
+enemyReaperAttackFrames = Set.fromList [6, 11]
+
+playerDamage :: Int
+playerDamage = 10
 
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
@@ -32,18 +47,38 @@ stepPlayerTurn dT = do
 
 stepPlayerAttack :: Float -> System' ()
 stepPlayerAttack dT = do
-    cmapM_ $ \(CombatPlayer, SpriteRef sr _, e) -> do
+    cmapM_ $ \(CombatPlayer, SpriteRef sr n, e) -> do
         when (sr == "player-idle") $ do
             set global $ CombatTurn EnemyTurn
             set e (Position (V2 ((-1280 / 3)) 0))
+        when (fromMaybe 0 n `Set.member` playerAttackFrames) $ cmapM_ $ \(CombatEnemy e, SpriteRef sr _, ce) -> do
+            modify e $ \(Health hp) -> Health (hp - playerDamage)
+            enemy <- get e :: System' Enemy
+            case enemyType enemy of
+                Reaper -> when (sr /= "reaper-hit") $ set ce (SpriteRef "reaper-hit" (Just 1))
+                Vampire -> when (sr /= "vampire-hit") $ set ce (SpriteRef "vampire-hit" (Just 1))
+                Skeleton -> when (sr /= "skeleton-hit") $ set ce (SpriteRef "skeleton-hit" (Just 1))
 
 stepEnemyAttack :: Float -> System' ()
 stepEnemyAttack dT = do
-    cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
+    cmapM_ $ \(CombatEnemy e', SpriteRef sr n, e) -> do
         when (sr == "skeleton-idle" || sr == "vampire-idle" || sr == "reaper-idle") $ do
             set global $ CombatTurn PlayerTurn
             set e (Position (V2 (1280 / 3) 0))
-
+        enemy <- get e' :: System' Enemy
+        case enemyType enemy of
+            Skeleton -> when (fromMaybe 0 n `Set.member` enemySkeletonAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
+                when (sr' /= "player-hit") $ do
+                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    set cp (SpriteRef "player-hit" (Just 1))
+            Vampire -> when (fromMaybe 0 n `Set.member` enemyVampireAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
+                when (sr' /= "player-hit") $ do
+                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    set cp (SpriteRef "player-hit" (Just 1))
+            Reaper -> when (fromMaybe 0 n `Set.member` enemyReaperAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
+                when (sr' /= "player-hit") $ do
+                    cmap $ \(Player, Health hp) -> Health (hp - playerDamage)
+                    set cp (SpriteRef "player-hit" (Just 1))
 stepEnemyTurn :: Float -> System' ()
 stepEnemyTurn dT = do
     cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
@@ -73,7 +108,7 @@ stepCombat dT = do
             EnemyTurn -> stepEnemyTurn dT
             PlayerAttacking -> stepPlayerAttack dT
             EnemyAttacking -> stepEnemyAttack dT
-            
+
 
 drawCombat :: System' Picture
 drawCombat = do

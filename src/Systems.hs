@@ -51,6 +51,10 @@ initialize = do
                             Sprite (64,64) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-staff.png" 7 (448,64), looping = (False, Just "player-idle") })
                         ),
                         (
+                            "player-hit",
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/hit.png" 5 (320,64), looping = (False, Just "player-idle") })
+                        ),
+                        (
                             "skeleton-idle",
                             Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
@@ -61,6 +65,10 @@ initialize = do
                         (
                             "skeleton-attack",
                             Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/attack.png" 9 (576,64), looping = (False, Just "skeleton-idle") })
+                        ),
+                        (
+                            "skeleton-hit",
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/hit.png" 5 (320,64), looping = (False, Just "skeleton-idle") })
                         ),
                         (
                             "reaper-idle",
@@ -75,6 +83,10 @@ initialize = do
                             Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/attack.png" 15 (960,64), looping = (False, Just "reaper-idle") })
                         ),
                         (
+                            "reaper-hit",
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/hit.png" 5 (320,64), looping = (False, Just "reaper-idle") })
+                        ),
+                        (
                             "vampire-idle",
                             Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/vampire/idle.png" 6 (384,64), looping = (True, Nothing) })
                         ),
@@ -85,6 +97,10 @@ initialize = do
                         (
                             "vampire-attack",
                             Sprite (64,64) (Right $ Animation { frameCount = 16, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/attack.png" 16 (1024,64), looping = (False, Just "vampire-idle") })
+                        ),
+                        (
+                            "vampire-hit",
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/hit.png" 5 (320,64), looping = (False, Just "vampire-idle") })
                         )
                      ] ++
                      [ (name, Sprite (64,64) (Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
@@ -100,7 +116,7 @@ initialize = do
                         ("combat-ui", Sprite (1280,720) (Left $ loadStaticSprite "ui/combat-ui.png") )
                     ]
     set global (SpriteMap $ Map.fromList spriteList)
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11))
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11), Health 100)
     combatPlayerEntity <- newEntity (CombatPlayer, Position (V2 (-1280 / 3) 0), Velocity (V2 0 0), SpriteRef "player-idle" (Just 0))
     generateMap
     let offsetX = tileSize / 2 - 1280/2
