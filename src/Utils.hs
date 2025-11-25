@@ -76,7 +76,10 @@ getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
         sprite = smap Map.! sr
     in case sprite of
         Sprite _ (Left _) -> error "Static sprite does not support frame number"
-        Sprite _ (Right a) -> sprites a V.! frameNum
+        Sprite _ (Right a) -> if frameNum >= frameCount a then
+                sprites a V.! (frameCount a - 1)
+            else
+                sprites a V.! frameNum
 
 -- Transition easing
 easeInOut :: Float -> Float

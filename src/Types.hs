@@ -127,7 +127,8 @@ instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
                            , sprites :: V.Vector Picture
-                           , looping :: (Bool, Maybe String)
+                           , looping :: Bool
+                           , afterLoopAnimation :: Maybe String
                            } deriving (Show)
 
 
@@ -159,7 +160,7 @@ instance Monoid CombatTurn where
     mempty = CombatTurn PlayerTurn
 instance Component CombatTurn where type Storage CombatTurn = Global CombatTurn
 
-data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking deriving (Show, Eq)
+data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking | PlayerWin deriving (Show, Eq)
 
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile

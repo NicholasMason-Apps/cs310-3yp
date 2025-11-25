@@ -18,8 +18,9 @@ import Graphics.Gloss
 import Utils
 import Sprite
 import Control.Monad
-import Data.Maybe ( isJust, fromMaybe )
+import Data.Maybe ( isJust, fromMaybe, isNothing )
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 playerAttackFrames :: Set.Set Int
 playerAttackFrames = Set.fromList [7]
@@ -56,16 +57,29 @@ stepPlayerAttack dT = do
             set e (Position (V2 ((-1280 / 3)) 0))
         when (fromMaybe 0 n `Set.member` playerAttackFrames) $ cmapM_ $ \(CombatEnemy e', SpriteRef sr' _, ce) -> do
             enemy <- get e' :: System' Enemy
-            case enemyType enemy of
-                Reaper -> when (sr' /= "reaper-hit") $ do
-                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                    set ce (SpriteRef "reaper-hit" (Just 1))
-                Vampire -> when (sr' /= "vampire-hit") $ do
-                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                    set ce (SpriteRef "vampire-hit" (Just 1))
-                Skeleton -> when (sr' /= "skeleton-hit") $ do
-                    modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                    set ce (SpriteRef "skeleton-hit" (Just 1))
+            Health hp <- get e' :: System' Health
+            if hp - playerDamage > 0 then
+                case enemyType enemy of
+                    Reaper -> when (sr' /= "reaper-hit") $ do
+                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                        set ce (SpriteRef "reaper-hit" (Just 1))
+                    Vampire -> when (sr' /= "vampire-hit") $ do
+                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                        set ce (SpriteRef "vampire-hit" (Just 1))
+                    Skeleton -> when (sr' /= "skeleton-hit") $ do
+                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                        set ce (SpriteRef "skeleton-hit" (Just 1))
+            else
+                case enemyType enemy of
+                    Reaper -> when (sr' /= "reaper-death") $ do
+                        set ce (SpriteRef "reaper-death" (Just 1))
+                        set global $ CombatTurn PlayerWin
+                    Vampire -> when (sr' /= "vampire-death") $ do
+                        set ce (SpriteRef "vampire-death" (Just 1))
+                        set global $ CombatTurn PlayerWin
+                    Skeleton -> when (sr' /= "skeleton-death") $ do
+                        set ce (SpriteRef "skeleton-death" (Just 1))
+                        set global $ CombatTurn PlayerWin
 
 stepEnemyAttack :: Float -> System' ()
 stepEnemyAttack dT = do
@@ -105,15 +119,24 @@ stepEnemyTurn dT = do
                 set global $ CombatTurn EnemyAttacking
             _               -> return ()
 
+stepPlayerWin :: Float -> System' ()
+stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
+    cmapIf (\(CombatPlayer, SpriteRef sr' _) -> sr' == "player-idle") (\CombatPlayer -> Position (V2 ((-1280 / 3)) 0))
+    when (sr == "vampire-death" || sr == "skeleton-death" || sr == "reaper-death") $ do
+        SpriteMap smap <- get global
+        let Sprite _ spriteE = smap Map.! sr
+            anim = case spriteE of
+                Left _ -> error "Static sprite does not support frame number"
+                Right a -> a
+        existsTransition <- cfold (\_ (Transition _ _ _ _) -> Just ()) Nothing
+        when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0
+
 stepCombat :: Float -> System' ()
 stepCombat dT = do
     ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
     CombatTurn turn <- get global
     playerHealth <- cfold (\_ (Player, Health hp) -> Just hp) Nothing
     when (isJust playerHealth && fromMaybe 0 playerHealth <= 0) $ liftIO $ putStrLn "Player has been defeated!"
-    when (isJust ce) $ do
-        Health enemyHealth <- get (fromMaybe (error "No combat enemy") ce) :: System' Health
-        when (enemyHealth <= 0) $ startTransition (pi / 4) 1.0
     case ce of
         Nothing -> return ()
         Just e -> case turn of
@@ -121,6 +144,7 @@ stepCombat dT = do
             EnemyTurn -> stepEnemyTurn dT
             PlayerAttacking -> stepPlayerAttack dT
             EnemyAttacking -> stepEnemyAttack dT
+            PlayerWin -> stepPlayerWin dT
 
 
 drawCombat :: System' Picture
