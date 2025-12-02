@@ -45,6 +45,12 @@ packages:
 extra-deps:
   - gloss-juicy-0.2.3
 
+flags:
+  sdl2:
+    pkgconfig: false
+
+
+
 # Override default flag values for project packages and extra-deps
 # flags: {}
 

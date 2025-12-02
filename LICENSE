@@ -24,3 +24,10 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Third-party libraries included:
+
+SDL2.dll, SDL2_image.dll, SDL2_ttf.dll — zlib license — https://www.libsdl.org/
+libwinpthread-1.dll, libgcc_s_seh-1.dll, libstdc++-6.dll — LGPL/GCC runtime — https://gcc.gnu.org/
+freetype-6.dll — FreeType license — https://www.freetype.org/
+libpng16-16.dll, zlib1.dll — zlib license — http://www.zlib.net/
