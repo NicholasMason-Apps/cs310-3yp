@@ -29,7 +29,28 @@ main = do
     SDL.showWindow window
 
     -- Loop code
-    
+    let loop prevTicks secondTick fpcAcc prevFps = do
+            ticks <- SDL.ticks
+            payload <- map SDL.eventPayload <$> SDL.pollEvents
+            let quit = SDL.QuitEvent `elem` payload
+                dt = ticks - prevTicks
+                calcFps = secondTick + dt > 1000
+                newFps = if calcFps then fpcAcc + 1 else fpcAcc
+                newFpsAcc = if calcFps then 1 else fpsAcc + 1
+                newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
+            
+            -- handle input events
+            runSystem (handlePayload payload) world
+
+            -- update game state
+            runSystem (step $ fromIntegral dt) world
+
+            -- Set background colour and clear the screen
+            SDL.rendererDrawColor render SDL.$= SDL.V4 37 19 26 255
+            SDL.clear render
+
+            -- render the current frame
+            join $ runSystem (draw renderer newFps) world
 
     SDL.destroyRenderer render
     SDL.destroyWindow window
