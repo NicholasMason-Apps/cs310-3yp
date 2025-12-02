@@ -95,3 +95,16 @@ case currentScene of
     - Combat enemy is used to store the entity reference for the actual enemy in the world such that they can be deleted on a victory, and also stores its own position information, sprite information, etc.
 - Fundamentally at the moment works by using four step functions, and stepping through each phase of a combat sequence, making use of animatiions which do not loop, and check when they have finished to progress the combat order
     - The `Animation` record was extended to have a looping property to allow animations to loop or not
+
+## Meeting notes
+- continue implementation of game, making it more complete and fleshed out
+For progress report:
+- come up with a first run at the conversation you want in the final report
+- layout my experience with using a FP for games. what was hard, what was easy, the notion of an ECS
+- updated timeline should definitely include 3d
+- consider switching to sld2/glfw away from gloss to allow more control over the rendering and viewport, makes a nice story and discussion for progress report
+- look into apecs paper for literature review
+- pull from game programming haskell book
+- use apecs paper for searching papers which reference it
+- reference gungeon article about procedural generation
+    - make use of diagrams, annotated pictures, etc. about possible generations from MY game and how it goes about that
