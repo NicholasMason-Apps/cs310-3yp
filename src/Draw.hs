@@ -14,8 +14,6 @@ import Apecs
 import Apecs.Gloss
 import Linear
 import Types
-import Codec.Picture
-import Graphics.Gloss.Juicy (fromDynamicImage)
 import Data.Maybe
 import qualified Data.Vector as V
 import Data.Set (Set)
