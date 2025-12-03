@@ -21,7 +21,7 @@ main = do
 
     -- Create window and renderer
     window <- SDL.createWindow "Dungeon Crawler" SDL.defaultWindow
-    render <- SDL.createRenderer window (-1) SDL.defaultRenderer
+    renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
     
     -- Initialize systems
     runSystem initialize world
@@ -46,13 +46,16 @@ main = do
             runSystem (step $ fromIntegral dt) world
 
             -- Set background colour and clear the screen
-            SDL.rendererDrawColor render SDL.$= SDL.V4 37 19 26 255
-            SDL.clear render
+            SDL.rendererDrawColor renderer SDL.$= SDL.V4 37 19 26 255
+            SDL.clear renderer
 
             -- render the current frame
             join $ runSystem (draw renderer newFps) world
+            SDL.present renderer
+            unless quit $ loop ticks newSecondTick newFpsAcc newFps
+    loop 0 0 0 0
 
-    SDL.destroyRenderer render
+    SDL.destroyRenderer renderer
     SDL.destroyWindow window
     SDL.Image.quit
     SDL.Font.quit

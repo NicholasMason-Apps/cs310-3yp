@@ -22,6 +22,7 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Control.Monad
 import Enemy
+import qualified SDL
 
 handleEnemyCollisions :: Float -> System' ()
 handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
@@ -56,10 +57,10 @@ updatePlayerMovement = do
     if isNothing enemy then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
             let (V2 vx vy) = foldl' (\(V2 ax ay) dir -> case dir of
-                                            (SpecialKey KeyLeft)  -> V2 (ax - playerSpeed) ay
-                                            (SpecialKey KeyRight) -> V2 (ax + playerSpeed) ay
-                                            (SpecialKey KeyUp)    -> V2 ax (ay + playerSpeed)
-                                            (SpecialKey KeyDown)  -> V2 ax (ay - playerSpeed)
+                                            SDL.KeycodeLeft  -> V2 (ax - playerSpeed) ay
+                                            SDL.KeycodeRight -> V2 (ax + playerSpeed) ay
+                                            SDL.KeycodeUp    -> V2 ax (ay + playerSpeed)
+                                            SDL.KeycodeDown  -> V2 ax (ay - playerSpeed)
                                             _        -> V2 ax ay) (V2 0 0) (Set.toList ks)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
@@ -123,7 +124,7 @@ drawDungeon = do
     player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
         in
-            if SpecialKey KeyLeft `Set.member` ks && SpecialKey KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
+            if SDL.KeycodeLeft `Set.member` ks && SDL.KeycodeRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
             boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
         in

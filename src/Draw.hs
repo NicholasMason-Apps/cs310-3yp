@@ -24,6 +24,7 @@ import Utils
 import System.IO.Unsafe ( unsafePerformIO )
 import Combat
 import Dungeon
+import qualified SDL
 
 drawTransition :: System' Picture
 drawTransition = foldDraw $ \(Transition p ang _ _) -> 
@@ -35,6 +36,8 @@ drawTransition = foldDraw $ \(Transition p ang _ _) ->
         h = 2500
         rect = color black $ polygon [(-w/2,-h/2), (w/2,-h/2), (w/2,h/2), (-w/2,h/2)]
     in translate dx dy $ Apecs.Gloss.rotate (ang * 180/pi) rect
+
+draw :: SDL.Renderer -> Int -> System' IO ()
 
 draw :: System' Picture
 draw = do

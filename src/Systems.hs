@@ -29,6 +29,8 @@ import Data.Maybe
 import System.IO.Unsafe ( unsafePerformIO )
 import Combat
 import Dungeon
+import qualified SDL
+import Control.Exception (handle)
 
 -- Initialise the game state by creating a player entity
 initialize :: System' ()
@@ -214,13 +216,26 @@ step dT = do
         CombatState  -> stepCombat dT
         _            -> return ()
 
-handleEvent :: Event -> System' ()
--- Player movement
-handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
-handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
-handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
--- Exit game
-handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
-handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
-handleEvent (EventResize sz) = set global (Viewport sz)
-handleEvent _ = return () -- base case
+handlePayload :: [SDL.EventPayload] -> System' ()
+handlePayload = mapM_ handleEvent
+
+handleEvent :: SDL.EventPayload -> System' ()
+handleEvent (SDL.KeyboardEvent ev) = handleKeyEvent ev
+handleEvent _ = return ()
+
+handleKeyEvent :: SDL.KeyboardEventData -> System' ()
+handleKeyEvent ev
+    | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks)
+    | SDL.keyboardEventKeyMotion ev == SDL.Released = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks)
+    | otherwise = return ()
+
+-- handleEvent :: Event -> System' ()
+-- -- Player movement
+-- handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+-- handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
+-- handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
+-- -- Exit game
+-- handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
+-- handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
+-- handleEvent (EventResize sz) = set global (Viewport sz)
+-- handleEvent _ = return () -- base case
