@@ -20,8 +20,11 @@ main = do
     SDL.Font.initialize
 
     -- Create window and renderer
-    window <- SDL.createWindow "Dungeon Crawler" SDL.defaultWindow
-    renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
+    let windowConfig = SDL.defaultWindow { SDL.windowInitialSize = SDL.V2 1280 720, SDL.windowMode = SDL.Windowed, SDL.windowHighDPI = True, SDL.windowResizable = False }
+    window <- SDL.createWindow "Dungeon Crawler" windowConfig
+    
+    let rendererConfig = SDL.defaultRenderer { SDL.rendererType = SDL.AcceleratedRenderer, SDL.rendererTargetTexture = False }
+    renderer <- SDL.createRenderer window (-1) rendererConfig
     
     -- Initialize systems
     runSystem initialize world

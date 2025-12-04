@@ -12,7 +12,6 @@
 module Types where
 
 import Apecs
-import Apecs.Gloss
 import System.Random
 import System.Exit
 import Linear
@@ -25,6 +24,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified SDL
+
 
 -- Global stores
 newtype Viewport = Viewport (Int, Int) deriving Show
@@ -120,14 +120,13 @@ instance Component Tile where type Storage Tile = Map Tile
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
 
-data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
+data Sprite = Sprite (Int, Int) SDL.Texture (Maybe Animation) deriving (Show)
 
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
-                           , sprites :: V.Vector Picture
                            , looping :: Bool
                            , afterLoopAnimation :: Maybe String
                            } deriving (Show)

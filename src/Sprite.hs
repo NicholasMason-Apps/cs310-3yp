@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Sprite (spriteDimensions, loadStaticSprite, loadAnimatedSprite, stepAnimations, stepPositionFormula, checkBoundaryBoxIntersection, checkBoundaryBoxBottomIntersection, checkBoundaryBoxTopIntersection, checkBoundaryBoxLeftIntersection, checkBoundaryBoxRightIntersection) where
+module Sprite (loadSprite, spriteDimensions, stepAnimations, stepPositionFormula, checkBoundaryBoxIntersection, checkBoundaryBoxBottomIntersection, checkBoundaryBoxTopIntersection, checkBoundaryBoxLeftIntersection, checkBoundaryBoxRightIntersection) where
 
 import Apecs
 import Linear
@@ -16,14 +16,15 @@ import Control.Monad
 import Types
 import Data.Maybe ( isJust, fromMaybe )
 import System.IO.Unsafe ( unsafePerformIO )
-import Graphics.Gloss ( Picture (Blank) )
-import Graphics.Gloss.Juicy ( loadJuicy, fromDynamicImage )
+import SDL (Renderer, Texture)
+import SDL.Image (loadTexture)
 import Codec.Picture
 import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Utils
 import Data.Map ((!))
+
 
 spriteDimensions :: Sprite -> (Int, Int)
 spriteDimensions (Sprite (w,h) _) = (w, h)
@@ -111,22 +112,30 @@ checkBoundaryBoxRightIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1))
         top2  = y2 + fromIntegral boy2 + fromIntegral h2/2
         bottom2 = y2 + fromIntegral boy2 - fromIntegral h2/2
 
-loadStaticSprite :: FilePath -> Picture
-loadStaticSprite path = let
-    res = unsafePerformIO $ loadJuicy ("assets/" ++ path)
+loadSprite :: Renderer -> FilePath -> Texture
+loadSprite r path = let
+    res = unsafePerformIO $ loadTexture r ("assets/" ++ path)
     in case res of
         Nothing -> error $ "Failed to load sprite: " ++ path
         Just img -> img
 
-loadAnimatedSprite :: FilePath -> Int -> (Int,Int) -> V.Vector Picture
-loadAnimatedSprite path frameCount (w,h) = let
-        res = unsafePerformIO $ readImage ("assets/" ++ path)
-        frameWidth = w `div` frameCount
-    in
-        case res of
-            Left err -> error $ "Failed to load sprite: " ++ path ++ " Error: " ++ err
-            Right dynImg -> let
-                    img = convertRGBA8 dynImg
-                    subImg i = generateImage (\x y -> pixelAt img (x + (i * frameWidth)) y) frameWidth h
-                in
-                    V.generate frameCount (fromMaybe Blank . fromDynamicImage . ImageRGBA8 . subImg)
+
+-- loadStaticSprite :: Renderer -> FilePath -> Texture
+-- loadStaticSprite r path = let
+--     res = unsafePerformIO $ loadTexture r ("assets/" ++ path)
+--     in case res of
+--         Nothing -> error $ "Failed to load sprite: " ++ path
+--         Just img -> img
+
+-- loadAnimatedSprite :: Renderer -> FilePath -> Int -> (Int,Int) -> V.Vector Picture
+-- loadAnimatedSprite r path frameCount (w,h) = let
+--         res = unsafePerformIO $ readImage ("assets/" ++ path)
+--         frameWidth = w `div` frameCount
+--     in
+--         case res of
+--             Left err -> error $ "Failed to load sprite: " ++ path ++ " Error: " ++ err
+--             Right dynImg -> let
+--                     img = convertRGBA8 dynImg
+--                     subImg i = generateImage (\x y -> pixelAt img (x + (i * frameWidth)) y) frameWidth h
+--                 in
+--                     V.generate frameCount (fromMaybe Blank . fromDynamicImage . ImageRGBA8 . subImg)

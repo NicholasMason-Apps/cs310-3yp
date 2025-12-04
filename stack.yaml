@@ -45,14 +45,14 @@ packages:
 extra-deps:
   - gloss-juicy-0.2.3
 
-flags:
-  sdl2:
-    pkgconfig: false
+# flags:
+#   sdl2:
+#     pkgconfig: false
 
-extra-include-dirs:
-  - C:/msys64/mingw64/include/SDL2
-extra-lib-dirs:
-  - C:/msys64/mingw64/lib
+# extra-include-dirs:
+#   - C:/msys64/mingw64/include/SDL2
+# extra-lib-dirs:
+#   - C:/msys64/mingw64/lib
 
 
 

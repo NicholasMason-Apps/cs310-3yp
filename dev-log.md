@@ -107,4 +107,8 @@ For progress report:
 - pull from game programming haskell book
 - use apecs paper for searching papers which reference it
 - reference gungeon article about procedural generation
-    - make use of diagrams, annotated pictures, etc. about possible generations from MY game and how it goes about that
+    - make use of diagrams, annotated pictures, etc. about possible generations from MY game and how it goes about that'
+
+# Term 1 Week 9
+- Split gloss and sdl2 code into separate app directories such that we can run the gloss or sdl version with the same apecs backend
+- will need to change `package.yaml` to have two executables
