@@ -103,7 +103,7 @@ getSprite :: Map.Map String Sprite -> SpriteRef -> Sprite
 getSprite smap (SpriteRef sr _) = smap Map.! sr
 
 isSpriteInView :: Maybe (V2 Float) -> Sprite -> Position -> Bool
-isSpriteInView (Just (V2 px py)) (Sprite (w,h) _) (Position (V2 sx sy)) =
+isSpriteInView (Just (V2 px py)) (Sprite (w,h) _ _) (Position (V2 sx sy)) =
     let
         vw = 1280
         vh = 720

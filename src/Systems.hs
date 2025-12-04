@@ -38,96 +38,96 @@ initialize w r = do
     let spriteList = [
                         (
                             "player-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadSprite r "player/idle.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "player/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadSprite r "player/walk.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "player/walk.png") (Just $ Animation { frameCount = 10, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-knife-attack",
-                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadSprite r "player/knife-attack.png", looping = False, afterLoopAnimation = Just "player-idle" })
+                            Sprite (64,64) (loadSprite r "player/knife-attack.png") (Just $ Animation { frameCount = 9, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle" })
                         ),
                         (
                             "player-staff",
-                            Sprite (64,64) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadSprite r "player/player-staff.png", looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "player/player-staff.png") (Just $ Animation { frameCount = 7, frameSpeed = 0.3, looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-hit",
-                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadSprite r "player/hit.png", looping = False, afterLoopAnimation = Just "player-idle" })
+                            Sprite (64,64) (loadSprite r "player/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle" })
                         ),
                         (
                             "skeleton-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadSprite r "enemies/skeleton/idle.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/skeleton/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "skeleton-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadSprite r "enemies/skeleton/walk.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/skeleton/walk.png") (Just $ Animation { frameCount = 10, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "skeleton-attack",
-                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadSprite r "enemies/skeleton/attack.png", looping = False, afterLoopAnimation = Just "skeleton-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/skeleton/attack.png") (Just $ Animation { frameCount = 9, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "skeleton-idle" })
                         ),
                         (
                             "skeleton-hit",
-                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadSprite r "enemies/skeleton/hit.png", looping = False, afterLoopAnimation = Just "skeleton-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/skeleton/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "skeleton-idle" })
                         ),
                         (
                             "skeleton-death",
-                            Sprite (64,64) (Right $ Animation { frameCount = 17, frameSpeed = 0.1, sprites = loadSprite r "enemies/skeleton/death.png", looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/skeleton/death.png") (Just $ Animation { frameCount = 17, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadSprite r "enemies/reaper/idle.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/reaper/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadSprite r "enemies/reaper/walk.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/reaper/walk.png") (Just $ Animation { frameCount = 8, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-attack",
-                            Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadSprite r "enemies/reaper/attack.png", looping = False, afterLoopAnimation = Just "reaper-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/reaper/attack.png") (Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "reaper-idle" })
                         ),
                         (
                             "reaper-hit",
-                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadSprite r "enemies/reaper/hit.png", looping = False, afterLoopAnimation = Just "reaper-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/reaper/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "reaper-idle" })
                         ),
                         (
                             "reaper-death",
-                            Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadSprite r "enemies/reaper/death.png", looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/reaper/death.png") (Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-idle",
-                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadSprite r "enemies/vampire/idle.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/vampire/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-walk",
-                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadSprite r "enemies/vampire/walk.png", looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/vampire/walk.png") (Just $ Animation { frameCount = 8, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-attack",
-                            Sprite (64,64) (Right $ Animation { frameCount = 16, frameSpeed = 0.1, sprites = loadSprite r "enemies/vampire/attack.png", looping = False, afterLoopAnimation = Just "vampire-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/vampire/attack.png") (Just $ Animation { frameCount = 16, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "vampire-idle" })
                         ),
                         (
                             "vampire-hit",
-                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadSprite r "enemies/vampire/hit.png", looping = False, afterLoopAnimation = Just "vampire-idle" })
+                            Sprite (64,64) (loadSprite r "enemies/vampire/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "vampire-idle" })
                         ),
                         (
                             "vampire-death",
-                            Sprite (64,64) (Right $ Animation { frameCount = 14, frameSpeed = 0.1, sprites = loadSprite r "enemies/vampire/death.png", looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (loadSprite r "enemies/vampire/death.png") (Just $ Animation { frameCount = 14, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
                         )
                      ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
                      [
-                        ("wall-bottom-right", Sprite (64,64) (Left $ loadSprite r "tiles/wall-bottom-right.png") ),
-                        ("wall-bottom-left", Sprite (64,64) (Left $ loadSprite r "tiles/wall-bottom-left.png") ),
-                        ("combat-ui", Sprite (1280,720) (Left $ loadSprite r "ui/combat-ui.png") )
+                        ("wall-bottom-right", Sprite (64,64) (loadSprite r "tiles/wall-bottom-right.png") Nothing ),
+                        ("wall-bottom-left", Sprite (64,64) (loadSprite r "tiles/wall-bottom-left.png") Nothing ),
+                        ("combat-ui", Sprite (1280,720) (loadSprite r "ui/combat-ui.png") Nothing )
                     ]
     set global (SpriteMap $ Map.fromList spriteList)
     playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11), Health 100)

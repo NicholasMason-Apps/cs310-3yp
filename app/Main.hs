@@ -53,7 +53,7 @@ main = do
             SDL.clear renderer
 
             -- render the current frame
-            join $ runSystem (draw renderer newFps) world
+            runSystem (draw renderer newFps) world
             SDL.present renderer
             unless quit $ loop ticks newSecondTick newFpsAcc newFps
     loop 0 0 0 0

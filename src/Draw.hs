@@ -8,10 +8,9 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Draw ( draw, getSpritePicture ) where
+module Draw ( draw ) where
 
 import Apecs
-import Apecs.Gloss
 import Linear
 import Types
 import Data.Maybe
@@ -26,7 +25,7 @@ import Combat
 import Dungeon
 import qualified SDL
 
-drawTransition :: System' Picture
+drawTransition :: System' ()
 drawTransition = foldDraw $ \(Transition p ang _ _) -> 
     let t = easeInOut (min 1 p)
         dist = Utils.lerp (-2000) 2000 t
@@ -37,20 +36,22 @@ drawTransition = foldDraw $ \(Transition p ang _ _) ->
         rect = color black $ polygon [(-w/2,-h/2), (w/2,-h/2), (w/2,h/2), (-w/2,h/2)]
     in translate dx dy $ Apecs.Gloss.rotate (ang * 180/pi) rect
 
-draw :: SDL.Renderer -> Int -> System' IO ()
-
-draw :: System' Picture
-draw = do
+draw :: SDL.Renderer -> FPS -> System' ()
+draw r fps = do
     gs <- get global
-    Viewport (w, h) <- get global
-    drawTransitionPic <- drawTransition
-    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
-    let
-        scaleFactorX = fromIntegral w / 1280
-        scaleFactorY = fromIntegral h / 720
-        scaleFactor = min scaleFactorX scaleFactorY
-    p <- case gs of
-        DungeonState -> drawDungeon
-        CombatState  -> drawCombat
-        _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> drawTransitionPic <> playerHealth)
+    case gs of
+        DungeonState -> drawDungeon r fps
+        CombatState  -> drawCombat r fps
+        _ -> drawMenuOrPause r fps
+    -- Viewport (w, h) <- get global
+    -- drawTransitionPic <- drawTransition
+    -- playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
+    -- let
+    --     scaleFactorX = fromIntegral w / 1280
+    --     scaleFactorY = fromIntegral h / 720
+    --     scaleFactor = min scaleFactorX scaleFactorY
+    -- p <- case gs of
+    --     DungeonState -> drawDungeon
+    --     CombatState  -> drawCombat
+    --     _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
+    -- return $ scale scaleFactor scaleFactor (p <> drawTransitionPic <> playerHealth)

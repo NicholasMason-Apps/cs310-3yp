@@ -55,7 +55,7 @@ instance Monoid KeysPressed where
     mempty = KeysPressed Set.empty
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
 
-newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
+newtype SpriteMap = SpriteMap (Map.Map String Sprite) 
 instance Semigroup SpriteMap where
     (SpriteMap m1) <> (SpriteMap m2) = SpriteMap (m1 `mappend` m2)
 instance Monoid SpriteMap where
@@ -120,7 +120,7 @@ instance Component Tile where type Storage Tile = Map Tile
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
 
-data Sprite = Sprite (Int, Int) SDL.Texture (Maybe Animation) deriving (Show)
+data Sprite = Sprite (Int, Int) SDL.Texture (Maybe Animation) 
 
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
@@ -174,6 +174,7 @@ data Transition = Transition {
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
+type FPS = Int
 
 -- Define all the components in the world
 makeWorld "World" [''Position,
@@ -182,7 +183,6 @@ makeWorld "World" [''Position,
                     ''Score,
                     ''Time,
                     ''Particle,
-                    ''Camera,
                     ''Wall,
                     ''SpriteRef,
                     ''MoveDirection,

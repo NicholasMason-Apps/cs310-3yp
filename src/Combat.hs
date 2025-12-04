@@ -125,10 +125,10 @@ stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
     cmapIf (\(CombatPlayer, SpriteRef sr' _) -> sr' == "player-idle") (\CombatPlayer -> Position (V2 ((-1280 / 3)) 0))
     when (sr == "vampire-death" || sr == "skeleton-death" || sr == "reaper-death") $ do
         SpriteMap smap <- get global
-        let Sprite _ spriteE = smap Map.! sr
-            anim = case spriteE of
-                Left _ -> error "Static sprite does not support frame number"
-                Right a -> a
+        let Sprite _ spriteE ma = smap Map.! sr
+            anim = case ma of
+                Nothing -> error "Static sprite does not support frame number"
+                Just a -> a
         existsTransition <- cfold (\_ (Transition _ _ _ _) -> Just ()) Nothing
         when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0
 
@@ -148,16 +148,17 @@ stepCombat dT = do
             PlayerWin -> stepPlayerWin dT
 
 
-drawCombat :: System' Picture
-drawCombat = do
+drawCombat :: SDL.Renderer -> FPS -> System' ()
+drawCombat r fps = do
     SpriteMap smap <- get global
     CombatTurn turn <- get global
-    let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
-    player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
-    enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s
-    enemyPlayerLayer <- if turn == PlayerTurn || turn == PlayerAttacking then
-            return $ enemy <> player
-        else
-            return $ player <> enemy
-    tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
-    return $ tiles <> enemyPlayerLayer <> ui
+    when (turn == PlayerTurn) $ drawSprite (SpriteRef "combat-ui" Nothing) SDL.
+    -- let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
+    -- player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
+    -- enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s
+    -- enemyPlayerLayer <- if turn == PlayerTurn || turn == PlayerAttacking then
+    --         return $ enemy <> player
+    --     else
+    --         return $ player <> enemy
+    -- tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
+    -- return $ tiles <> enemyPlayerLayer <> ui
