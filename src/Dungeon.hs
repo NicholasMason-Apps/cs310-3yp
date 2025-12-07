@@ -121,8 +121,8 @@ drawDungeon r fps = do
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     let (psx, psy) = (64,64)
         worldToScreen (V2 x y) = case playerPos of
-            Just (V2 px py) -> V2 (x - px + 1280 / 2 - fromIntegral psx / 2) ((-y) + py + 720 / 2 - fromIntegral psy / 2)
-            Nothing         -> V2 x (-y)
+            Just (V2 px py) -> V2 (x - px + 1280 / 2 - fromIntegral psx / 2) (y - py + 720 / 2 - fromIntegral psy / 2)
+            Nothing         -> V2 x y
     cmapM_ $ \(Player, Position posP, sref) -> liftIO $ drawSprite sref smap (Position $ worldToScreen posP) r
     cmapM_ $ \(Wall, Position posW, sref) -> when (isSpriteInView playerPos (getSprite smap sref) (Position posW)) $ liftIO $ drawSprite sref smap (Position $ worldToScreen posW) r
     -- playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
