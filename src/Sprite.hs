@@ -62,6 +62,15 @@ stepAnimations dT = do
                                         else SpriteRef sr (Just newFrame)
             else SpriteRef sr (Just a)
 
+aabb :: V2 Float -> BoundaryBox -> (Float, Float, Float, Float)
+aabb (V2 x y) (BoundaryBox (w,h) (ox,oy)) =
+    let left   = x + fromIntegral ox
+        top    = y + fromIntegral oy
+        right  = left + fromIntegral w
+        bottom = top + fromIntegral h
+    in
+        (left, top, right, bottom)
+
 -- Boundary box collision detection
 checkBoundaryBoxIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
 checkBoundaryBoxIntersection v1 bb1 v2 bb2 = checkBoundaryBoxTopIntersection v1 bb1 v2 bb2 ||
@@ -70,49 +79,36 @@ checkBoundaryBoxIntersection v1 bb1 v2 bb2 = checkBoundaryBoxTopIntersection v1 
                                             checkBoundaryBoxRightIntersection v1 bb1 v2 bb2
 -- Note: Sprite positions are centered based on their Position component
 checkBoundaryBoxTopIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
-checkBoundaryBoxTopIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
-    bottom1 > top2 && top1 < top2 && right1 > left2 && left1 < right2
-    where
-        left1 = x1 + fromIntegral box1
-        right1 = x1 + fromIntegral box1 + fromIntegral w1
-        top1  = y1 + fromIntegral boy1
-        bottom1 = y1 + fromIntegral boy1 + fromIntegral h1
-        left2 = x2 + fromIntegral box2
-        right2 = x2 + fromIntegral box2 + fromIntegral w2
-        top2 = y2 + fromIntegral boy2
+checkBoundaryBoxTopIntersection pos1 bb1 pos2 bb2 =
+    let 
+        (_, t1, _, b1) = aabb pos1 bb1
+        (_, t2, _, _)  = aabb pos2 bb2
+    in 
+        b1 > t2 && t1 < t2
+
 checkBoundaryBoxBottomIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
-checkBoundaryBoxBottomIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
-    top1 < bottom2 && bottom1 > bottom2 && right1 > left2 && left1 < right2
-    where
-        left1 = x1 + fromIntegral box1
-        right1 = x1 + fromIntegral box1 + fromIntegral w1
-        top1  = y1 + fromIntegral boy1
-        bottom1 = y1 + fromIntegral boy1 + fromIntegral h1
-        left2 = x2 + fromIntegral box2
-        right2 = x2 + fromIntegral box2 + fromIntegral w2
-        bottom2 = y2 + fromIntegral boy2 + fromIntegral h2
+checkBoundaryBoxBottomIntersection pos1 bb1 pos2 bb2 =
+    let 
+        (_, t1, _, b1) = aabb pos1 bb1
+        (_, _, _, b2)  = aabb pos2 bb2
+    in 
+        t1 < b2 && b1 > b2
+
 checkBoundaryBoxLeftIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
-checkBoundaryBoxLeftIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
-    right1 > left2 && left1 < left2 && bottom1 > top2 && top1 < bottom2
-    where
-        left1 = x1 + fromIntegral box1
-        right1 = x1 + fromIntegral box1 + fromIntegral w1
-        top1  = y1 + fromIntegral boy1
-        bottom1 = y1 + fromIntegral boy1 + fromIntegral h1
-        left2 = x2 + fromIntegral box2
-        top2  = y2 + fromIntegral boy2 + fromIntegral h2
-        bottom2 = y2 + fromIntegral boy2
+checkBoundaryBoxLeftIntersection pos1 bb1 pos2 bb2 =
+    let
+        (l1, _, r1, _) = aabb pos1 bb1
+        (l2, _, _, _)  = aabb pos2 bb2
+    in
+        r1 > l2 && l1 < l2
+
 checkBoundaryBoxRightIntersection :: V2 Float -> BoundaryBox -> V2 Float -> BoundaryBox -> Bool
-checkBoundaryBoxRightIntersection (V2 x1 y1) (BoundaryBox (w1, h1) (box1, boy1)) (V2 x2 y2) (BoundaryBox (w2, h2) (box2, boy2)) =
-    left1 < right2 && right1 > right2 && bottom1 > top2 && top1 < bottom2
-    where
-        left1 = x1 + fromIntegral box1
-        right1 = x1 + fromIntegral box1 + fromIntegral w1
-        top1  = y1 + fromIntegral boy1
-        bottom1 = y1 + fromIntegral boy1 + fromIntegral h1
-        right2 = x2 + fromIntegral box2 + fromIntegral w2
-        top2  = y2 + fromIntegral boy2
-        bottom2 = y2 + fromIntegral boy2 + fromIntegral h2
+checkBoundaryBoxRightIntersection pos1 bb1 pos2 bb2 =
+    let 
+        (l1, _, r1, _) = aabb pos1 bb1
+        (_, _, r2, _)  = aabb pos2 bb2
+    in 
+        l1 < r2 && r1 > r2
 
 loadSprite :: SDL.Renderer -> FilePath -> SDL.Texture
 loadSprite r path = unsafePerformIO $ loadTexture r ("assets/" ++ path)
