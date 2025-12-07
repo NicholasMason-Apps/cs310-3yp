@@ -6,39 +6,43 @@ import Apecs
 import qualified SDL
 import qualified SDL.Font
 import qualified SDL.Image
+import qualified Data.Text as T
 import Draw
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.IORef
+import Control.Monad ( unless )
+import System.Exit (exitSuccess)
 
 main :: IO ()
 main = do
-    w <- initWorld -- Initialise Apecs world
+    world <- initWorld -- Initialise Apecs world
 
     -- Initialize SDL
     SDL.initialize [SDL.InitVideo]
     SDL.Font.initialize
+    SDL.Image.initialize []
 
     -- Create window and renderer
     let windowConfig = SDL.defaultWindow { SDL.windowInitialSize = SDL.V2 1280 720, SDL.windowMode = SDL.Windowed, SDL.windowHighDPI = True, SDL.windowResizable = False }
-    window <- SDL.createWindow "Dungeon Crawler" windowConfig
+    window <- SDL.createWindow (T.pack "Dungeon Crawler") windowConfig
     
-    let rendererConfig = SDL.defaultRenderer { SDL.rendererType = SDL.AcceleratedRenderer, SDL.rendererTargetTexture = False }
+    let rendererConfig = SDL.defaultRenderer { SDL.rendererType = SDL.AcceleratedVSyncRenderer, SDL.rendererTargetTexture = False }
     renderer <- SDL.createRenderer window (-1) rendererConfig
     
     -- Initialize systems
-    runSystem initialize world
+    runSystem (initialize windowConfig renderer) world
 
     SDL.showWindow window
 
     -- Loop code
-    let loop prevTicks secondTick fpcAcc prevFps = do
+    let loop prevTicks secondTick fpsAcc prevFps = do
             ticks <- SDL.ticks
             payload <- map SDL.eventPayload <$> SDL.pollEvents
             let quit = SDL.QuitEvent `elem` payload
                 dt = ticks - prevTicks
                 calcFps = secondTick + dt > 1000
-                newFps = if calcFps then fpcAcc + 1 else fpcAcc
+                newFps = if calcFps then fpsAcc + 1 else fpsAcc
                 newFpsAcc = if calcFps then 1 else fpsAcc + 1
                 newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
             
@@ -46,9 +50,10 @@ main = do
             runSystem (handlePayload payload) world
 
             -- update game state
-            runSystem (step $ fromIntegral dt) world
-
+            runSystem (step $ fromIntegral dt / 1000) world
+            
             -- Set background colour and clear the screen
+            SDL.rendererRenderTarget renderer SDL.$= Nothing
             SDL.rendererDrawColor renderer SDL.$= SDL.V4 37 19 26 255
             SDL.clear renderer
 

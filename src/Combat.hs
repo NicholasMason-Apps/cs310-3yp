@@ -150,9 +150,9 @@ stepCombat dT = do
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()
 drawCombat r fps = do
-    SpriteMap smap <- get global
+    smap <- get global :: System' SpriteMap
     CombatTurn turn <- get global
-    when (turn == PlayerTurn) $ drawSprite (SpriteRef "combat-ui" Nothing) SDL.
+    when (turn == PlayerTurn) $ liftIO $ drawSprite (SpriteRef "combat-ui" Nothing) smap (Position (V2 0 0)) r
     -- let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
     -- player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
     -- enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s

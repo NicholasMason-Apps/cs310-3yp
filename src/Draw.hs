@@ -12,6 +12,7 @@ module Draw ( draw ) where
 
 import Apecs
 import Linear
+import Apecs.Gloss
 import Types
 import Data.Maybe
 import qualified Data.Vector as V
@@ -25,7 +26,7 @@ import Combat
 import Dungeon
 import qualified SDL
 
-drawTransition :: System' ()
+drawTransition :: System' Picture
 drawTransition = foldDraw $ \(Transition p ang _ _) -> 
     let t = easeInOut (min 1 p)
         dist = Utils.lerp (-2000) 2000 t
@@ -42,7 +43,7 @@ draw r fps = do
     case gs of
         DungeonState -> drawDungeon r fps
         CombatState  -> drawCombat r fps
-        _ -> drawMenuOrPause r fps
+        _ -> return () -- drawMenuOrPause r fps
     -- Viewport (w, h) <- get global
     -- drawTransitionPic <- drawTransition
     -- playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp

@@ -212,8 +212,8 @@ generateMap = do
         tileCheck :: Char -> Bool
         tileCheck c = c `notElem` " _"
         halfAdjust v = if even v then tileSize / 2 else 0
-        offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
-        offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
+        offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w -- + tileSize / 2
+        offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h -- + tileSize / 2
     spriteList <- liftIO $ sequence [ do
       (s,t) <- selectSprite c (x,y)
       let sref = SpriteRef s Nothing
