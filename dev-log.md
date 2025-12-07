@@ -112,3 +112,5 @@ For progress report:
 # Term 1 Week 9
 - Split gloss and sdl2 code into separate app directories such that we can run the gloss or sdl version with the same apecs backend
 - will need to change `package.yaml` to have two executables
+
+- switching from gloss to sdl2 is very challenging since they fundamentally use different coordinate systems - gloss uses (0,0) as centre and +y = UP, whereas SDL uses (0,0) as top left and -y = UP

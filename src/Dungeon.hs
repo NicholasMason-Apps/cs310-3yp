@@ -59,8 +59,8 @@ updatePlayerMovement = do
             let (V2 vx vy) = foldl' (\(V2 ax ay) dir -> case dir of
                                             SDL.KeycodeLeft  -> V2 (ax - playerSpeed) ay
                                             SDL.KeycodeRight -> V2 (ax + playerSpeed) ay
-                                            SDL.KeycodeUp    -> V2 ax (ay - playerSpeed)
-                                            SDL.KeycodeDown  -> V2 ax (ay + playerSpeed)
+                                            SDL.KeycodeUp    -> V2 ax (ay + playerSpeed)
+                                            SDL.KeycodeDown  -> V2 ax (ay - playerSpeed)
                                             _        -> V2 ax ay) (V2 0 0) (Set.toList ks)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
@@ -119,12 +119,28 @@ drawDungeon :: SDL.Renderer -> FPS -> System' ()
 drawDungeon r fps = do
     smap <- get global :: System' SpriteMap
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    let (psx, psy) = (64,64)
+    let (pbx, pby) = (16,26) -- player boundary box size
         worldToScreen (V2 x y) = case playerPos of
-            Just (V2 px py) -> V2 (x - px + 1280 / 2 - fromIntegral psx / 2) (y - py + 720 / 2 - fromIntegral psy / 2)
+            Just (V2 px py) -> V2 (x - px + 1280 / 2 - fromIntegral pbx / 2) ((-y) + py + 720 / 2 - fromIntegral pby / 2)
             Nothing         -> V2 x y
-    cmapM_ $ \(Player, Position posP, sref) -> liftIO $ drawSprite sref smap (Position $ worldToScreen posP) r
+    cmapM_ $ \(Player, Position (V2 px py), sref) -> liftIO $ do
+        let posP' = V2 (px - 64 / 2 + 8) (py + 64 / 2 - 2)
+        drawSprite sref smap (Position $ worldToScreen posP') r
     cmapM_ $ \(Wall, Position posW, sref) -> when (isSpriteInView playerPos (getSprite smap sref) (Position posW)) $ liftIO $ drawSprite sref smap (Position $ worldToScreen posW) r
+    cmapM_ $ \(Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> liftIO $ do
+        let
+            pos = worldToScreen (V2 x y)
+            rect = SDL.Rectangle
+                (SDL.P (floor <$> pos))
+                (SDL.V2 (fromIntegral w) (fromIntegral h))
+        SDL.rendererDrawColor r SDL.$= SDL.V4 0 255 0 255  -- green
+        SDL.drawRect r (Just rect)
+    liftIO $ do
+        SDL.rendererDrawColor r SDL.$= SDL.V4 255 0 0 255  -- red pixel
+        let offset (V2 x y) = case playerPos of
+                Just (V2 px py) -> V2 (x - px + 1280 / 2) (y - py + 720 / 2)
+                Nothing         -> V2 x y
+        SDL.drawPoint r (SDL.P (floor <$> offset (V2 0 0)))
     -- playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     -- playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
     -- player <- foldDraw $ \(Player, pos, s) -> let
