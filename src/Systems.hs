@@ -29,108 +29,106 @@ import Data.Maybe
 import System.IO.Unsafe ( unsafePerformIO )
 import Combat
 import Dungeon
-import qualified SDL
-import Control.Exception (handle)
 
 -- Initialise the game state by creating a player entity
-initialize :: SDL.WindowConfig -> SDL.Renderer -> System' ()
-initialize w r = do
+initialize :: System' ()
+initialize = do
     let spriteList = [
                         (
                             "player-idle",
-                            Sprite (384,64) (loadSprite r "player/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-walk",
-                            Sprite (640,64) (loadSprite r "player/walk.png") (Just $ Animation { frameCount = 10, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/walk.png" 10 (640,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-knife-attack",
-                            Sprite (576,64) (loadSprite r "player/knife-attack.png") (Just $ Animation { frameCount = 9, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/knife-attack.png" 9 (576,64), looping = False, afterLoopAnimation = Just "player-idle" })
                         ),
                         (
                             "player-staff",
-                            Sprite (448,64) (loadSprite r "player/player-staff.png") (Just $ Animation { frameCount = 7, frameSpeed = 0.3, looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = loadAnimatedSprite "player/player-staff.png" 7 (448,64), looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "player-hit",
-                            Sprite (320,64) (loadSprite r "player/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "player/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "player-idle" })
                         ),
                         (
                             "skeleton-idle",
-                            Sprite (384,64) (loadSprite r "enemies/skeleton/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "skeleton-walk",
-                            Sprite (640,64) (loadSprite r "enemies/skeleton/walk.png") (Just $ Animation { frameCount = 10, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 10, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/walk.png" 10 (640,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "skeleton-attack",
-                            Sprite (576,64) (loadSprite r "enemies/skeleton/attack.png") (Just $ Animation { frameCount = 9, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "skeleton-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/attack.png" 9 (576,64), looping = False, afterLoopAnimation = Just "skeleton-idle" })
                         ),
                         (
                             "skeleton-hit",
-                            Sprite (320,64) (loadSprite r "enemies/skeleton/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "skeleton-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "skeleton-idle" })
                         ),
                         (
                             "skeleton-death",
-                            Sprite (1088,64) (loadSprite r "enemies/skeleton/death.png") (Just $ Animation { frameCount = 17, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 17, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/skeleton/death.png" 17 (1088,64), looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-idle",
-                            Sprite (384,64) (loadSprite r "enemies/reaper/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/reaper/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-walk",
-                            Sprite (512,64) (loadSprite r "enemies/reaper/walk.png") (Just $ Animation { frameCount = 8, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/walk.png" 8 (512,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "reaper-attack",
-                            Sprite (960,64) (loadSprite r "enemies/reaper/attack.png") (Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "reaper-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/attack.png" 15 (960,64), looping = False, afterLoopAnimation = Just "reaper-idle" })
                         ),
                         (
                             "reaper-hit",
-                            Sprite (320,64) (loadSprite r "enemies/reaper/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "reaper-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "reaper-idle" })
                         ),
                         (
                             "reaper-death",
-                            Sprite (960,64) (loadSprite r "enemies/reaper/death.png") (Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/reaper/death.png" 15 (960,64), looping = False, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-idle",
-                            Sprite (384,64) (loadSprite r "enemies/vampire/idle.png") (Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = loadAnimatedSprite "enemies/vampire/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-walk",
-                            Sprite (512,64) (loadSprite r "enemies/vampire/walk.png") (Just $ Animation { frameCount = 8, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/walk.png" 8 (512,64), looping = True, afterLoopAnimation = Nothing })
                         ),
                         (
                             "vampire-attack",
-                            Sprite (1024,64) (loadSprite r "enemies/vampire/attack.png") (Just $ Animation { frameCount = 16, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "vampire-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 16, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/attack.png" 16 (1024,64), looping = False, afterLoopAnimation = Just "vampire-idle" })
                         ),
                         (
                             "vampire-hit",
-                            Sprite (320,64) (loadSprite r "enemies/vampire/hit.png") (Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "vampire-idle" })
+                            Sprite (64,64) (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "vampire-idle" })
                         ),
                         (
                             "vampire-death",
-                            Sprite (896,64) (loadSprite r "enemies/vampire/death.png") (Just $ Animation { frameCount = 14, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing })
+                            Sprite (64,64) (Right $ Animation { frameCount = 14, frameSpeed = 0.1, sprites = loadAnimatedSprite "enemies/vampire/death.png" 14 (896,64), looping = False, afterLoopAnimation = Nothing })
                         )
                      ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) pic Nothing) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
+                     [ (name, Sprite (64,64) (Left pic)) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
                      [
-                        ("wall-bottom-right", Sprite (64,64) (loadSprite r "tiles/wall-bottom-right.png") Nothing ),
-                        ("wall-bottom-left", Sprite (64,64) (loadSprite r "tiles/wall-bottom-left.png") Nothing ),
-                        ("combat-ui", Sprite (1280,720) (loadSprite r "ui/combat-ui.png") Nothing )
+                        ("wall-bottom-right", Sprite (64,64) (Left $ loadStaticSprite "tiles/wall-bottom-right.png") ),
+                        ("wall-bottom-left", Sprite (64,64) (Left $ loadStaticSprite "tiles/wall-bottom-left.png") ),
+                        ("combat-ui", Sprite (1280,720) (Left $ loadStaticSprite "ui/combat-ui.png") )
                     ]
     set global (SpriteMap $ Map.fromList spriteList)
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, 0), Health 100)
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11), Health 100)
     combatPlayerEntity <- newEntity (CombatPlayer, Position (V2 (-1280 / 3) 0), Velocity (V2 0 0), SpriteRef "player-idle" (Just 0))
     generateMap
     let offsetX = tileSize / 2 - 1280/2
@@ -216,26 +214,13 @@ step dT = do
         CombatState  -> stepCombat dT
         _            -> return ()
 
-handlePayload :: [SDL.EventPayload] -> System' ()
-handlePayload = mapM_ handleEvent
-
-handleEvent :: SDL.EventPayload -> System' ()
-handleEvent (SDL.KeyboardEvent ev) = handleKeyEvent ev
-handleEvent _ = return ()
-
-handleKeyEvent :: SDL.KeyboardEventData -> System' ()
-handleKeyEvent ev
-    | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks)
-    | SDL.keyboardEventKeyMotion ev == SDL.Released = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks)
-    | otherwise = return ()
-
--- handleEvent :: Event -> System' ()
--- -- Player movement
--- handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
--- handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
--- handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
--- -- Exit game
--- handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
--- handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
--- handleEvent (EventResize sz) = set global (Viewport sz)
--- handleEvent _ = return () -- base case
+handleEvent :: Event -> System' ()
+-- Player movement
+handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
+handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
+-- Exit game
+handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
+handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
+handleEvent (EventResize sz) = set global (Viewport sz)
+handleEvent _ = return () -- base case

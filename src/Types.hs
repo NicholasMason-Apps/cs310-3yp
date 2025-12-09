@@ -12,6 +12,7 @@
 module Types where
 
 import Apecs
+import Apecs.Gloss
 import System.Random
 import System.Exit
 import Linear
@@ -23,8 +24,6 @@ import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import qualified SDL
-
 
 -- Global stores
 newtype Viewport = Viewport (Int, Int) deriving Show
@@ -48,14 +47,14 @@ instance Monoid GameState where
     mempty = DungeonState
 instance Component GameState where type Storage GameState = Global GameState
 
-newtype KeysPressed = KeysPressed (Set.Set SDL.Keycode) deriving Show
+newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
 instance Semigroup KeysPressed where
     (KeysPressed s1) <> (KeysPressed s2) = KeysPressed (Set.union s1 s2)
 instance Monoid KeysPressed where
     mempty = KeysPressed Set.empty
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
 
-newtype SpriteMap = SpriteMap (Map.Map String Sprite) 
+newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
 instance Semigroup SpriteMap where
     (SpriteMap m1) <> (SpriteMap m2) = SpriteMap (m1 `mappend` m2)
 instance Monoid SpriteMap where
@@ -120,13 +119,14 @@ instance Component Tile where type Storage Tile = Map Tile
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
 
-data Sprite = Sprite (Int, Int) SDL.Texture (Maybe Animation) 
+data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
 
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
+                           , sprites :: V.Vector Picture
                            , looping :: Bool
                            , afterLoopAnimation :: Maybe String
                            } deriving (Show)
@@ -174,7 +174,6 @@ data Transition = Transition {
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
-type FPS = Int
 
 -- Define all the components in the world
 makeWorld "World" [''Position,
@@ -183,6 +182,7 @@ makeWorld "World" [''Position,
                     ''Score,
                     ''Time,
                     ''Particle,
+                    ''Camera,
                     ''Wall,
                     ''SpriteRef,
                     ''MoveDirection,

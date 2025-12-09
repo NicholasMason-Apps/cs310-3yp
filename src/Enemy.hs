@@ -19,7 +19,7 @@ import Data.Tree
 import Data.List ( maximumBy, minimumBy )
 import Data.Ord ( comparing )
 import System.Random.Shuffle ( shuffleM )
-import Sprite 
+import Sprite ( loadAnimatedSprite )
 import Data.Maybe ( listToMaybe )
 import Data.Foldable ( foldl' )
 import Data.Char (intToDigit)

@@ -66,20 +66,20 @@ stepPositionFormula dT (Position p) (Velocity v) = Position (p + dT *^ v)
 translate' :: Position -> Picture -> Picture
 translate' (Position (V2 x y)) = translate x y
 
--- getSpritePicture :: Map.Map String Sprite -> SpriteRef -> Picture
--- getSpritePicture smap (SpriteRef sr Nothing) = let
---         sprite = smap Map.! sr
---     in case sprite of
---         Sprite _ (Left pic) -> pic
---         Sprite _ (Right _) -> error "Animated sprite requires frame number"
--- getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
---         sprite = smap Map.! sr
---     in case sprite of
---         Sprite _ (Left _) -> error "Static sprite does not support frame number"
---         Sprite _ (Right a) -> if frameNum >= frameCount a then
---                 sprites a V.! (frameCount a - 1)
---             else
---                 sprites a V.! frameNum
+getSpritePicture :: Map.Map String Sprite -> SpriteRef -> Picture
+getSpritePicture smap (SpriteRef sr Nothing) = let
+        sprite = smap Map.! sr
+    in case sprite of
+        Sprite _ (Left pic) -> pic
+        Sprite _ (Right _) -> error "Animated sprite requires frame number"
+getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
+        sprite = smap Map.! sr
+    in case sprite of
+        Sprite _ (Left _) -> error "Static sprite does not support frame number"
+        Sprite _ (Right a) -> if frameNum >= frameCount a then
+                sprites a V.! (frameCount a - 1)
+            else
+                sprites a V.! frameNum
 
 -- Transition easing
 easeInOut :: Float -> Float

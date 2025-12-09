@@ -22,7 +22,6 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Control.Monad
 import Enemy
-import qualified SDL
 
 handleEnemyCollisions :: Float -> System' ()
 handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
@@ -57,10 +56,10 @@ updatePlayerMovement = do
     if isNothing enemy then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
             let (V2 vx vy) = foldl' (\(V2 ax ay) dir -> case dir of
-                                            SDL.KeycodeLeft  -> V2 (ax - playerSpeed) ay
-                                            SDL.KeycodeRight -> V2 (ax + playerSpeed) ay
-                                            SDL.KeycodeUp    -> V2 ax (ay + playerSpeed)
-                                            SDL.KeycodeDown  -> V2 ax (ay - playerSpeed)
+                                            (SpecialKey KeyLeft)  -> V2 (ax - playerSpeed) ay
+                                            (SpecialKey KeyRight) -> V2 (ax + playerSpeed) ay
+                                            (SpecialKey KeyUp)    -> V2 ax (ay + playerSpeed)
+                                            (SpecialKey KeyDown)  -> V2 ax (ay - playerSpeed)
                                             _        -> V2 ax ay) (V2 0 0) (Set.toList ks)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
@@ -92,22 +91,18 @@ blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
             left = checkBoundaryBoxLeftIntersection tempPos bbp posW bbw
             right = checkBoundaryBoxRightIntersection tempPos bbp posW bbw
             (Velocity (V2 avx avy)) = acc
-        when top $ liftIO $ putStrLn "Top collision"
-        when bottom $ liftIO $ putStrLn "Bottom collision"
-        when left $ liftIO $ putStrLn "Left collision"
-        when right $ liftIO $ putStrLn "Right collision"
-        if (top && vy > 0) || (bottom && vy < 0) then
+        if (top && vy < 0) || (bottom && vy > 0) then
             return $ Velocity (V2 avx 0)
         else if (left && vx > 0) || (right && vx < 0) then
             return $ Velocity (V2 0 avy)
         else
             return acc) (Velocity (V2 vx vy))
 
-getSprite :: SpriteMap -> SpriteRef -> Sprite
-getSprite (SpriteMap smap) (SpriteRef sr _) = smap Map.! sr
+getSprite :: Map.Map String Sprite -> SpriteRef -> Sprite
+getSprite smap (SpriteRef sr _) = smap Map.! sr
 
 isSpriteInView :: Maybe (V2 Float) -> Sprite -> Position -> Bool
-isSpriteInView (Just (V2 px py)) (Sprite (w,h) _ _) (Position (V2 sx sy)) =
+isSpriteInView (Just (V2 px py)) (Sprite (w,h) _) (Position (V2 sx sy)) =
     let
         vw = 1280
         vh = 720
@@ -119,66 +114,44 @@ isSpriteInView (Just (V2 px py)) (Sprite (w,h) _ _) (Position (V2 sx sy)) =
         inViewTop && inViewBottom && inViewLeft && inViewRight
 isSpriteInView Nothing _ _ = True
 
-drawDungeon :: SDL.Renderer -> FPS -> System' ()
-drawDungeon r fps = do
-    smap <- get global :: System' SpriteMap
+drawDungeon :: System' Picture
+drawDungeon = do
+    KeysPressed ks <- get global
+    SpriteMap smap <- get global
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    let (pbx, pby) = (16,26) -- player boundary box size
-        worldToScreen (V2 x y) = case playerPos of
-            Just (V2 px py) -> V2 (x - px + 1280 / 2 - fromIntegral pbx / 2) ((-y) + py + 720 / 2 - fromIntegral pby / 2)
-            Nothing         -> V2 x y
-    cmapM_ $ \(Player, Position (V2 px py), sref) -> liftIO $ do
-        let posP' = V2 (px - 64 / 2 + 8) (py + 64 / 2 - 2)
-        drawSprite sref smap (Position $ worldToScreen posP') r
-    cmapM_ $ \(Wall, Position posW, sref) -> when (isSpriteInView playerPos (getSprite smap sref) (Position posW)) $ liftIO $ drawSprite sref smap (Position $ worldToScreen posW) r
-    cmapM_ $ \(Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> liftIO $ do
-        let
-            pos = worldToScreen (V2 (x + fromIntegral ox) (y + fromIntegral oy))
-            rect = SDL.Rectangle
-                (SDL.P (floor <$> pos))
-                (SDL.V2 (fromIntegral w) (fromIntegral h))
-        SDL.rendererDrawColor r SDL.$= SDL.V4 0 255 0 255  -- green
-        SDL.drawRect r (Just rect)
-    liftIO $ do
-        SDL.rendererDrawColor r SDL.$= SDL.V4 255 0 0 255  -- red pixel
-        let offset (V2 x y) = case playerPos of
-                Just (V2 px py) -> V2 (x - px + 1280 / 2) (y + py + 720 / 2)
-                Nothing         -> V2 x y
-        SDL.drawPoint r (SDL.P (floor <$> offset (V2 0 0)))
-    -- playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    -- playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
-    -- player <- foldDraw $ \(Player, pos, s) -> let
-    --         playerPic = getSpritePicture smap s
-    --     in
-    --         if SDL.KeycodeLeft `Set.member` ks && SDL.KeycodeRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
-    -- playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
-    --         boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
-    --     in
-    --         case playerPos of
-    --             Just (V2 px py) -> translate' (Position (V2 (px + fromIntegral ox) (py + fromIntegral oy))) boxPic
-    --             Nothing         -> Blank
-    -- -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
-    -- enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture smap s
-    -- enemyBoxes <- foldDraw $ \(Enemy _, Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> let
-    --         boxPic = color blue $ rectangleWire (fromIntegral w) (fromIntegral h)
-    --     in
-    --         translate' (Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))) boxPic
-    -- particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
-    --     translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
-    -- walls <- foldDraw $ \(Wall, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
-    --     then translate' pos $ getSpritePicture smap s
-    --     else Blank
-    -- tiles <- foldDraw $ \(Tile, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
-    --     then translate' pos $ getSpritePicture smap s
-    --     else Blank
-    -- let playerPosText = case playerPos of
-    --         Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
-    --         Nothing       -> Blank
-    -- let playerVelocityText = case (playerVelocity, playerPos) of
-    --         (Just (V2 vx vy), Just (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
-    --         _         -> Blank
-    -- let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes <> particles
-    -- let camera = case playerPos of
-    --         Just (V2 x y) -> translate (-x) (-y) world
-    --         Nothing       -> world
-    -- return camera
+    playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
+    player <- foldDraw $ \(Player, pos, s) -> let
+            playerPic = getSpritePicture smap s
+        in
+            if SpecialKey KeyLeft `Set.member` ks && SpecialKey KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
+    playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
+            boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
+        in
+            case playerPos of
+                Just (V2 px py) -> translate' (Position (V2 (px + fromIntegral ox) (py + fromIntegral oy))) boxPic
+                Nothing         -> Blank
+    -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
+    enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture smap s
+    enemyBoxes <- foldDraw $ \(Enemy _, Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> let
+            boxPic = color blue $ rectangleWire (fromIntegral w) (fromIntegral h)
+        in
+            translate' (Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))) boxPic
+    particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
+        translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
+    walls <- foldDraw $ \(Wall, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
+        then translate' pos $ getSpritePicture smap s
+        else Blank
+    tiles <- foldDraw $ \(Tile, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
+        then translate' pos $ getSpritePicture smap s
+        else Blank
+    let playerPosText = case playerPos of
+            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
+            Nothing       -> Blank
+    let playerVelocityText = case (playerVelocity, playerPos) of
+            (Just (V2 vx vy), Just (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
+            _         -> Blank
+    let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes <> particles
+    let camera = case playerPos of
+            Just (V2 x y) -> translate (-x) (-y) world
+            Nothing       -> world
+    return camera
