@@ -130,7 +130,7 @@ initialize w r = do
                         ("combat-ui", Sprite (1280,720) (loadSprite r "ui/combat-ui.png") Nothing )
                     ]
     set global (SpriteMap $ Map.fromList spriteList)
-    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, -11), Health 100)
+    playerEntity <- newEntity (Player, Position playerPos, Velocity (V2 0 0), SpriteRef "player-idle" (Just 0),  BoundaryBox (16, 26) (0, 0), Health 100)
     combatPlayerEntity <- newEntity (CombatPlayer, Position (V2 (-1280 / 3) 0), Velocity (V2 0 0), SpriteRef "player-idle" (Just 0))
     generateMap
     let offsetX = tileSize / 2 - 1280/2

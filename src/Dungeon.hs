@@ -92,6 +92,10 @@ blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
             left = checkBoundaryBoxLeftIntersection tempPos bbp posW bbw
             right = checkBoundaryBoxRightIntersection tempPos bbp posW bbw
             (Velocity (V2 avx avy)) = acc
+        when top $ liftIO $ putStrLn "Top collision"
+        when bottom $ liftIO $ putStrLn "Bottom collision"
+        when left $ liftIO $ putStrLn "Left collision"
+        when right $ liftIO $ putStrLn "Right collision"
         if (top && vy > 0) || (bottom && vy < 0) then
             return $ Velocity (V2 avx 0)
         else if (left && vx > 0) || (right && vx < 0) then
@@ -129,7 +133,7 @@ drawDungeon r fps = do
     cmapM_ $ \(Wall, Position posW, sref) -> when (isSpriteInView playerPos (getSprite smap sref) (Position posW)) $ liftIO $ drawSprite sref smap (Position $ worldToScreen posW) r
     cmapM_ $ \(Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> liftIO $ do
         let
-            pos = worldToScreen (V2 x y)
+            pos = worldToScreen (V2 (x + fromIntegral ox) (y + fromIntegral oy))
             rect = SDL.Rectangle
                 (SDL.P (floor <$> pos))
                 (SDL.V2 (fromIntegral w) (fromIntegral h))
