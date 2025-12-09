@@ -138,7 +138,7 @@ drawDungeon r fps = do
     liftIO $ do
         SDL.rendererDrawColor r SDL.$= SDL.V4 255 0 0 255  -- red pixel
         let offset (V2 x y) = case playerPos of
-                Just (V2 px py) -> V2 (x - px + 1280 / 2) (y - py + 720 / 2)
+                Just (V2 px py) -> V2 (x - px + 1280 / 2) (y + py + 720 / 2)
                 Nothing         -> V2 x y
         SDL.drawPoint r (SDL.P (floor <$> offset (V2 0 0)))
     -- playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
