@@ -17,6 +17,7 @@ import qualified Data.Map as Map
 import qualified Data.Vector  as V
 import Apecs
 import Control.Monad
+import Data.Maybe ( fromMaybe )
 
 playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 250
@@ -70,16 +71,18 @@ getSpritePicture :: Map.Map String Sprite -> SpriteRef -> Picture
 getSpritePicture smap (SpriteRef sr Nothing) = let
         sprite = smap Map.! sr
     in case sprite of
-        Sprite _ (Left pic) -> pic
-        Sprite _ (Right _) -> error "Animated sprite requires frame number"
+        Sprite _ (GlossRenderer (Left pic)) -> pic
+        Sprite _ (SDLRenderer _) -> Blank
+        Sprite _ (GlossRenderer (Right _)) -> Blank
 getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
         sprite = smap Map.! sr
     in case sprite of
-        Sprite _ (Left _) -> error "Static sprite does not support frame number"
-        Sprite _ (Right a) -> if frameNum >= frameCount a then
-                sprites a V.! (frameCount a - 1)
+        Sprite _ (GlossRenderer (Left _)) -> Blank
+        Sprite _ (SDLRenderer _) -> Blank
+        Sprite _ (GlossRenderer (Right a)) -> if frameNum >= frameCount a then
+                fromMaybe V.empty (sprites a) V.! (frameCount a - 1)
             else
-                sprites a V.! frameNum
+                fromMaybe V.empty (sprites a) V.! frameNum
 
 -- Transition easing
 easeInOut :: Float -> Float

@@ -114,3 +114,5 @@ For progress report:
 - will need to change `package.yaml` to have two executables
 
 - switching from gloss to sdl2 is very challenging since they fundamentally use different coordinate systems - gloss uses (0,0) as centre and +y = UP, whereas SDL uses (0,0) as top left and -y = UP
+
+- to help with agnostic system, completely restarting sdl implementation, and fundamentally changing type systems to use an algebraic `RendererSystem` type which can be used to pattern match

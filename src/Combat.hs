@@ -126,8 +126,10 @@ stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
         SpriteMap smap <- get global
         let Sprite _ spriteE = smap Map.! sr
             anim = case spriteE of
-                Left _ -> error "Static sprite does not support frame number"
-                Right a -> a
+                GlossRenderer (Right a) -> a
+                GlossRenderer (Left _) -> error "Static sprite does not support frame number"
+                SDLRenderer (_, Nothing) -> error "Static sprite does not support frame number"
+                SDLRenderer (_, Just a) -> a
         existsTransition <- cfold (\_ (Transition _ _ _ _) -> Just ()) Nothing
         when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0
 
@@ -145,18 +147,3 @@ stepCombat dT = do
             PlayerAttacking -> stepPlayerAttack dT
             EnemyAttacking -> stepEnemyAttack dT
             PlayerWin -> stepPlayerWin dT
-
-
-drawCombat :: System' Picture
-drawCombat = do
-    SpriteMap smap <- get global
-    CombatTurn turn <- get global
-    let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
-    player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
-    enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s
-    enemyPlayerLayer <- if turn == PlayerTurn || turn == PlayerAttacking then
-            return $ enemy <> player
-        else
-            return $ player <> enemy
-    tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
-    return $ tiles <> enemyPlayerLayer <> ui

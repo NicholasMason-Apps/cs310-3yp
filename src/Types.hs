@@ -24,6 +24,7 @@ import qualified Data.Vector as V
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import qualified SDL
 
 -- Global stores
 newtype Viewport = Viewport (Int, Int) deriving Show
@@ -54,7 +55,7 @@ instance Monoid KeysPressed where
     mempty = KeysPressed Set.empty
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
 
-newtype SpriteMap = SpriteMap (Map.Map String Sprite) deriving Show
+newtype SpriteMap = SpriteMap (Map.Map String Sprite)
 instance Semigroup SpriteMap where
     (SpriteMap m1) <> (SpriteMap m2) = SpriteMap (m1 `mappend` m2)
 instance Monoid SpriteMap where
@@ -65,6 +66,15 @@ newtype Time = Time Float deriving (Show, Num)
 instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
+
+data RendererSystem a b = GlossRenderer a | SDLRenderer b deriving (Show, Eq)
+instance Semigroup (RendererSystem a b) where
+    (<>) :: RendererSystem a b -> RendererSystem a b -> RendererSystem a b
+    _ <> r2 = r2
+instance Monoid a => Monoid (RendererSystem a b) where
+    mempty :: RendererSystem a b
+    mempty = GlossRenderer mempty
+instance Component (RendererSystem a b) where type Storage (RendererSystem a b) = Global (RendererSystem a b)
 
 
 -- Movement and position components
@@ -119,14 +129,14 @@ instance Component Tile where type Storage Tile = Map Tile
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
 
-data Sprite = Sprite (Int, Int) (Either Picture Animation) deriving (Show)
+data Sprite = Sprite (Int, Int) (RendererSystem (Either Picture Animation) (SDL.Texture, Maybe Animation))
 
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef
 
 data Animation = Animation { frameCount :: Int
                            , frameSpeed :: Float
-                           , sprites :: V.Vector Picture
+                           , sprites :: Maybe (V.Vector Picture)
                            , looping :: Bool
                            , afterLoopAnimation :: Maybe String
                            } deriving (Show)
@@ -174,6 +184,7 @@ data Transition = Transition {
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
+type FPS = Int
 
 -- Define all the components in the world
 makeWorld "World" [''Position,

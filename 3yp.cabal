@@ -26,10 +26,13 @@ source-repository head
 library
   exposed-modules:
       Combat
-      Draw
       Dungeon
       Enemy
       GameMap
+      Gloss.Draw
+      Gloss.Systems
+      SDL.Draw
+      SDL.Systems
       Sprite
       Systems
       Types
@@ -59,9 +62,39 @@ library
     , vector
   default-language: Haskell2010
 
-executable 3yp-exe
-  main-is: Main.hs
+executable 3yp-gloss-exe
+  main-is: GlossMain.hs
   other-modules:
+      SDLMain
+      Paths_3yp
+  autogen-modules:
+      Paths_3yp
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=--nonmoving-gc
+  build-depends:
+      3yp
+    , JuicyPixels
+    , apecs
+    , apecs-gloss
+    , base >=4.7 && <5
+    , containers
+    , gloss
+    , gloss-juicy
+    , linear
+    , random
+    , random-shuffle
+    , sdl2
+    , sdl2-image
+    , sdl2-ttf
+    , text
+    , vector
+  default-language: Haskell2010
+
+executable 3yp-sdl-exe
+  main-is: SDLMain.hs
+  other-modules:
+      GlossMain
       Paths_3yp
   autogen-modules:
       Paths_3yp

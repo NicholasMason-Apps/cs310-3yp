@@ -35,8 +35,12 @@ stepAnimations dT = do
         SpriteMap smap <- get global
         let Sprite _ spriteE = smap ! sr
         case spriteE of
-            Left _ -> return $ SpriteRef sr e
-            Right a -> let
+            GlossRenderer (Left _) -> return $ SpriteRef sr e
+            SDLRenderer (_, Nothing) -> return $ SpriteRef sr e
+            GlossRenderer (Right a) -> let
+                    trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a) (afterLoopAnimation a)
+            SDLRenderer (_, Just a) -> let
                     trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
                 in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a) (afterLoopAnimation a)
     where

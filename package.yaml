@@ -51,8 +51,20 @@ library:
   source-dirs: src
 
 executables:
-  3yp-exe:
-    main:                Main.hs
+  3yp-gloss-exe:
+    main:                GlossMain.hs
+    source-dirs:         app
+    ghc-options:
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -with-rtsopts=--nonmoving-gc
+    dependencies:
+    - 3yp
+  
+  3yp-sdl-exe:
+    main:                SDLMain.hs
     source-dirs:         app
     ghc-options:
     - -O2

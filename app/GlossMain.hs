@@ -1,10 +1,11 @@
-module Main (main) where
+module GlossMain (main) where
 
 import Types
-import Systems
+import Systems hiding (initialize)
+import Gloss.Systems
 import Apecs
 import Apecs.Gloss
-import Draw
+import Gloss.Draw
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.IORef
