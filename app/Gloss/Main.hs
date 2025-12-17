@@ -1,4 +1,4 @@
-module GlossMain (main) where
+module Main (main) where
 
 import Types
 import Systems hiding (initialize)

@@ -19,12 +19,15 @@ import SDL.Image (loadTexture)
 import qualified Data.Text as T
 import Linear
 import Data.Map (Map)
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.IORef
 import Control.Monad ( unless )
 import System.Exit (exitSuccess)
 import System.IO.Unsafe (unsafePerformIO)
 import Utils
+import Types (RendererSystem(GlossRenderer))
 
 
 loadSprite :: SDL.Renderer -> FilePath -> SDL.Texture
@@ -113,17 +116,37 @@ initialize w r = do
                             "vampire-death",
                             Sprite (896,64) (SDLRenderer (loadSprite r "enemies/vampire/death.png", Just $ Animation { frameCount = 14, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
                         )
-                     ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
-                     [
+                    ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallTopCount], let name = "wall-top" ++ show n, let path = "tiles/wall-top" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomCount], let name = "wall-bottom" ++ show n, let path = "tiles/wall-bottom" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallLeftCount], let name = "wall-left" ++ show n, let path = "tiles/wall-left" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallRightCount], let name = "wall-right" ++ show n, let path = "tiles/wall-right" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomLeftElbowCount], let name = "wall-bottom-left-elbow" ++ show n, let path = "tiles/wall-bottom-left-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..wallBottomRightElbowCount], let name = "wall-bottom-right-elbow" ++ show n, let path = "tiles/wall-bottom-right-elbow" ++ show n ++ ".png", let pic = loadSprite r path ] ++
+                    [
                         ("wall-bottom-right", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-right.png", Nothing ))),
                         ("wall-bottom-left", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-left.png", Nothing ))),
                         ("combat-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing )))
                     ]
     Sys.initialize spriteList
+
+handlePayload :: [SDL.EventPayload] -> System' ()
+handlePayload = mapM_ handleEvent
+
+handleEvent :: SDL.EventPayload -> System' ()
+handleEvent (SDL.KeyboardEvent ev) = handleKeyEvent ev
+handleEvent _ = return ()
+
+handleKeyEvent :: SDL.KeyboardEventData -> System' ()
+handleKeyEvent ev
+    | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> case ks of
+        GlossRenderer _ -> let 
+                ks' = Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) Set.empty
+            in
+                KeysPressed $ SDLRenderer ks'
+        SDLRenderer ks' -> KeysPressed $ SDLRenderer (Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks')
+    | SDL.keyboardEventKeyMotion ev == SDL.Released = modify global $ \(KeysPressed ks) -> case ks of
+        GlossRenderer _ -> KeysPressed $ SDLRenderer Set.empty
+        SDLRenderer ks' -> KeysPressed $ SDLRenderer (Set.delete (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks')
+    | otherwise = return ()

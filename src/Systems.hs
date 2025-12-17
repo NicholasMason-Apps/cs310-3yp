@@ -119,14 +119,3 @@ step dT = do
         DungeonState -> stepDungeon dT
         CombatState  -> stepCombat dT
         _            -> return ()
-
-handleEvent :: Event -> System' ()
--- Player movement
-handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
-handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (SpecialKey k) ks)
-handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (SpecialKey k) ks)
--- Exit game
-handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.insert (Char 'e') ks)
-handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed (Set.delete (Char 'e') ks)
-handleEvent (EventResize sz) = set global (Viewport sz)
-handleEvent _ = return () -- base case

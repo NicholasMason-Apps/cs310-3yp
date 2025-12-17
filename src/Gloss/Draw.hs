@@ -59,7 +59,10 @@ draw = do
 
 drawDungeon :: System' Picture
 drawDungeon = do
-    KeysPressed ks <- get global
+    KeysPressed rs <- get global
+    let ks = case rs of
+            GlossRenderer ks' -> ks'
+            SDLRenderer _ -> Set.empty
     SpriteMap smap <- get global
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing

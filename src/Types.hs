@@ -34,10 +34,12 @@ instance Monoid Viewport where
     mempty = Viewport (1280, 720)
 instance Component Viewport where type Storage Viewport = Global Viewport
 
+
 newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where (<>) = (+)
 instance Monoid Score where mempty = 0
 instance Component Score where type Storage Score = Global Score
+
 
 data GameState = MenuState | DungeonState | PauseState | CombatState deriving (Show, Eq)
 instance Semigroup GameState where
@@ -48,12 +50,19 @@ instance Monoid GameState where
     mempty = DungeonState
 instance Component GameState where type Storage GameState = Global GameState
 
-newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
+
+newtype KeysPressed = KeysPressed (RendererSystem (Set.Set Key) (Set.Set SDL.Keycode))
+-- newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
 instance Semigroup KeysPressed where
-    (KeysPressed s1) <> (KeysPressed s2) = KeysPressed (Set.union s1 s2)
+    (KeysPressed s1) <> (KeysPressed s2) = case (s1,s2) of
+        (GlossRenderer ks1, GlossRenderer ks2) -> KeysPressed (GlossRenderer (ks1 `Set.union` ks2))
+        (SDLRenderer ks1, SDLRenderer ks2)     -> KeysPressed (SDLRenderer (ks1 `Set.union` ks2))
+        (GlossRenderer ks1, SDLRenderer _)     -> KeysPressed (GlossRenderer ks1)
+        (SDLRenderer ks1, GlossRenderer _)     -> KeysPressed (SDLRenderer ks1)
 instance Monoid KeysPressed where
-    mempty = KeysPressed Set.empty
+    mempty = KeysPressed (GlossRenderer Set.empty)
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
+
 
 newtype SpriteMap = SpriteMap (Map.Map String Sprite)
 instance Semigroup SpriteMap where
@@ -62,10 +71,12 @@ instance Monoid SpriteMap where
     mempty = SpriteMap mempty
 instance Component SpriteMap where type Storage SpriteMap = Global SpriteMap
 
+
 newtype Time = Time Float deriving (Show, Num)
 instance Semigroup Time where (<>) = (+)
 instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
+
 
 data RendererSystem a b = GlossRenderer a | SDLRenderer b deriving (Show, Eq)
 instance Semigroup (RendererSystem a b) where

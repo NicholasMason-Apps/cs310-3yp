@@ -42,12 +42,14 @@ enemyDamage = 5
 
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
-    KeysPressed ks <- get global
-    when (SpecialKey KeySpace `Set.member` ks) $ do
-        set global $ CombatTurn PlayerAttacking
-        cmapM_ $ \(CombatPlayer, s) -> do
-            set s (SpriteRef "player-knife-attack" (Just 0))
-            set s (Position (V2 ((1280 / 3) - tileSize) 0))
+    KeysPressed rs <- get global
+    case rs of
+        GlossRenderer ks -> when (SpecialKey KeySpace `Set.member` ks) $ do
+            set global $ CombatTurn PlayerAttacking
+            cmapM_ $ \(CombatPlayer, s) -> do
+                set s (SpriteRef "player-knife-attack" (Just 0))
+                set s (Position (V2 ((1280 / 3) - tileSize) 0))
+        SDLRenderer ks -> return ()
 
 stepPlayerAttack :: Float -> System' ()
 stepPlayerAttack dT = do

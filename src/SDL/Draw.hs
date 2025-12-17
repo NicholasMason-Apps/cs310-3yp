@@ -51,7 +51,14 @@ drawSprite (SpriteRef str (Just frameNum)) (SpriteMap smap) (Position pos) r = l
                 SDL.copy r t (Just srcRect) (Just dstRect) 
 
 drawDungeon :: SDL.Renderer -> FPS -> System' ()
-drawDungeon r fps = return ()
+drawDungeon r fps = do
+    smap <- get global :: System' SpriteMap
+    playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
+    let worldToScreen (Position (V2 x y)) = case playerPos of
+            Just (V2 px py) -> Position (V2 (x - px) ((-y) + py))
+            Nothing -> Position (V2 x y)
+    cmapM_ $ \(Player, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
+    cmapM_ $ \(Wall, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()
 drawCombat r fps = return ()

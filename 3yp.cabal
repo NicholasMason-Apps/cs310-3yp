@@ -62,15 +62,14 @@ library
     , vector
   default-language: Haskell2010
 
-executable 3yp-gloss-exe
-  main-is: GlossMain.hs
+executable gloss-exe
+  main-is: Main.hs
   other-modules:
-      SDLMain
       Paths_3yp
   autogen-modules:
       Paths_3yp
   hs-source-dirs:
-      app
+      app/Gloss
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=--nonmoving-gc
   build-depends:
       3yp
@@ -91,15 +90,14 @@ executable 3yp-gloss-exe
     , vector
   default-language: Haskell2010
 
-executable 3yp-sdl-exe
-  main-is: SDLMain.hs
+executable sdl-exe
+  main-is: Main.hs
   other-modules:
-      GlossMain
       Paths_3yp
   autogen-modules:
       Paths_3yp
   hs-source-dirs:
-      app
+      app/SDL
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=--nonmoving-gc
   build-depends:
       3yp

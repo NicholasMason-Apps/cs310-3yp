@@ -1,4 +1,4 @@
-module SDLMain (main) where
+module Main (main) where
 
 import Types
 import Systems hiding (initialize)
@@ -7,6 +7,7 @@ import qualified SDL
 import qualified SDL.Font
 import qualified SDL.Image
 import SDL.Draw
+import SDL.Systems
 import qualified Data.Text as T
 import Linear
 import Data.Map (Map)

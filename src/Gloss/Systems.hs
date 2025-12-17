@@ -126,3 +126,25 @@ initialize = do
                         ("combat-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui.png") )
                     ]
     Sys.initialize spriteList
+
+handleEvent :: Event -> System' ()
+-- Player movement
+handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (SpecialKey k) ks')
+    SDLRenderer _ -> let
+            ks' = Set.insert (SpecialKey k) Set.empty
+        in
+            KeysPressed $ GlossRenderer ks'
+handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (SpecialKey k) ks')
+    SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
+
+handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (Char 'e') ks')
+    SDLRenderer _ -> KeysPressed $ GlossRenderer (Set.insert (Char 'e') Set.empty)
+handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (Char 'e') ks')
+    SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
+handleEvent (EventResize sz) = set global (Viewport sz)
+handleEvent _ = return () -- base case
