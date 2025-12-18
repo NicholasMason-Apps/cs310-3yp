@@ -12,7 +12,8 @@ module SDL.Draw where
 
 import Types
 import Systems hiding (initialize)
-import Apecs
+import Apecs hiding (($=))
+import SDL (($=))
 import qualified SDL
 import qualified SDL.Font
 import qualified SDL.Image
@@ -55,10 +56,17 @@ drawDungeon r fps = do
     smap <- get global :: System' SpriteMap
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
     let worldToScreen (Position (V2 x y)) = case playerPos of
-            Just (V2 px py) -> Position (V2 (x - px) ((-y) + py))
+            Just (V2 px py) -> Position (V2 (x - px - 1280/2) ((-y) + py + 720/2))
             Nothing -> Position (V2 x y)
     cmapM_ $ \(Player, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
     cmapM_ $ \(Wall, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
+    liftIO $ do -- red pixel centered
+        SDL.rendererDrawColor r $= V4 255 0 0 255 
+        let offset (V2 x y) = case playerPos of
+                Just (V2 px py) -> V2 (x - px + 1280/2) (y + py + 720/2)
+                Nothing -> V2 x y
+        SDL.drawPoint r (SDL.P (floor <$> offset (V2 0 0)))
+
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()
 drawCombat r fps = return ()
