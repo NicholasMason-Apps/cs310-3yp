@@ -55,8 +55,9 @@ drawDungeon :: SDL.Renderer -> FPS -> System' ()
 drawDungeon r fps = do
     smap <- get global :: System' SpriteMap
     playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
-    let worldToScreen (Position (V2 x y)) = case playerPos of
-            Just (V2 px py) -> Position (V2 (x - px - 1280/2) ((-y) + py + 720/2))
+    let (pw, ph) = (64,64)
+        worldToScreen (Position (V2 x y)) = case playerPos of
+            Just (V2 px py) -> Position (V2 (x - px + 1280/2 - pw/2) ((-y) + py + 720/2 - ph/2))
             Nothing -> Position (V2 x y)
     cmapM_ $ \(Player, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
     cmapM_ $ \(Wall, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos) r
@@ -66,6 +67,15 @@ drawDungeon r fps = do
                 Just (V2 px py) -> V2 (x - px + 1280/2) (y + py + 720/2)
                 Nothing -> V2 x y
         SDL.drawPoint r (SDL.P (floor <$> offset (V2 0 0)))
+    -- Green boundary boxes
+    -- cmapM_ $ \(Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> liftIO $ do
+    --     let
+    --         (Position pos) = worldToScreen $ Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))
+    --         rect = SDL.Rectangle
+    --             (SDL.P (floor <$> pos))
+    --             (SDL.V2 (fromIntegral w) (fromIntegral h))
+    --     SDL.rendererDrawColor r SDL.$= SDL.V4 0 255 0 255 
+    --     SDL.drawRect r (Just rect)
 
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()
