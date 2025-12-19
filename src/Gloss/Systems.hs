@@ -111,6 +111,26 @@ initialize = do
                         (
                             "vampire-death",
                             Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 14, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/vampire/death.png" 14 (896,64), looping = False, afterLoopAnimation = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-idle",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-walk",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 8, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/walk.png" 8 (512,64), looping = True, afterLoopAnimation = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-attack",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/attack.png" 15 (960,64), looping = False, afterLoopAnimation = Just "golden-reaper-idle" }))
+                        ),
+                        (
+                            "golden-reaper-hit",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "golden-reaper-idle" }))
+                        ),
+                        (
+                            "golden-reaper-death",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/death.png" 15 (960,64), looping = False, afterLoopAnimation = Nothing }))
                         )
                      ] ++
                      [ (name, Sprite (64,64) (GlossRenderer $ Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++

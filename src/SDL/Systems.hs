@@ -115,6 +115,26 @@ initialize w r = do
                         (
                             "vampire-death",
                             Sprite (896,64) (SDLRenderer (loadSprite r "enemies/vampire/death.png", Just $ Animation { frameCount = 14, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-idle",
+                            Sprite (384,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/idle.png", Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing, sprites = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-walk",
+                            Sprite (512,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/walk.png", Just $ Animation { frameCount = 8, frameSpeed = 0.1, looping = True, afterLoopAnimation = Nothing, sprites = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-attack",
+                            Sprite (960,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/attack.png", Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "golden-reaper-idle", sprites = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-hit",
+                            Sprite (320,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/hit.png", Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "golden-reaper-idle", sprites = Nothing }))
+                        ),
+                        (
+                            "golden-reaper-death",
+                            Sprite (960,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/death.png", Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
                         )
                     ] ++
                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++

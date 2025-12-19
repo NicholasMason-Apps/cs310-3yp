@@ -250,8 +250,11 @@ generateMap = do
             Just (dir, finalPos) -> do
               let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits')
               set p (grP { exits = filter (/= dir) (exits grP) })
-              enemyNum <- randomRIO (1, 3)
-              _ <- makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
+              _ <- case rootLabel node of
+                BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
+                _ -> do
+                  enemyNum <- randomRIO (1, 3)
+                  makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
               newEntity (newGr, finalPos)
             Nothing -> do
               -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect

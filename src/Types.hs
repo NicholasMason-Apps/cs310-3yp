@@ -122,7 +122,7 @@ instance Enum Direction where
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
-data EnemyType = Reaper | Vampire | Skeleton deriving (Show, Enum)
+data EnemyType = Reaper | Vampire | Skeleton | GoldenReaper deriving (Show, Enum)
 
 data Enemy = Enemy { enemyType :: EnemyType } deriving Show
 instance Component Enemy where type Storage Enemy = Map Enemy

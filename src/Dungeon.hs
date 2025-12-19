@@ -45,6 +45,7 @@ handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
                             Reaper -> SpriteRef "reaper-idle" (Just 0)
                             Vampire -> SpriteRef "vampire-idle" (Just 0)
                             Skeleton -> SpriteRef "skeleton-idle" (Just 0)
+                            GoldenReaper -> SpriteRef "golden-reaper-idle" (Just 0)
                     _ <- newEntity (CombatEnemy e, Position (V2 (1280 / 3) 0), sref)
                     set global $ CombatTurn PlayerTurn
                     startTransition (pi / 4) 1.0
