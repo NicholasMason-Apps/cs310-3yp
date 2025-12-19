@@ -116,3 +116,9 @@ For progress report:
 - switching from gloss to sdl2 is very challenging since they fundamentally use different coordinate systems - gloss uses (0,0) as centre and +y = UP, whereas SDL uses (0,0) as top left and -y = UP
 
 - to help with agnostic system, completely restarting sdl implementation, and fundamentally changing type systems to use an algebraic `RendererSystem` type which can be used to pattern match
+
+# Winter Holidays
+- Got SDL Renderer working and separated code to allow for both Gloss and SDL
+- Important to note that SDL is much faster than Gloss. SDL is able to handle all tiles and walls wtih no occlusion culling at all, whereas Gloss would run at 1 FPS
+    - Probably to do with Gloss' abstractions and vector drawing? Not sure. just important to note
+    - Useful for why use SDL over gloss

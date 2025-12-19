@@ -127,7 +127,8 @@ initialize w r = do
                     [
                         ("wall-bottom-right", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-right.png", Nothing ))),
                         ("wall-bottom-left", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-left.png", Nothing ))),
-                        ("combat-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing )))
+                        ("combat-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing ))),
+                        ("transition", Sprite (2500, 2500) (SDLRenderer (loadSprite r "ui/transition.png", Nothing)))
                     ]
     Sys.initialize spriteList
 

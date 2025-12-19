@@ -43,13 +43,13 @@ initialize spriteList = do
         getTileSprite = do
             n <- randomRIO (1,tileCount) :: IO Integer
             return $ "tile" ++ show n
-    spriteList <- liftIO $ sequence [ do
+    tileList <- liftIO $ sequence [ do
         s <- getTileSprite
         let sref = SpriteRef s Nothing
             pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize))
         return (sref, pos)
         | x <- [0..ceiling (1280 / tileSize)], y <- [0..ceiling (720 / tileSize)] ]
-    forM_ spriteList $ \(s, p) -> do
+    forM_ tileList $ \(s, p) -> do
         void $ newEntity (CombatTile, p, s)
 
 incrementTime :: Float -> System' ()
