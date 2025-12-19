@@ -21,6 +21,7 @@ import Control.Monad
 import Data.Maybe ( isJust, fromMaybe, isNothing )
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import qualified SDL
 
 playerAttackFrames :: Set.Set Int
 playerAttackFrames = Set.fromList [7]
@@ -49,7 +50,11 @@ stepPlayerTurn dT = do
             cmapM_ $ \(CombatPlayer, s) -> do
                 set s (SpriteRef "player-knife-attack" (Just 0))
                 set s (Position (V2 ((1280 / 3) - tileSize) 0))
-        SDLRenderer ks -> return ()
+        SDLRenderer ks -> when (SDL.KeycodeSpace `Set.member` ks) $ do
+            set global $ CombatTurn PlayerAttacking
+            cmapM_ $ \(CombatPlayer, s) -> do
+                set s (SpriteRef "player-knife-attack" (Just 0))
+                set s (Position (V2 ((1280 / 3) - tileSize) 0))
 
 stepPlayerAttack :: Float -> System' ()
 stepPlayerAttack dT = do

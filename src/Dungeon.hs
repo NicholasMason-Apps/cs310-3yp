@@ -108,8 +108,8 @@ blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
 
 
 
-isSpriteInView :: Maybe (V2 Float) -> Sprite -> Position -> Bool
-isSpriteInView (Just (V2 px py)) (Sprite (w,h) _) (Position (V2 sx sy)) =
+isSpriteInView :: Maybe Position -> Sprite -> Position -> Bool
+isSpriteInView (Just (Position (V2 px py))) (Sprite (w,h) _) (Position (V2 sx sy)) =
     let
         vw = 1280
         vh = 720

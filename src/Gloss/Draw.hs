@@ -64,7 +64,7 @@ drawDungeon = do
             GlossRenderer ks' -> ks'
             SDLRenderer _ -> Set.empty
     SpriteMap smap <- get global
-    playerPos <- cfold (\_ (Player, Position p) -> Just p) Nothing
+    playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
     playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
     player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
@@ -74,7 +74,7 @@ drawDungeon = do
             boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
         in
             case playerPos of
-                Just (V2 px py) -> translate' (Position (V2 (px + fromIntegral ox) (py + fromIntegral oy))) boxPic
+                Just (Position (V2 px py)) -> translate' (Position (V2 (px + fromIntegral ox) (py + fromIntegral oy))) boxPic
                 Nothing         -> Blank
     -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture smap s
@@ -91,14 +91,14 @@ drawDungeon = do
         then translate' pos $ getSpritePicture smap s
         else Blank
     let playerPosText = case playerPos of
-            Just (V2 x y) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
+            Just (Position (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
             Nothing       -> Blank
     let playerVelocityText = case (playerVelocity, playerPos) of
-            (Just (V2 vx vy), Just (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
+            (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
     let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes <> particles
     let camera = case playerPos of
-            Just (V2 x y) -> translate (-x) (-y) world
+            Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world
     return camera
 
