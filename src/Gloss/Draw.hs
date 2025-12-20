@@ -44,9 +44,11 @@ drawTransition = foldDraw $ \(Transition p ang _ _) ->
 draw :: System' Picture
 draw = do
     gs <- get global
+    SpriteMap smap <- get global
     Viewport (w, h) <- get global
     drawTransitionPic <- drawTransition
     playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
+    particles <- foldDraw $ \(Particle _, pos, s) -> translate' pos $ getSpritePicture smap s
     let
         scaleFactorX = fromIntegral w / 1280
         scaleFactorY = fromIntegral h / 720
@@ -55,7 +57,7 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> drawTransitionPic <> playerHealth)
+    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic <> playerHealth)
 
 drawDungeon :: System' Picture
 drawDungeon = do
@@ -82,8 +84,6 @@ drawDungeon = do
             boxPic = color blue $ rectangleWire (fromIntegral w) (fromIntegral h)
         in
             translate' (Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))) boxPic
-    particles <- foldDraw $ \(Particle _, Velocity (V2 vx vy), pos) ->
-        translate' pos $ color orange $ Line [(0,0),(vx/10, vy/10)]
     walls <- foldDraw $ \(Wall, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
         then translate' pos $ getSpritePicture smap s
         else Blank
@@ -96,7 +96,7 @@ drawDungeon = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes <> particles
+    let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world
