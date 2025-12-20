@@ -85,7 +85,7 @@ stepDungeon :: Float -> System' ()
 stepDungeon dT = do
     updatePlayerMovement
     stepEnemyAI
-    blockPlayer dT
+    -- blockPlayer dT
     stepPosition dT
     handleEnemyCollisions dT
 

@@ -161,7 +161,7 @@ data Animation = Animation { frameCount :: Int
 
 
 -- Dungeon components
-data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom deriving (Show, Eq)
+data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom | LadderRoom deriving (Show, Eq)
 
 data GameRoom = GameRoom { roomType :: RoomType,
                            roomLayout :: [[Char]],

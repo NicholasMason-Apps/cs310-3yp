@@ -40,6 +40,24 @@ startRoomLayout =
   , "WW3WWWWWWW"
   ]
 
+bossRoomLayout :: [String]
+bossRoomLayout = 
+  [ "WWWW1WWWW"
+  , "WTTTTTTTW"
+  , "4TTTTTTT2"
+  , "WTTTTTTTW"
+  , "WWWW3WWWW"
+  ]
+
+ladderRoomLayout :: [String]
+ladderRoomLayout = 
+  [ "WWWW1WWWW"
+  , "WTTTTTTTW"
+  , "4TTTTTTT2"
+  , "WTTTTTTTW"
+  , "WWWW3WWWW"
+  ]
+
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
     [ "WWWWWWW1WWWWWWW"
@@ -61,6 +79,18 @@ gameRoomLayouts = [
     , "____WTTTTTW____"
     , "____WTTTTTW____"
     , "____WWW3WWW____"
+    ],
+    [ "WWW1WWW"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "4TTTTT2"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "WTTTTTW"
+    , "WWW3WWW" 
     ]
   ]
 
@@ -124,8 +154,9 @@ addBossRoom tree =
   let
     leaves = collectLeavesWithDepth tree
     (_, deepestPath) = maximumBy (\(d1, _) (d2, _) -> compare d1 d2) leaves
+    ladderRoom = Node LadderRoom []
   in
-    updateAtPath deepestPath (\leaf -> leaf { subForest = [Node BossRoom []] }) tree
+    updateAtPath deepestPath (\leaf -> leaf { subForest = [Node BossRoom [ladderRoom]] }) tree
 
 generateMap :: System' ()
 generateMap = do
@@ -247,7 +278,11 @@ generateMap = do
               Position (V2 px py) <- get p
               grP <- get p :: System' GameRoom
               -- Attempt to find the first direction which does not intersect
-              let newLayout = getRoomLayout n
+              let newLayout = case rootLabel node of
+                    StartRoom -> startRoomLayout
+                    BossRoom  -> bossRoomLayout
+                    LadderRoom -> ladderRoomLayout
+                    _         -> getRoomLayout n
               intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
               let res = foldl' (\acc (intersects, dir) ->
                     case acc of
@@ -257,10 +292,12 @@ generateMap = do
                         else Nothing) Nothing (zip intersections (exits grP))
               case res of
                 Just (dir, finalPos) -> do
-                  let newGr = roomTypeToGameRoom (rootLabel node) (getRoomLayout n) (filter (/= oppositeDirection dir) exits')
+                  let newGr = roomTypeToGameRoom (rootLabel node) newLayout (filter (/= oppositeDirection dir) exits')
+                  -- Update parent room to remove the used exit
                   set p (grP { exits = filter (/= dir) (exits grP) })
                   _ <- case rootLabel node of
                     BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
+                    LadderRoom -> return 0
                     _ -> do
                       enemyNum <- randomRIO (1, 3)
                       makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
