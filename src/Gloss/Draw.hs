@@ -106,7 +106,11 @@ drawCombat :: System' Picture
 drawCombat = do
     SpriteMap smap <- get global
     CombatTurn turn <- get global
-    let ui = if turn == PlayerTurn then getSpritePicture smap (SpriteRef "combat-ui" Nothing) else Blank
+    uiState <- get global :: System' UIState
+    let ui = if turn == PlayerTurn then case uiState of
+            CombatAttackSelectUI -> getSpritePicture smap (SpriteRef "combat-attack-select-ui" Nothing)
+            CombatMagicSelectUI  -> getSpritePicture smap (SpriteRef "combat-magic-select-ui" Nothing)
+        else Blank
     player <- foldDraw $ \(CombatPlayer, pos, s) -> translate' pos $ scale 2 2 $ getSpritePicture smap s
     enemy <- foldDraw $ \(CombatEnemy _, pos, s) -> translate' pos $ scale (-2) 2 $ getSpritePicture smap s
     enemyPlayerLayer <- if turn == PlayerTurn || turn == PlayerAttacking then

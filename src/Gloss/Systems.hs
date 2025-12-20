@@ -45,8 +45,16 @@ initialize = do
                             Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 9, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/knife-attack.png" 9 (576,64), looping = False, afterLoopAnimation = Just "player-idle" }))
                         ),
                         (
-                            "player-staff",
-                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 7, frameSpeed = 0.3, sprites = Just $ loadAnimatedSprite "player/player-staff.png" 7 (448,64), looping = False, afterLoopAnimation = Nothing }))
+                            "player-fire-attack",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 11, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/fire-attack.png" 11 (704,64), looping = False, afterLoopAnimation = Just "player-idle" }))
+                        ),
+                        (
+                            "player-electric-attack",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 11, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/electric-attack.png" 11 (704,64), looping = False, afterLoopAnimation = Just "player-idle" }))
+                        ),
+                        (
+                            "player-prismatic-attack",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 11, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/prismatic-attack.png" 11 (704,64), looping = False, afterLoopAnimation = Just "player-idle" }))
                         ),
                         (
                             "player-hit",
@@ -131,6 +139,14 @@ initialize = do
                         (
                             "golden-reaper-death",
                             Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 15, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "enemies/golden-reaper/death.png" 15 (960,64), looping = False, afterLoopAnimation = Nothing }))
+                        ),
+                        (
+                            "particle-fire",
+                            Sprite (100,100) (GlossRenderer (Right $ Animation { frameCount = 75, frameSpeed = 1/60, sprites = Just $ loadAnimatedSprite "particles/fire.png" 75 (7500,100), looping = False, afterLoopAnimation = Nothing }))
+                        ),
+                        (
+                            "particle-prismatic",
+                            Sprite (100,100) (GlossRenderer (Right $ Animation { frameCount = 81, frameSpeed = 1/60, sprites = Just $ loadAnimatedSprite "particles/prismatic.png" 81 (8100,100), looping = False, afterLoopAnimation = Nothing }))
                         )
                      ] ++
                      [ (name, Sprite (64,64) (GlossRenderer $ Left pic)) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadStaticSprite path ] ++
@@ -143,28 +159,38 @@ initialize = do
                      [
                         ("wall-bottom-right", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/wall-bottom-right.png") ),
                         ("wall-bottom-left", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/wall-bottom-left.png") ),
-                        ("combat-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui.png") )
+                        ("combat-attack-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui.png") ),
+                        ("combat-magic-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui-magic.png") )
                     ]
     Sys.initialize spriteList
 
 handleEvent :: Event -> System' ()
 -- Player movement
-handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
-handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (SpecialKey k) ks')
+handleEvent (EventKey k Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert k ks')
     SDLRenderer _ -> let
-            ks' = Set.insert (SpecialKey k) Set.empty
+            ks' = Set.insert k Set.empty
         in
             KeysPressed $ GlossRenderer ks'
-handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (SpecialKey k) ks')
+handleEvent (EventKey k Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
+    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete k ks')
     SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
+-- handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
+-- handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
+--     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (SpecialKey k) ks')
+--     SDLRenderer _ -> let
+--             ks' = Set.insert (SpecialKey k) Set.empty
+--         in
+--             KeysPressed $ GlossRenderer ks'
+-- handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
+--     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (SpecialKey k) ks')
+--     SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
 
-handleEvent (EventKey (Char 'e') Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (Char 'e') ks')
-    SDLRenderer _ -> KeysPressed $ GlossRenderer (Set.insert (Char 'e') Set.empty)
-handleEvent (EventKey (Char 'e') Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (Char 'e') ks')
-    SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
+-- handleEvent (EventKey (Char c) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
+--     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (Char c) ks')
+--     SDLRenderer _ -> KeysPressed $ GlossRenderer (Set.insert (Char c) Set.empty)
+-- handleEvent (EventKey (Char c) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
+--     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (Char c) ks')
+--     SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
 handleEvent (EventResize sz) = set global (Viewport sz)
 handleEvent _ = return () -- base case

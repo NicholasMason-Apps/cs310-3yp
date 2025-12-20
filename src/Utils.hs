@@ -99,3 +99,22 @@ startTransition angle speed = do
 -- Update positions based on velocity and delta time
 stepPosition :: Float -> System' ()
 stepPosition dT = cmap $ uncurry (stepPositionFormula dT)
+
+spawnParticle :: Position -> Position -> String -> Int -> System' Entity
+spawnParticle startPos endPos sref frameOffset = do
+    SpriteMap smap <- get global
+    let Sprite _ rs = smap Map.! sref
+        frameCount' = case rs of
+            GlossRenderer (Left _) -> 1
+            SDLRenderer (_, Nothing) -> 1
+            GlossRenderer (Right a) -> frameCount a
+            SDLRenderer (_, Just a) -> frameCount a
+        frameSpeed' = case rs of
+            GlossRenderer (Left _) -> 0.1
+            SDLRenderer (_, Nothing) -> 0.1
+            GlossRenderer (Right a) -> frameSpeed a
+            SDLRenderer (_, Just a) -> frameSpeed a
+        (Position start) = startPos
+        (Position end) = endPos
+        vel = (end - start) ^/ ((fromIntegral frameCount' - fromIntegral frameOffset) * frameSpeed')
+    newEntity (Particle endPos, startPos, Velocity vel, SpriteRef sref (Just 0))

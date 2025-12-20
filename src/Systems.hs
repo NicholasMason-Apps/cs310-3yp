@@ -55,12 +55,24 @@ initialize spriteList = do
 incrementTime :: Float -> System' ()
 incrementTime dT = modify global $ \(Time t) -> Time (t + dT)
 
--- Remove all particles that have expired
+-- Remove Velocity component from particles whose destination position has been reached
+-- When a particle finishes its animation, remove it from the world
 stepParticles :: Float -> System' ()
-stepParticles dT = cmap $ \(Particle t) ->
-    if t < 0
-        then Right $ Not @(Particle, Kinetic) -- Not is used to delete the particle
-        else Left $ Particle (t - dT)
+stepParticles dT = cmapM_ $ \(Particle (Position destP), Position currP, SpriteRef sref mn, e) -> do
+    SpriteMap smap <- get global
+    when (norm (destP - currP) < 5) $ do
+        destroy e (Proxy @Velocity)
+    let Sprite _ rs = smap Map.! sref
+    case rs of
+        GlossRenderer (Left _) -> return ()
+        SDLRenderer (_, Nothing) -> return ()
+        GlossRenderer (Right a) -> when (fromMaybe 0 mn + 1 >= frameCount a) $ do
+            destroy e (Proxy @(Particle, SpriteRef, Position))
+            cmapM_ $ \(CombatAttackParticle _, e') -> destroy e' (Proxy @CombatAttackParticle)
+        SDLRenderer (_, Just a) -> when (fromMaybe 0 mn + 1 >= frameCount a) $ do
+            destroy e (Proxy @(Particle, SpriteRef, Position))
+            cmapM_ $ \(CombatAttackParticle _, e') -> destroy e' (Proxy @CombatAttackParticle)
+
 
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 triggerEvery dT period offset sys = do
@@ -68,15 +80,6 @@ triggerEvery dT period offset sys = do
     let t' = t + offset
         trigger = floor (t'/period) /= floor ((t'+dT)/period)
     when trigger $ void sys
-
--- Spawn n particles at a given position with random velocities in the given ranges
--- dvx and dvy are (min,max) pairs for x and y velocity components
-spawnParticles :: Int -> Position -> (Float,Float) -> (Float,Float) -> System' ()
-spawnParticles n pos dvx dvy = replicateM_ n $ do
-    vx <- liftIO $ randomRIO dvx
-    vy <- liftIO $ randomRIO dvy
-    t <- liftIO $ randomRIO (0.02, 0.3)
-    newEntity (Particle t, pos, Velocity (V2 vx vy))
 
 combatTransitionAction :: System' ()
 combatTransitionAction = do

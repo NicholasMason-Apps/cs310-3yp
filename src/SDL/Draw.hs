@@ -111,10 +111,14 @@ drawCombat :: SDL.Renderer -> FPS -> System' ()
 drawCombat r fps = do
     smap <- get global :: System' SpriteMap
     CombatTurn turn <- get global
+    uiState <- get global :: System' UIState
     cmapM_ $ \(CombatTile, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos Nothing) (1,1) (V2 False False) r
     cmapM_ $ \(CombatPlayer, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 False False) r
     cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 True False) r
-    when (turn == PlayerTurn) $ liftIO $ drawSprite (SpriteRef "combat-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
+    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (1,1) (V2 False False) r
+    when (turn == PlayerTurn) $ liftIO $ case uiState of
+            CombatAttackSelectUI -> drawSprite (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
+            CombatMagicSelectUI  -> drawSprite (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
 
 draw :: SDL.Renderer -> FPS -> System' ()
 draw r fps = do

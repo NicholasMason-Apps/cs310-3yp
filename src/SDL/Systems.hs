@@ -49,8 +49,16 @@ initialize w r = do
                             Sprite (576,64) (SDLRenderer (loadSprite r "player/knife-attack.png", Just $ Animation { frameCount = 9, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
                         ),
                         (
-                            "player-staff",
-                            Sprite (448,64) (SDLRenderer (loadSprite r "player/player-staff.png", Just $ Animation { frameCount = 7, frameSpeed = 0.3, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
+                            "player-fire-attack",
+                            Sprite (704,64) (SDLRenderer (loadSprite r "player/fire-attack.png", Just $ Animation { frameCount = 11, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
+                        ),
+                        (
+                            "player-electric-attack",
+                            Sprite (704,64) (SDLRenderer (loadSprite r "player/electric-attack.png", Just $ Animation { frameCount = 11, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
+                        ),
+                        (
+                            "player-prismatic-attack",
+                            Sprite (704,64) (SDLRenderer (loadSprite r "player/prismatic-attack.png", Just $ Animation { frameCount = 11, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
                         ),
                         (
                             "player-hit",
@@ -135,6 +143,14 @@ initialize w r = do
                         (
                             "golden-reaper-death",
                             Sprite (960,64) (SDLRenderer (loadSprite r "enemies/golden-reaper/death.png", Just $ Animation { frameCount = 15, frameSpeed = 0.1, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
+                        ),
+                        (
+                            "particle-fire",
+                            Sprite (7500,100) (SDLRenderer (loadSprite r "particles/fire.png", Just $ Animation { frameCount = 75, frameSpeed = 1/60, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
+                        ),
+                        (
+                            "particle-prismatic",
+                            Sprite (8100,100) (SDLRenderer (loadSprite r "particles/prismatic.png", Just $ Animation { frameCount = 81, frameSpeed = 1/60, looping = False, afterLoopAnimation = Nothing, sprites = Nothing }))
                         )
                     ] ++
                     [ (name, Sprite (64,64) (SDLRenderer (pic, Nothing))) | n <- [1..tileCount], let name = "tile" ++ show n, let path = "tiles/tile" ++ show n ++ ".png", let pic = loadSprite r path ] ++
@@ -147,7 +163,8 @@ initialize w r = do
                     [
                         ("wall-bottom-right", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-right.png", Nothing ))),
                         ("wall-bottom-left", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-left.png", Nothing ))),
-                        ("combat-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing ))),
+                        ("combat-attack-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing ))),
+                        ("combat-magic-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui-magic.png", Nothing ))),
                         ("transition", Sprite (2500, 2500) (SDLRenderer (loadSprite r "ui/transition.png", Nothing)))
                     ]
     Sys.initialize spriteList
@@ -162,7 +179,7 @@ handleEvent _ = return ()
 handleKeyEvent :: SDL.KeyboardEventData -> System' ()
 handleKeyEvent ev
     | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> case ks of
-        GlossRenderer _ -> let 
+        GlossRenderer _ -> let
                 ks' = Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) Set.empty
             in
                 KeysPressed $ SDLRenderer ks'

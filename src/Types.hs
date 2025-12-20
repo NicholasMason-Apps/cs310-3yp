@@ -8,6 +8,8 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Types where
 
@@ -34,6 +36,14 @@ instance Monoid Viewport where
     mempty = Viewport (1280, 720)
 instance Component Viewport where type Storage Viewport = Global Viewport
 
+data UIState = CombatAttackSelectUI | CombatMagicSelectUI deriving (Show, Eq)
+instance Semigroup UIState where
+    (<>) :: UIState -> UIState -> UIState
+    _ <> u2 = u2
+instance Monoid UIState where
+    mempty :: UIState
+    mempty = CombatAttackSelectUI
+instance Component UIState where type Storage UIState = Global UIState
 
 newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where (<>) = (+)
@@ -94,9 +104,6 @@ instance Component Position where type Storage Position = Map Position
 
 newtype Velocity = Velocity (V2 Float) deriving (Show)
 instance Component Velocity where type Storage Velocity = Map Velocity
-
-data Particle = Particle Float deriving (Show)
-instance Component Particle where type Storage Particle = Map Particle
 
 
 -- Movement direction component
@@ -165,12 +172,18 @@ instance Component GameRoom where type Storage GameRoom = Map GameRoom
 newtype Health = Health Int deriving (Show, Num)
 instance Component Health where type Storage Health = Map Health
 
+data MapError = MapError deriving (Show)
+instance Component MapError where type Storage MapError = Unique MapError 
+
 -- Combat components
 newtype CombatEnemy = CombatEnemy Entity deriving (Show)
 instance Component CombatEnemy where type Storage CombatEnemy = Unique CombatEnemy
 
 data CombatPlayer = CombatPlayer deriving (Show)
 instance Component CombatPlayer where type Storage CombatPlayer = Unique CombatPlayer
+
+data CombatAttackParticle = CombatAttackParticle Entity deriving (Show)
+instance Component CombatAttackParticle where type Storage CombatAttackParticle = Unique CombatAttackParticle
 
 data CombatTurn = CombatTurn TurnState deriving (Show, Eq)
 instance Semigroup CombatTurn where
@@ -195,6 +208,9 @@ data Transition = Transition {
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
+data Particle = Particle Position deriving (Show)
+instance Component Particle where type Storage Particle = Map Particle
+
 type FPS = Int
 
 -- Define all the components in the world
@@ -203,7 +219,6 @@ makeWorld "World" [''Position,
                     ''Player,
                     ''Score,
                     ''Time,
-                    ''Particle,
                     ''Camera,
                     ''Wall,
                     ''SpriteRef,
@@ -221,7 +236,11 @@ makeWorld "World" [''Position,
                     ''Transition,
                     ''CombatPlayer,
                     ''CombatTurn,
-                    ''Health]
+                    ''Health,
+                    ''UIState,
+                    ''MapError,
+                    ''Particle,
+                    ''CombatAttackParticle]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

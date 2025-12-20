@@ -31,14 +31,17 @@ import Enemy (makeEnemy)
 getRoomSize :: [String] -> (Float, Float)
 getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegral (length layout) * tileSize)
 
+startRoomLayout :: [String]
+startRoomLayout = 
+  [ "WWWWW1WWWW"
+  , "WTTTTTTTT2"
+  , "4TTTTTTTTW"
+  , "WTTTTTTTTW"
+  , "WW3WWWWWWW"
+  ]
+
 gameRoomLayouts :: [[String]]
 gameRoomLayouts = [
-    [ "WWWWW1WWWW"
-    , "WTTTTTTTT2"
-    , "4TTTTTTTTW"
-    , "WTTTTTTTTW"
-    , "WW3WWWWWWW"
-    ],
     [ "WWWWWWW1WWWWWWW"
     , "WTTTTTTTTTTTTTW"
     , "WTTTTTTTTTTTTTW"
@@ -128,162 +131,145 @@ generateMap :: System' ()
 generateMap = do
   tree <- liftIO generateMapTree
   bfsM insertGameRoom tree
-  cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
-    let layout = roomLayout gr
-        w = length $ head layout
-        h = length layout
-        selectSprite :: Char -> (Int,Int) -> IO (String, Char)
-        selectSprite c (x,y)
-          | c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' = do
-              if (c == '1' && UpDir `notElem` exits gr) ||
-                  (c == '2' && RightDir `notElem` exits gr) ||
-                  (c == '3' && DownDir `notElem` exits gr) ||
-                  (c == '4' && LeftDir `notElem` exits gr) then do -- Not blocked exit
+  err <- cfold (\_ (_ :: MapError) -> Just ()) Nothing
+  case err of
+      Just _ -> generateMap -- Since an error occurred, regenerate the map
+      Nothing -> cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
+        let layout = roomLayout gr
+            w = length $ head layout
+            h = length layout
+            selectSprite :: Char -> (Int,Int) -> IO (String, Char)
+            selectSprite c (x,y)
+              | c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' = do
+                  if (c == '1' && UpDir `notElem` exits gr) ||
+                      (c == '2' && RightDir `notElem` exits gr) ||
+                      (c == '3' && DownDir `notElem` exits gr) ||
+                      (c == '4' && LeftDir `notElem` exits gr) then do -- Not blocked exit
+                    n <- randomRIO (1, tileCount) :: IO Integer
+                    return ("tile" ++ show n, 'T')
+                  else if fromIntegral x <= midW && fromIntegral y <= midH then do -- Top left
+                    if layout !! (y+1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Elbow
+                      n <- randomRIO (1, wallTopCount) :: IO Integer
+                      return ("wall-top" ++ show n, 'W')
+                    else if y > 0 && layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Up Elbow
+                      n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                      return ("wall-bottom-left-elbow" ++ show n, 'W')
+                    else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall 
+                      n <- randomRIO (1, wallLeftCount) :: IO Integer
+                      return ("wall-left" ++ show n, 'W')
+                    else do -- Top Wall
+                      n <- randomRIO (1, wallTopCount) :: IO Integer
+                      return ("wall-top" ++ show n, 'W')
+                  else if fromIntegral x > midW && fromIntegral y <= midH then do -- Top right
+                    if layout !! (y+1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Elbow
+                      n <- randomRIO (1, wallTopCount) :: IO Integer
+                      return ("wall-top" ++ show n, 'W')
+                    else if y > 0 && layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Up Elbow
+                      n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                      return ("wall-bottom-right-elbow" ++ show n, 'W')
+                    else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
+                      n <- randomRIO (1, wallRightCount) :: IO Integer
+                      return ("wall-right" ++ show n, 'W')
+                    else do -- Top Wall
+                      n <- randomRIO (1, wallTopCount) :: IO Integer
+                      return ("wall-top" ++ show n, 'W')
+                  else if fromIntegral x <= midW && fromIntegral y > midH then do -- Bottom left
+                    if (layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr) ||
+                      (layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr) ||
+                      (layout !! (y-1) !! x == 'T' && layout !! y !! (x+1) == 'T') then do -- Left Elbow
+                      n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                      return ("wall-bottom-left-elbow" ++ show n, 'W')
+                    else if x > 0 && layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr then do -- Right elbow
+                      n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                      return ("wall-bottom-right-elbow" ++ show n, 'W')
+                    else if layout !! (y-1) !! x == 'W' && layout !! y !! (x+1) == 'W' then do -- Bottom Left Corner
+                      return ("wall-bottom-left", 'W')
+                    else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall
+                      n <- randomRIO (1, wallLeftCount) :: IO Integer
+                      return ("wall-left" ++ show n, 'W')
+                    else do -- Bottom Wall
+                      n <- randomRIO (1, wallBottomCount) :: IO Integer
+                      return ("wall-bottom" ++ show n, 'W')
+                  else -- Bottom right
+                    if (layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr) ||
+                      (layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr) ||
+                      (layout !! (y-1) !! x == 'T' && layout !! y !! (x-1) == 'T') then do -- Right Elbow
+                      n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
+                      return ("wall-bottom-right-elbow" ++ show n, 'W')
+                    else if x < (w - 1) && layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr then do -- Left Elbow
+                      n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
+                      return ("wall-bottom-left-elbow" ++ show n, 'W')
+                    else if layout !! (y-1) !! x == 'W' && layout !! y !! (x-1) == 'W' then do -- Bottom Right Corner
+                      return ("wall-bottom-right", 'W')
+                    else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
+                      n <- randomRIO (1, wallRightCount) :: IO Integer
+                      return ("wall-right" ++ show n, 'W')
+                    else do -- Bottom Wall
+                      n <- randomRIO (1, wallBottomCount) :: IO Integer
+                      return ("wall-bottom" ++ show n, 'W')
+              | otherwise = do
                 n <- randomRIO (1, tileCount) :: IO Integer
                 return ("tile" ++ show n, 'T')
-              else if fromIntegral x <= midW && fromIntegral y <= midH then do -- Top left
-                if layout !! (y+1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Elbow
-                  n <- randomRIO (1, wallTopCount) :: IO Integer
-                  return ("wall-top" ++ show n, 'W')
-                else if y > 0 && layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr then do -- Left Up Elbow
-                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
-                  return ("wall-bottom-left-elbow" ++ show n, 'W')
-                else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall 
-                  n <- randomRIO (1, wallLeftCount) :: IO Integer
-                  return ("wall-left" ++ show n, 'W')
-                else do -- Top Wall
-                  n <- randomRIO (1, wallTopCount) :: IO Integer
-                  return ("wall-top" ++ show n, 'W')
-              else if fromIntegral x > midW && fromIntegral y <= midH then do -- Top right
-                if layout !! (y+1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Elbow
-                  n <- randomRIO (1, wallTopCount) :: IO Integer
-                  return ("wall-top" ++ show n, 'W')
-                else if y > 0 && layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr then do -- Right Up Elbow
-                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
-                  return ("wall-bottom-right-elbow" ++ show n, 'W')
-                else if layout !! (y+1) !! x == 'W' || (layout !! (y+1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
-                  n <- randomRIO (1, wallRightCount) :: IO Integer
-                  return ("wall-right" ++ show n, 'W')
-                else do -- Top Wall
-                  n <- randomRIO (1, wallTopCount) :: IO Integer
-                  return ("wall-top" ++ show n, 'W')
-              else if fromIntegral x <= midW && fromIntegral y > midH then do -- Bottom left
-                if (layout !! (y-1) !! x == '4' && LeftDir `notElem` exits gr) ||
-                   (layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr) ||
-                   (layout !! (y-1) !! x == 'T' && layout !! y !! (x+1) == 'T') then do -- Left Elbow
-                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
-                  return ("wall-bottom-left-elbow" ++ show n, 'W')
-                else if x > 0 && layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr then do -- Right elbow
-                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
-                  return ("wall-bottom-right-elbow" ++ show n, 'W')
-                else if layout !! (y-1) !! x == 'W' && layout !! y !! (x+1) == 'W' then do -- Bottom Left Corner
-                  return ("wall-bottom-left", 'W')
-                else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '4' && LeftDir `elem` exits gr) then do -- Left Wall
-                  n <- randomRIO (1, wallLeftCount) :: IO Integer
-                  return ("wall-left" ++ show n, 'W')
-                else do -- Bottom Wall
-                  n <- randomRIO (1, wallBottomCount) :: IO Integer
-                  return ("wall-bottom" ++ show n, 'W')
-              else -- Bottom right
-                if (layout !! (y-1) !! x == '2' && RightDir `notElem` exits gr) ||
-                   (layout !! y !! (x-1) == '3' && DownDir `notElem` exits gr) ||
-                   (layout !! (y-1) !! x == 'T' && layout !! y !! (x-1) == 'T') then do -- Right Elbow
-                  n <- randomRIO (1, wallBottomRightElbowCount) :: IO Integer
-                  return ("wall-bottom-right-elbow" ++ show n, 'W')
-                else if x < (w - 1) && layout !! y !! (x+1) == '3' && DownDir `notElem` exits gr then do -- Left Elbow
-                  n <- randomRIO (1, wallBottomLeftElbowCount) :: IO Integer
-                  return ("wall-bottom-left-elbow" ++ show n, 'W')
-                else if layout !! (y-1) !! x == 'W' && layout !! y !! (x-1) == 'W' then do -- Bottom Right Corner
-                  return ("wall-bottom-right", 'W')
-                else if layout !! (y-1) !! x == 'W' || (layout !! (y-1) !! x == '2' && RightDir `elem` exits gr) then do -- Right Wall
-                  n <- randomRIO (1, wallRightCount) :: IO Integer
-                  return ("wall-right" ++ show n, 'W')
-                else do -- Bottom Wall
-                  n <- randomRIO (1, wallBottomCount) :: IO Integer
-                  return ("wall-bottom" ++ show n, 'W')
-          | otherwise = do
-            n <- randomRIO (1, tileCount) :: IO Integer
-            return ("tile" ++ show n, 'T')
-          where
-            midW :: Float
-            midW = fromIntegral (w - 1) / 2
-            midH :: Float
-            midH = fromIntegral (h - 1) / 2
-        tileCheck :: Char -> Bool
-        tileCheck c = c `notElem` " _"
-        halfAdjust v = if even v then tileSize / 2 else 0
-        offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
-        offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
-    spriteList <- liftIO $ sequence [ do
-      (s,t) <- selectSprite c (x,y)
-      let sref = SpriteRef s Nothing
-          pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize))
-      return (sref, pos, t)
-      | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c ]
-    forM_ spriteList $ \(s, p, t) -> do
-        case t of
-          'T' -> void $ newEntity (Tile, p, s)
-          _   -> void $ newEntity (Wall, p, s, BoundaryBox (64,64) (0,0))
-    destroy e (Proxy @(GameRoom, Position))
+              where
+                midW :: Float
+                midW = fromIntegral (w - 1) / 2
+                midH :: Float
+                midH = fromIntegral (h - 1) / 2
+            tileCheck :: Char -> Bool
+            tileCheck c = c `notElem` " _"
+            halfAdjust v = if even v then tileSize / 2 else 0
+            offsetX = grx - (fromIntegral w * tileSize / 2) + halfAdjust w + tileSize / 2
+            offsetY = gry - (fromIntegral h * tileSize / 2) + halfAdjust h + tileSize / 2
+        spriteList <- liftIO $ sequence [ do
+          (s,t) <- selectSprite c (x,y)
+          let sref = SpriteRef s Nothing
+              pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral (h - 1 - y) * tileSize))
+          return (sref, pos, t)
+          | (y, row) <- zip [0..] layout, (x, c) <- zip [0..] row, tileCheck c ]
+        forM_ spriteList $ \(s, p, t) -> do
+            case t of
+              'T' -> void $ newEntity (Tile, p, s)
+              _   -> void $ newEntity (Wall, p, s, BoundaryBox (64,64) (0,0))
+        destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
     insertGameRoom parent node = do
-      n <- randomRIO (1, length gameRoomLayouts - 1)
+      n <- randomRIO (0, length gameRoomLayouts - 1)
       exits' <- generateRandomExitOrder
       case parent of
         Nothing -> do
-          let gr = roomTypeToGameRoom (rootLabel node) 1 exits'
+          let gr = roomTypeToGameRoom (rootLabel node) startRoomLayout exits'
           newEntity (gr, Position (V2 0 0))
         Just p -> do
-          Position (V2 px py) <- get p
-          grP <- get p :: System' GameRoom
-          -- Attempt to find the first direction which does not intersect
-          let newLayout = getRoomLayout n
-          intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
-          let res = foldl' (\acc (intersects, dir) ->
-                case acc of
-                  Just _ -> acc
-                  Nothing -> if not intersects then
-                      Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
-                    else Nothing) Nothing (zip intersections (exits grP))
-          case res of
-            Just (dir, finalPos) -> do
-              let newGr = roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits')
-              set p (grP { exits = filter (/= dir) (exits grP) })
-              _ <- case rootLabel node of
-                BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
-                _ -> do
-                  enemyNum <- randomRIO (1, 3)
-                  makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
-              newEntity (newGr, finalPos)
-            Nothing -> do
-              -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
-              liftIO $ print $ zip intersections (exits grP)
-              let dir = head (exits grP)
-                  (cx, cy) = connectionPosition dir (roomLayout grP) newLayout
-                  distanceToClear dir' (cX, cY) (cW, cH) (oX, oY) (oW, oH) = let
-                      raw = case dir' of
-                        UpDir -> (oY + oH / 2) - (cY - cH / 2)
-                        DownDir -> (cY + cH / 2) - (oY - oH / 2)
-                        LeftDir -> (cX + cW / 2) - (oX - oW / 2)
-                        RightDir -> (oX + oW / 2) - (cX - cW / 2)
-                    in
-                      ceiling (raw / tileSize) * tileSize
-              (fx,fy) <- cfoldM (\acc (gr, Position (V2 grX grY)) -> do
-                  let (rw', rh') = getRoomSize (roomLayout gr)
-                      intersectsX = abs ((px + cx + fst acc) - grX) < (fst (getRoomSize newLayout)/2 + rw'/2)
-                      intersectsY = abs ((py + cy + snd acc) - grY) < (snd (getRoomSize newLayout)/2 + rh'/2)
-                      shiftAmount = fromIntegral $ distanceToClear dir (px + cx + fst acc, py + cy + snd acc) (fst (getRoomSize newLayout), snd (getRoomSize newLayout)) (grX, grY) (rw', rh')
-                  if intersectsX && intersectsY then
-                      case dir of
-                        UpDir -> return (fst acc, snd acc + shiftAmount + roomOffset)
-                        DownDir -> return (fst acc, snd acc - shiftAmount - roomOffset)
-                        LeftDir -> return (fst acc - shiftAmount - roomOffset, snd acc)
-                        RightDir -> return (fst acc + shiftAmount + roomOffset, snd acc)
-                  else
-                    return acc) (cx,cy)
-              set p (grP { exits = drop 1 $ exits grP })
-              newEntity (roomTypeToGameRoom (rootLabel node) n (filter (/= oppositeDirection dir) exits'), Position (V2 (fx + px) (py + fy)))
+          case p of
+            -1 -> return p -- Invalid parent means error occurred, so do nothing
+            _ -> do
+              Position (V2 px py) <- get p
+              grP <- get p :: System' GameRoom
+              -- Attempt to find the first direction which does not intersect
+              let newLayout = getRoomLayout n
+              intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
+              let res = foldl' (\acc (intersects, dir) ->
+                    case acc of
+                      Just _ -> acc
+                      Nothing -> if not intersects then
+                          Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
+                        else Nothing) Nothing (zip intersections (exits grP))
+              case res of
+                Just (dir, finalPos) -> do
+                  let newGr = roomTypeToGameRoom (rootLabel node) (getRoomLayout n) (filter (/= oppositeDirection dir) exits')
+                  set p (grP { exits = filter (/= dir) (exits grP) })
+                  _ <- case rootLabel node of
+                    BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
+                    _ -> do
+                      enemyNum <- randomRIO (1, 3)
+                      makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
+                  newEntity (newGr, finalPos)
+                Nothing -> do
+                  -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
+                  liftIO $ print $ zip intersections (exits grP)
+                  _ <- newEntity MapError -- Create a dummy entity to indicate error
+                  return (-1) -- Invalid entity to indicate error
 
 -- Given a direction and two room layouts, finds the position for the new layout relative to the current layout
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)
@@ -334,9 +320,8 @@ checkRoomIntersectionInDirection e dir newLayout = do
       in
         acc || (intersectsX && intersectsY)) False
 
-roomTypeToGameRoom :: RoomType -> Int -> [Direction] -> GameRoom
-roomTypeToGameRoom StartRoom _ exits' = GameRoom { roomType = StartRoom, roomLayout = head gameRoomLayouts, exits = exits' }
-roomTypeToGameRoom rt n exits' = GameRoom { roomType = rt, roomLayout = getRoomLayout n, exits = exits' }
+roomTypeToGameRoom :: RoomType -> [String] -> [Direction] -> GameRoom
+roomTypeToGameRoom rt layout exits' = GameRoom { roomType = rt, roomLayout = layout, exits = exits' }
 
 getRoomLayout :: Int -> [String]
 getRoomLayout n = gameRoomLayouts !! (n `mod` length gameRoomLayouts)

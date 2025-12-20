@@ -23,8 +23,11 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified SDL
 
-playerAttackFrames :: Set.Set Int
-playerAttackFrames = Set.fromList [7]
+playerKnifeAttackFrames :: Set.Set Int
+playerKnifeAttackFrames = Set.fromList [7]
+
+playerMagicAttackFrames :: Set.Set Int
+playerMagicAttackFrames = Set.fromList [6]
 
 enemySkeletonAttackFrames :: Set.Set Int
 enemySkeletonAttackFrames = Set.fromList [7]
@@ -35,6 +38,9 @@ enemyVampireAttackFrames = Set.fromList [11]
 enemyReaperAttackFrames :: Set.Set Int
 enemyReaperAttackFrames = Set.fromList [6, 11]
 
+enemyGoldenReaperAttackFrames :: Set.Set Int
+enemyGoldenReaperAttackFrames = Set.fromList [6, 11]
+
 playerDamage :: Int
 playerDamage = 20
 
@@ -44,25 +50,79 @@ enemyDamage = 5
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
     KeysPressed rs <- get global
-    case rs of
-        GlossRenderer ks -> when (SpecialKey KeySpace `Set.member` ks) $ do
-            set global $ CombatTurn PlayerAttacking
-            cmapM_ $ \(CombatPlayer, s) -> do
-                set s (SpriteRef "player-knife-attack" (Just 0))
-                set s (Position (V2 ((1280 / 3) - tileSize) 0))
-        SDLRenderer ks -> when (SDL.KeycodeSpace `Set.member` ks) $ do
-            set global $ CombatTurn PlayerAttacking
-            cmapM_ $ \(CombatPlayer, s) -> do
-                set s (SpriteRef "player-knife-attack" (Just 0))
-                set s (Position (V2 ((1280 / 3) - tileSize) 0))
+    uiState <- get global :: System' UIState
+    case uiState of
+        CombatAttackSelectUI -> case rs of
+            GlossRenderer ks -> do
+                when (SpecialKey KeySpace `Set.member` ks) $ do
+                    set global $ KeysPressed $ GlossRenderer $ SpecialKey KeySpace `Set.delete` ks
+                    set global $ CombatTurn PlayerAttacking
+                    cmapM_ $ \(CombatPlayer, s) -> do
+                        set s (SpriteRef "player-knife-attack" (Just 0))
+                        set s (Position (V2 ((1280 / 3) - tileSize) 0))
+                when (Char 'e' `Set.member` ks) $ do
+                    set global CombatMagicSelectUI
+                    set global $ KeysPressed $ GlossRenderer $ Char 'e' `Set.delete` ks
+            SDLRenderer ks -> do
+                when (SDL.KeycodeSpace `Set.member` ks) $ do
+                    set global $ CombatTurn PlayerAttacking
+                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeSpace `Set.delete` ks
+                    cmapM_ $ \(CombatPlayer, s) -> do
+                        set s (SpriteRef "player-knife-attack" (Just 0))
+                        set s (Position (V2 ((1280 / 3) - tileSize) 0))
+                when (SDL.KeycodeE `Set.member` ks) $ do
+                    set global CombatMagicSelectUI
+                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeE `Set.delete` ks
+        CombatMagicSelectUI -> case rs of
+            GlossRenderer ks -> do
+                when (Char 'e' `Set.member` ks) $ do
+                    set global $ CombatTurn PlayerAttacking
+                    set global $ KeysPressed $ GlossRenderer $ Char 'e' `Set.delete` ks
+                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
+                when (Char 'q' `Set.member` ks) $ do
+                    set global $ CombatTurn PlayerAttacking
+                    set global $ KeysPressed $ GlossRenderer $ Char 'q' `Set.delete` ks
+                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
+                when (SpecialKey KeyEsc `Set.member` ks) $ do
+                    set global CombatAttackSelectUI
+                    set global $ KeysPressed $ GlossRenderer $ SpecialKey KeyEsc `Set.delete` ks
+            SDLRenderer ks -> do
+                when (SDL.KeycodeE `Set.member` ks) $ do
+                    set global $ CombatTurn PlayerAttacking
+                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeE `Set.delete` ks
+                    set global CombatAttackSelectUI
+                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
+                when (SDL.KeycodeQ `Set.member` ks) $ do
+                    set global $ CombatTurn PlayerAttacking
+                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeQ `Set.delete` ks
+                    set global CombatAttackSelectUI
+                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
+                when (SDL.KeycodeEscape `Set.member` ks) $ do
+                    set global CombatAttackSelectUI
+                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeEscape `Set.delete` ks
 
 stepPlayerAttack :: Float -> System' ()
 stepPlayerAttack dT = do
     cmapM_ $ \(CombatPlayer, SpriteRef sr n, e) -> do
-        when (sr == "player-idle") $ do
-            set global $ CombatTurn EnemyTurn
-            set e (Position (V2 ((-1280 / 3)) 0))
-        when (fromMaybe 0 n `Set.member` playerAttackFrames) $ cmapM_ $ \(CombatEnemy e', SpriteRef sr' _, ce) -> do
+        particle <- cfold (\_ (CombatAttackParticle e) -> Just e) Nothing
+        when (isNothing particle && (sr == "player-fire-attack" || sr == "player-prismatic-attack") && (fromMaybe 0 n `Set.member` playerMagicAttackFrames)) $ do
+            if sr == "player-fire-attack" then do
+                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize - 16) 0)) (Position (V2 (1280 / 3) 0)) "particle-fire" 11
+                void $ newEntity (CombatAttackParticle particle)
+            else when (sr == "player-prismatic-attack") $ do
+                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize) 0)) (Position (V2 (1280 / 3) 0)) "particle-prismatic" 13
+                void $ newEntity (CombatAttackParticle particle)
+        Particle (Position destPos) <- case particle of
+            Just p -> get p :: System' Particle
+            Nothing -> return $ Particle (Position (V2 0 0))
+        Position currPos <- case particle of
+            Just p -> do
+                Position pos <- get p :: System' Position
+                return $ Position pos
+            Nothing -> return $ Position (V2 100 100)
+        let attackHitCondition = (fromMaybe 0 n `Set.member` playerKnifeAttackFrames && sr == "player-knife-attack")
+                                || (norm (destPos - currPos) < 20)
+        when attackHitCondition $ cmapM_ $ \(CombatEnemy e', SpriteRef sr' _, ce) -> do
             enemy <- get e' :: System' Enemy
             Health hp <- get e' :: System' Health
             if hp - playerDamage > 0 then
@@ -76,6 +136,9 @@ stepPlayerAttack dT = do
                     Skeleton -> when (sr' /= "skeleton-hit") $ do
                         modify e' $ \(Health hp) -> Health (hp - playerDamage)
                         set ce (SpriteRef "skeleton-hit" (Just 1))
+                    GoldenReaper -> when (sr' /= "golden-reaper-hit") $ do
+                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                        set ce (SpriteRef "golden-reaper-hit" (Just 1))
             else
                 case enemyType enemy of
                     Reaper -> when (sr' /= "reaper-death") $ do
@@ -87,6 +150,12 @@ stepPlayerAttack dT = do
                     Skeleton -> when (sr' /= "skeleton-death") $ do
                         set ce (SpriteRef "skeleton-death" (Just 1))
                         set global $ CombatTurn PlayerWin
+                    GoldenReaper -> when (sr' /= "golden-reaper-death") $ do
+                        set ce (SpriteRef "golden-reaper-death" (Just 1))
+                        set global $ CombatTurn PlayerWin
+        when (sr == "player-idle" && isNothing particle) $ do
+            set global $ CombatTurn EnemyTurn
+            set e (Position (V2 ((-1280 / 3)) 0))
 
 stepEnemyAttack :: Float -> System' ()
 stepEnemyAttack dT = do
@@ -108,6 +177,10 @@ stepEnemyAttack dT = do
                 when (sr' /= "player-hit") $ do
                     cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
                     set cp (SpriteRef "player-hit" (Just 1))
+            GoldenReaper -> when (fromMaybe 0 n `Set.member` enemyGoldenReaperAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
+                when (sr' /= "player-hit") $ do
+                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
+                    set cp (SpriteRef "player-hit" (Just 1))
 stepEnemyTurn :: Float -> System' ()
 stepEnemyTurn dT = do
     cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
@@ -122,6 +195,10 @@ stepEnemyTurn dT = do
                 set global $ CombatTurn EnemyAttacking
             "reaper-idle"   -> do
                 set e (SpriteRef "reaper-attack" (Just 0))
+                set e (Position (V2 ((-1280 / 3) + 64) 0))
+                set global $ CombatTurn EnemyAttacking
+            "golden-reaper-idle"   -> do
+                set e (SpriteRef "golden-reaper-attack" (Just 0))
                 set e (Position (V2 ((-1280 / 3) + 64) 0))
                 set global $ CombatTurn EnemyAttacking
             _               -> return ()
@@ -146,6 +223,7 @@ stepCombat dT = do
     CombatTurn turn <- get global
     playerHealth <- cfold (\_ (Player, Health hp) -> Just hp) Nothing
     when (isJust playerHealth && fromMaybe 0 playerHealth <= 0) $ liftIO $ putStrLn "Player has been defeated!"
+    stepPosition dT
     case ce of
         Nothing -> return ()
         Just e -> case turn of
