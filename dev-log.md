@@ -122,3 +122,8 @@ For progress report:
 - Important to note that SDL is much faster than Gloss. SDL is able to handle all tiles and walls wtih no occlusion culling at all, whereas Gloss would run at 1 FPS
     - Probably to do with Gloss' abstractions and vector drawing? Not sure. just important to note
     - Useful for why use SDL over gloss
+- This was done by taking what was already there (so Gloss based code) and treating that as the absolute truth
+    - This meant no changes were made to actual game logic since they all used the same
+    - Only difference is at the rendering stage. each position is offset based on the fact that SDL uses top left as (0,0), and so every thing is offset by half of the viewport width and height, and also centered onto the player
+        - look at `worldToScreen` function for this
+    - This means we have a completely agnostic back end for game logic, and can plug and play with each renderer as necessary
