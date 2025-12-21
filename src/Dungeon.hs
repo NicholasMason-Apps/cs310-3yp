@@ -48,14 +48,14 @@ handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
                             GoldenReaper -> SpriteRef "golden-reaper-idle" (Just 0)
                     _ <- newEntity (CombatEnemy e, Position (V2 (1280 / 3) 0), sref)
                     set global $ CombatTurn PlayerTurn
-                    startTransition (pi / 4) 1.0
+                    startTransition (pi / 4) 1.0 ToCombat
         Nothing -> return ()
 
 updatePlayerMovement :: System' ()
 updatePlayerMovement = do
     KeysPressed ks <- get global
-    enemy <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
-    if isNothing enemy then
+    mTr <- cfold (\_ (Transition {}) -> Just ()) Nothing
+    if isNothing mTr then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
             let (V2 vx vy) = case ks of
                     GlossRenderer ks' -> foldl' (\(V2 ax ay) dir -> case dir of
@@ -81,6 +81,14 @@ updatePlayerMovement = do
             set e (Velocity (V2 0 0))
             set e (SpriteRef "player-idle" (Just 0))
 
+ladderCollision :: System' ()
+ladderCollision = cmapM_ $ \(Player, Position posP, bbP) -> do
+    cmapM_ $ \(Ladder, Position posL, bbL) -> when (checkBoundaryBoxIntersection posP bbP posL bbL) $ do
+        mTr <- cfold (\_ (Transition {}) -> Just ()) Nothing
+        case mTr of
+            Nothing -> startTransition (pi / 4) 1.0 ToNextLevel
+            Just _ -> return ()
+
 stepDungeon :: Float -> System' ()
 stepDungeon dT = do
     updatePlayerMovement
@@ -88,6 +96,7 @@ stepDungeon dT = do
     -- blockPlayer dT
     stepPosition dT
     handleEnemyCollisions dT
+    ladderCollision 
 
 -- Block the player from moving into walls
 blockPlayer :: Float -> System' ()

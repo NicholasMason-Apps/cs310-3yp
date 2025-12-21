@@ -31,7 +31,7 @@ getSprite :: Map.Map String Sprite -> SpriteRef -> Sprite
 getSprite smap (SpriteRef sr _) = smap Map.! sr
 
 drawTransition :: System' Picture
-drawTransition = foldDraw $ \(Transition p ang _ _) -> 
+drawTransition = foldDraw $ \(Transition p ang _ _ _) -> 
     let t = easeInOut (min 1 p)
         dist = Utils.lerp (-2000) 2000 t
         dx = dist * cos ang
@@ -84,9 +84,6 @@ drawDungeon = do
             boxPic = color blue $ rectangleWire (fromIntegral w) (fromIntegral h)
         in
             translate' (Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))) boxPic
-    walls <- foldDraw $ \(Wall, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
-        then translate' pos $ getSpritePicture smap s
-        else Blank
     tiles <- foldDraw $ \(Tile, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
         then translate' pos $ getSpritePicture smap s
         else Blank
@@ -96,7 +93,7 @@ drawDungeon = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    let world = tiles <> walls <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes
+    let world = tiles <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world

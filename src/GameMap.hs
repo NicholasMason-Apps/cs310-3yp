@@ -53,7 +53,7 @@ ladderRoomLayout :: [String]
 ladderRoomLayout = 
   [ "WWWW1WWWW"
   , "WTTTTTTTW"
-  , "4TTTTTTT2"
+  , "4TTTLTTT2"
   , "WTTTTTTTW"
   , "WWWW3WWWW"
   ]
@@ -238,6 +238,7 @@ generateMap = do
                     else do -- Bottom Wall
                       n <- randomRIO (1, wallBottomCount) :: IO Integer
                       return ("wall-bottom" ++ show n, 'W')
+              | c == 'L' = return ("ladder", c)
               | otherwise = do
                 n <- randomRIO (1, tileCount) :: IO Integer
                 return ("tile" ++ show n, 'T')
@@ -260,7 +261,8 @@ generateMap = do
         forM_ spriteList $ \(s, p, t) -> do
             case t of
               'T' -> void $ newEntity (Tile, p, s)
-              _   -> void $ newEntity (Wall, p, s, BoundaryBox (64,64) (0,0))
+              'L' -> void $ newEntity (Ladder, Tile, p, s, BoundaryBox (32,32) (0,0))
+              _   -> void $ newEntity (Wall, Tile, p, s, BoundaryBox (64,64) (0,0))
         destroy e (Proxy @(GameRoom, Position))
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity

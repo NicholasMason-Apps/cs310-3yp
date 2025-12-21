@@ -77,10 +77,12 @@ stepPlayerTurn dT = do
             GlossRenderer ks -> do
                 when (Char 'e' `Set.member` ks) $ do
                     set global $ CombatTurn PlayerAttacking
+                    set global CombatAttackSelectUI
                     set global $ KeysPressed $ GlossRenderer $ Char 'e' `Set.delete` ks
                     cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
                 when (Char 'q' `Set.member` ks) $ do
                     set global $ CombatTurn PlayerAttacking
+                    set global CombatAttackSelectUI
                     set global $ KeysPressed $ GlossRenderer $ Char 'q' `Set.delete` ks
                     cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
                 when (SpecialKey KeyEsc `Set.member` ks) $ do
@@ -107,10 +109,10 @@ stepPlayerAttack dT = do
         particle <- cfold (\_ (CombatAttackParticle e) -> Just e) Nothing
         when (isNothing particle && (sr == "player-fire-attack" || sr == "player-prismatic-attack") && (fromMaybe 0 n `Set.member` playerMagicAttackFrames)) $ do
             if sr == "player-fire-attack" then do
-                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize - 16) 0)) (Position (V2 (1280 / 3) 0)) "particle-fire" 11
+                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize / 2) 16)) (Position (V2 (1280 / 3) 0)) "particle-fire" 11
                 void $ newEntity (CombatAttackParticle particle)
             else when (sr == "player-prismatic-attack") $ do
-                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize) 0)) (Position (V2 (1280 / 3) 0)) "particle-prismatic" 13
+                particle <- spawnParticle (Position (V2 ((-1280 / 3) + tileSize / 2) 16)) (Position (V2 (1280 / 3) 0)) "particle-prismatic" 13
                 void $ newEntity (CombatAttackParticle particle)
         Particle (Position destPos) <- case particle of
             Just p -> get p :: System' Particle
@@ -214,8 +216,8 @@ stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
                 GlossRenderer (Left _) -> error "Static sprite does not support frame number"
                 SDLRenderer (_, Nothing) -> error "Static sprite does not support frame number"
                 SDLRenderer (_, Just a) -> a
-        existsTransition <- cfold (\_ (Transition _ _ _ _) -> Just ()) Nothing
-        when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0
+        existsTransition <- cfold (\_ (Transition {}) -> Just ()) Nothing
+        when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0 ToDungeon
 
 stepCombat :: Float -> System' ()
 stepCombat dT = do

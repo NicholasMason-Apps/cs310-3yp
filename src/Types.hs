@@ -143,6 +143,9 @@ instance Component Wall where type Storage Wall = Map Wall
 data Tile = Tile deriving Show
 instance Component Tile where type Storage Tile = Map Tile
 
+data Ladder = Ladder deriving Show
+instance Component Ladder where type Storage Ladder = Map Ladder
+
 -- BoundaryBox (width, height) (offsetX, offsetY) from centre
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
@@ -199,12 +202,15 @@ data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking | Pla
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile
 
+data TransitionEvent = ToCombat | ToDungeon | ToNextLevel deriving (Show, Eq)
+
 -- Transition Components
 data Transition = Transition {
     trProgress :: Float, -- 0 to 1
     trAngle :: Float,    -- angle in radians
     trSpeed :: Float,
-    trCoverEventFired :: Bool
+    trCoverEventFired :: Bool,
+    trEvent :: TransitionEvent
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
@@ -240,7 +246,8 @@ makeWorld "World" [''Position,
                     ''UIState,
                     ''MapError,
                     ''Particle,
-                    ''CombatAttackParticle]
+                    ''CombatAttackParticle,
+                    ''Ladder]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

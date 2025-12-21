@@ -65,7 +65,7 @@ worldToScreen (Position (V2 x y)) playerPos = case playerPos of
 drawTransition :: SDL.Renderer -> FPS -> System' ()
 drawTransition r fps = do
     SpriteMap smap <- get global :: System' SpriteMap
-    cmapM_ $ \(Transition p ang _ _) -> do
+    cmapM_ $ \(Transition p ang _ _ _) -> do
         let t = easeInOut (min 1 p)
             dist = Utils.lerp (-2000) 2000 t
             dx = dist * cos ang
@@ -90,7 +90,6 @@ drawDungeon r fps = do
             SDLRenderer ks' -> ks'
     playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
     cmapM_ $ \(Tile, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
-    cmapM_ $ \(Wall, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
     cmapM_ $ \(Enemy _, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
     cmapM_ $ \(Player, pos, sref) -> let
             flip = if SDL.KeycodeLeft `Set.member` ks && SDL.KeycodeRight `Set.notMember` ks then V2 True False else V2 False False
@@ -115,7 +114,7 @@ drawCombat r fps = do
     cmapM_ $ \(CombatTile, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos Nothing) (1,1) (V2 False False) r
     cmapM_ $ \(CombatPlayer, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 False False) r
     cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 True False) r
-    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (1,1) (V2 False False) r
+    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-16) 16)) Nothing) (1,1) (V2 False False) r
     when (turn == PlayerTurn) $ liftIO $ case uiState of
             CombatAttackSelectUI -> drawSprite (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
             CombatMagicSelectUI  -> drawSprite (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r

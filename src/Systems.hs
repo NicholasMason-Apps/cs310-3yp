@@ -81,9 +81,8 @@ triggerEvery dT period offset sys = do
         trigger = floor (t'/period) /= floor ((t'+dT)/period)
     when trigger $ void sys
 
-combatTransitionAction :: System' ()
-combatTransitionAction = do
-    liftIO $ putStrLn "Enemy defeated! Returning to dungeon..."
+toDungeonAction :: System' ()
+toDungeonAction = do
     ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
     case ce of
         Nothing -> return ()
@@ -92,23 +91,31 @@ combatTransitionAction = do
             cmapM_ $ \(CombatEnemy _, e') -> destroy e' (Proxy @(CombatEnemy, SpriteRef, Position))
             set global DungeonState
 
-dungeonTransitionAction :: System' ()
-dungeonTransitionAction = do
+toCombatAction :: System' ()
+toCombatAction = do
     set global CombatState
 
+toNextLevelAction :: System' ()
+toNextLevelAction = do
+    -- Destroy all Walls, Floors, etc.
+    cmapM_ $ \(Wall, e) -> destroy e (Proxy @(Wall, Tile, Position, SpriteRef, BoundaryBox))
+    cmapM_ $ \(Ladder, e) -> destroy e (Proxy @(Ladder, Tile, Position, SpriteRef, BoundaryBox))
+    cmapM_ $ \(Tile, e) -> destroy e (Proxy @(Tile, Position, SpriteRef))
+    cmapM_ $ \(Enemy _, e) -> destroy e (Proxy @(Enemy, Position, Velocity, Health, SpriteRef, BoundaryBox))
+    cmap $ \(Player, Position _) -> Position playerPos 
+    generateMap
+
 stepTransition :: Float -> System' ()
-stepTransition dT = cmapM_ $ \(Transition p ang spd fired, e) -> do
+stepTransition dT = cmapM_ $ \(Transition p ang spd fired event, e) -> do
     let p' = p + dT * spd
-    when (not fired && p' >= 0.5) $ do
-        state <- get global :: System' GameState
-        case state of
-            DungeonState -> dungeonTransitionAction
-            CombatState -> combatTransitionAction
-            _ -> return ()
+    when (not fired && p' >= 0.5) $ case event of
+        ToCombat -> toCombatAction
+        ToDungeon -> toDungeonAction
+        ToNextLevel -> toNextLevelAction
     if p' >= 1 then
         destroy e (Proxy @Transition)
     else
-        set e Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = (fired || p' >= 0.5) }
+        set e Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = fired || p' >= 0.5, trEvent = event }
 
 -- TODO: Add boundary box collision check and stop player movement
 step :: Float -> System' ()

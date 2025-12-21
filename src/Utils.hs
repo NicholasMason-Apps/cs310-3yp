@@ -91,10 +91,10 @@ easeInOut t = t*t*(3 - 2*t)
 lerp :: Float -> Float -> Float -> Float
 lerp a b t = a + t * (b - a)
 
-startTransition :: Float -> Float -> System' ()
-startTransition angle speed = do
-    cmapM_ $ \(Transition _ _ _ _, e) -> destroy e (Proxy @Transition)
-    void $ newEntity (Transition { trProgress = 0, trAngle = angle, trSpeed = speed, trCoverEventFired = False })
+startTransition :: Float -> Float -> TransitionEvent -> System' ()
+startTransition angle speed event = do
+    cmapM_ $ \(Transition {}, e) -> destroy e (Proxy @Transition)
+    void $ newEntity (Transition { trProgress = 0, trAngle = angle, trSpeed = speed, trCoverEventFired = False, trEvent = event })
 
 -- Update positions based on velocity and delta time
 stepPosition :: Float -> System' ()
