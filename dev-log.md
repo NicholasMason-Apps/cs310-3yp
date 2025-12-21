@@ -127,3 +127,5 @@ For progress report:
     - Only difference is at the rendering stage. each position is offset based on the fact that SDL uses top left as (0,0), and so every thing is offset by half of the viewport width and height, and also centered onto the player
         - look at `worldToScreen` function for this
     - This means we have a completely agnostic back end for game logic, and can plug and play with each renderer as necessary
+- Completion of core gameplay loop (adding ladders) was very simple - reused transition logic, abstracted transition events into a data type to pattern match on and run event based on it, and just deleted all the game space components and recreated the game map
+    - Did try storing the event inside the transition itself, however since the World data type is defined using Template Haskell (so at compile time), unable to store the `System World a` type inside the `Transition`, and so had to resort to this
