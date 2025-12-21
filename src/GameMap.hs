@@ -164,7 +164,9 @@ generateMap = do
   bfsM insertGameRoom tree
   err <- cfold (\_ (_ :: MapError) -> Just ()) Nothing
   case err of
-      Just _ -> generateMap -- Since an error occurred, regenerate the map
+      Just _ -> do -- Since an error occurred, delete all rooms and regenerate the map
+        cmapM_ $ \(GameRoom {}, e) -> destroy e (Proxy @(GameRoom, Position))
+        generateMap 
       Nothing -> cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
         let layout = roomLayout gr
             w = length $ head layout
