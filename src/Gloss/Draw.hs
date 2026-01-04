@@ -61,17 +61,14 @@ draw = do
 
 drawDungeon :: System' Picture
 drawDungeon = do
-    KeysPressed rs <- get global
-    let ks = case rs of
-            GlossRenderer ks' -> ks'
-            SDLRenderer _ -> Set.empty
+    KeysPressed ks <- get global
     SpriteMap smap <- get global
     playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
     playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
     player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
         in
-            if SpecialKey KeyLeft `Set.member` ks && SpecialKey KeyRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
+            if GkLeft `Set.member` ks && GkRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
     playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
             boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
         in

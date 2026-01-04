@@ -57,19 +57,12 @@ updatePlayerMovement = do
     mTr <- cfold (\_ (Transition {}) -> Just ()) Nothing
     if isNothing mTr then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
-            let (V2 vx vy) = case ks of
-                    GlossRenderer ks' -> foldl' (\(V2 ax ay) dir -> case dir of
-                                            (SpecialKey KeyLeft)  -> V2 (ax - playerSpeed) ay
-                                            (SpecialKey KeyRight) -> V2 (ax + playerSpeed) ay
-                                            (SpecialKey KeyUp)    -> V2 ax (ay + playerSpeed)
-                                            (SpecialKey KeyDown)  -> V2 ax (ay - playerSpeed)
-                                            _        -> V2 ax ay) (V2 0 0) (Set.toList ks')
-                    SDLRenderer ks' -> foldl' (\(V2 ax ay) dir -> case dir of
-                                            SDL.KeycodeLeft  -> V2 (ax - playerSpeed) ay
-                                            SDL.KeycodeRight -> V2 (ax + playerSpeed) ay
-                                            SDL.KeycodeUp    -> V2 ax (ay + playerSpeed)
-                                            SDL.KeycodeDown  -> V2 ax (ay - playerSpeed)
-                                            _        -> V2 ax ay) (V2 0 0) (Set.toList ks')
+            let (V2 vx vy) = foldl' (\(V2 ax ay) dir -> case dir of
+                    GkLeft -> V2 (ax - playerSpeed) ay
+                    GkRight-> V2 (ax + playerSpeed) ay
+                    GkUp -> V2 ax (ay + playerSpeed)
+                    GkDown -> V2 ax (ay - playerSpeed)
+                    _ -> V2 ax ay) (V2 0 0) (Set.toList ks)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
                     | (vx /= 0 || vy /= 0) && sr /= "player-walk" = SpriteRef "player-walk" (Just 0)
@@ -96,7 +89,7 @@ stepDungeon dT = do
     blockPlayer dT
     stepPosition dT
     handleEnemyCollisions dT
-    ladderCollision 
+    ladderCollision
 
 -- Block the player from moving into walls
 blockPlayer :: Float -> System' ()

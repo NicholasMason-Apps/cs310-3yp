@@ -49,59 +49,33 @@ enemyDamage = 5
 
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
-    KeysPressed rs <- get global
+    KeysPressed ks <- get global
     uiState <- get global :: System' UIState
     case uiState of
-        CombatAttackSelectUI -> case rs of
-            GlossRenderer ks -> do
-                when (SpecialKey KeySpace `Set.member` ks) $ do
-                    set global $ KeysPressed $ GlossRenderer $ SpecialKey KeySpace `Set.delete` ks
-                    set global $ CombatTurn PlayerAttacking
-                    cmapM_ $ \(CombatPlayer, s) -> do
-                        set s (SpriteRef "player-knife-attack" (Just 0))
-                        set s (Position (V2 ((1280 / 3) - tileSize) 0))
-                when (Char 'e' `Set.member` ks) $ do
-                    set global CombatMagicSelectUI
-                    set global $ KeysPressed $ GlossRenderer $ Char 'e' `Set.delete` ks
-            SDLRenderer ks -> do
-                when (SDL.KeycodeSpace `Set.member` ks) $ do
-                    set global $ CombatTurn PlayerAttacking
-                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeSpace `Set.delete` ks
-                    cmapM_ $ \(CombatPlayer, s) -> do
-                        set s (SpriteRef "player-knife-attack" (Just 0))
-                        set s (Position (V2 ((1280 / 3) - tileSize) 0))
-                when (SDL.KeycodeE `Set.member` ks) $ do
-                    set global CombatMagicSelectUI
-                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeE `Set.delete` ks
-        CombatMagicSelectUI -> case rs of
-            GlossRenderer ks -> do
-                when (Char 'e' `Set.member` ks) $ do
-                    set global $ CombatTurn PlayerAttacking
-                    set global CombatAttackSelectUI
-                    set global $ KeysPressed $ GlossRenderer $ Char 'e' `Set.delete` ks
-                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
-                when (Char 'q' `Set.member` ks) $ do
-                    set global $ CombatTurn PlayerAttacking
-                    set global CombatAttackSelectUI
-                    set global $ KeysPressed $ GlossRenderer $ Char 'q' `Set.delete` ks
-                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
-                when (SpecialKey KeyEsc `Set.member` ks) $ do
-                    set global CombatAttackSelectUI
-                    set global $ KeysPressed $ GlossRenderer $ SpecialKey KeyEsc `Set.delete` ks
-            SDLRenderer ks -> do
-                when (SDL.KeycodeE `Set.member` ks) $ do
-                    set global $ CombatTurn PlayerAttacking
-                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeE `Set.delete` ks
-                    set global CombatAttackSelectUI
-                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
-                when (SDL.KeycodeQ `Set.member` ks) $ do
-                    set global $ CombatTurn PlayerAttacking
-                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeQ `Set.delete` ks
-                    set global CombatAttackSelectUI
-                    cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
-                when (SDL.KeycodeEscape `Set.member` ks) $ do
-                    set global CombatAttackSelectUI
-                    set global $ KeysPressed $ SDLRenderer $ SDL.KeycodeEscape `Set.delete` ks
+        CombatAttackSelectUI -> do
+            when (GkSpace `Set.member` ks) $ do
+                set global $ KeysPressed (GkSpace `Set.delete` ks)
+                set global $ CombatTurn PlayerAttacking
+                cmapM_ $ \(CombatPlayer, s) -> do
+                    set s (SpriteRef "player-knife-attack" (Just 0)) 
+                    set s (Position (V2 ((1280/3) - tileSize) 0))
+            when (GkE `Set.member` ks) $ do
+                set global CombatMagicSelectUI
+                set global $ KeysPressed (GkE `Set.delete` ks)
+        CombatMagicSelectUI -> do
+            when (GkE `Set.member` ks) $ do
+                set global $ CombatTurn PlayerAttacking
+                set global CombatAttackSelectUI
+                set global $ KeysPressed $ (GkE `Set.delete` ks)
+                cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-fire-attack" (Just 0))
+            when (GkQ `Set.member` ks) $ do
+                set global $ CombatTurn PlayerAttacking
+                set global CombatAttackSelectUI
+                set global $ KeysPressed $ (GkQ `Set.delete` ks)
+                cmapM_ $ \(CombatPlayer, s) -> set s (SpriteRef "player-prismatic-attack" (Just 0))
+            when (GkEsc `Set.member` ks) $ do
+                set global CombatAttackSelectUI
+                set global $ KeysPressed $ (GkEsc `Set.delete` ks)
 
 stepPlayerAttack :: Float -> System' ()
 stepPlayerAttack dT = do

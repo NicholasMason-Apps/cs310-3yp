@@ -28,6 +28,7 @@ import System.Exit (exitSuccess)
 import System.IO.Unsafe (unsafePerformIO)
 import Utils
 import Types (RendererSystem(GlossRenderer))
+import Input
 
 
 loadSprite :: SDL.Renderer -> FilePath -> SDL.Texture
@@ -170,6 +171,18 @@ initialize w r = do
                     ]
     Sys.initialize spriteList
 
+inputBindings :: KeyBindings SDL.Keycode
+inputBindings = KeyBindings $ Map.fromList [
+        (SDL.KeycodeUp, GkUp),
+        (SDL.KeycodeDown, GkDown),
+        (SDL.KeycodeLeft, GkLeft),
+        (SDL.KeycodeRight, GkRight),
+        (SDL.KeycodeSpace, GkSpace),
+        (SDL.KeycodeEscape, GkEsc),
+        (SDL.KeycodeE, GkE),
+        (SDL.KeycodeQ, GkQ)
+    ]
+
 handlePayload :: [SDL.EventPayload] -> System' ()
 handlePayload = mapM_ handleEvent
 
@@ -179,13 +192,6 @@ handleEvent _ = return ()
 
 handleKeyEvent :: SDL.KeyboardEventData -> System' ()
 handleKeyEvent ev
-    | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> case ks of
-        GlossRenderer _ -> let
-                ks' = Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) Set.empty
-            in
-                KeysPressed $ SDLRenderer ks'
-        SDLRenderer ks' -> KeysPressed $ SDLRenderer (Set.insert (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks')
-    | SDL.keyboardEventKeyMotion ev == SDL.Released = modify global $ \(KeysPressed ks) -> case ks of
-        GlossRenderer _ -> KeysPressed $ SDLRenderer Set.empty
-        SDLRenderer ks' -> KeysPressed $ SDLRenderer (Set.delete (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) ks')
+    | SDL.keyboardEventKeyMotion ev == SDL.Pressed = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) True ks
+    | SDL.keyboardEventKeyMotion ev == SDL.Released = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings (SDL.keysymKeycode (SDL.keyboardEventKeysym ev)) False ks
     | otherwise = return ()

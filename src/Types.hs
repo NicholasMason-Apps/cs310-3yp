@@ -61,16 +61,24 @@ instance Monoid GameState where
 instance Component GameState where type Storage GameState = Global GameState
 
 
-newtype KeysPressed = KeysPressed (RendererSystem (Set.Set Key) (Set.Set SDL.Keycode))
--- newtype KeysPressed = KeysPressed (Set.Set Key) deriving Show
+-- Input key components and types
+data GameKey = GkUp 
+            | GkDown 
+            | GkLeft 
+            | GkRight
+            | GkEsc
+            | GkE
+            | GkSpace
+            | GkQ
+            deriving (Show, Eq, Ord)
+
+newtype KeyBindings rawKey = KeyBindings (Map.Map rawKey GameKey)
+
+newtype KeysPressed = KeysPressed (Set.Set GameKey)
 instance Semigroup KeysPressed where
-    (KeysPressed s1) <> (KeysPressed s2) = case (s1,s2) of
-        (GlossRenderer ks1, GlossRenderer ks2) -> KeysPressed (GlossRenderer (ks1 `Set.union` ks2))
-        (SDLRenderer ks1, SDLRenderer ks2)     -> KeysPressed (SDLRenderer (ks1 `Set.union` ks2))
-        (GlossRenderer ks1, SDLRenderer _)     -> KeysPressed (GlossRenderer ks1)
-        (SDLRenderer ks1, GlossRenderer _)     -> KeysPressed (SDLRenderer ks1)
+    (KeysPressed ks1) <> (KeysPressed ks2) = KeysPressed (ks1 <> ks2)
 instance Monoid KeysPressed where
-    mempty = KeysPressed (GlossRenderer Set.empty)
+    mempty = KeysPressed Set.empty
 instance Component KeysPressed where type Storage KeysPressed = Global KeysPressed
 
 

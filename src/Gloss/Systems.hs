@@ -28,6 +28,7 @@ import Data.Foldable (foldl')
 import Data.Maybe
 import System.IO.Unsafe ( unsafePerformIO )
 import qualified Systems as Sys
+import Input
 
 initialize :: System' ()
 initialize = do
@@ -165,33 +166,19 @@ initialize = do
                     ]
     Sys.initialize spriteList
 
-handleEvent :: Event -> System' ()
--- Player movement
-handleEvent (EventKey k Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert k ks')
-    SDLRenderer _ -> let
-            ks' = Set.insert k Set.empty
-        in
-            KeysPressed $ GlossRenderer ks'
-handleEvent (EventKey k Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
-    GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete k ks')
-    SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
--- handleEvent (EventKey (SpecialKey KeyEsc) Down _ _) = liftIO exitSuccess
--- handleEvent (EventKey (SpecialKey k) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
---     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (SpecialKey k) ks')
---     SDLRenderer _ -> let
---             ks' = Set.insert (SpecialKey k) Set.empty
---         in
---             KeysPressed $ GlossRenderer ks'
--- handleEvent (EventKey (SpecialKey k) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
---     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (SpecialKey k) ks')
---     SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
+inputBindings :: KeyBindings Key
+inputBindings = KeyBindings $ Map.fromList [
+        (SpecialKey KeyUp, GkUp),
+        (SpecialKey KeyDown, GkDown),
+        (SpecialKey KeyLeft, GkLeft),
+        (SpecialKey KeyRight, GkRight),
+        (SpecialKey KeySpace, GkSpace),
+        (SpecialKey KeyEsc, GkEsc),
+        (Char 'e', GkE),
+        (Char 'q', GkQ)
+    ]
 
--- handleEvent (EventKey (Char c) Down _ _) = modify global $ \(KeysPressed ks) -> case ks of
---     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.insert (Char c) ks')
---     SDLRenderer _ -> KeysPressed $ GlossRenderer (Set.insert (Char c) Set.empty)
--- handleEvent (EventKey (Char c) Up _ _) = modify global $ \(KeysPressed ks) -> case ks of
---     GlossRenderer ks' -> KeysPressed $ GlossRenderer (Set.delete (Char c) ks')
---     SDLRenderer _ -> KeysPressed $ GlossRenderer Set.empty
-handleEvent (EventResize sz) = set global (Viewport sz)
-handleEvent _ = return () -- base case
+handleEvent :: Event -> System' ()
+handleEvent (EventKey k Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k True ks
+handleEvent (EventKey k Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k False ks
+handleEvent _ = return ()

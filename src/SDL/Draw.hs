@@ -84,15 +84,12 @@ getSprite (SpriteMap smap) (SpriteRef sr _) = smap Map.! sr
 drawDungeon :: SDL.Renderer -> FPS -> System' ()
 drawDungeon r fps = do
     smap <- get global :: System' SpriteMap
-    KeysPressed rs <- get global
-    let ks = case rs of
-            GlossRenderer _ -> Set.empty
-            SDLRenderer ks' -> ks'
+    KeysPressed ks <- get global
     playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
     cmapM_ $ \(Tile, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
     cmapM_ $ \(Enemy _, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
     cmapM_ $ \(Player, pos, sref) -> let
-            flip = if SDL.KeycodeLeft `Set.member` ks && SDL.KeycodeRight `Set.notMember` ks then V2 True False else V2 False False
+            flip = if GkLeft `Set.member` ks && GkRight `Set.notMember` ks then V2 True False else V2 False False
         in
             liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) flip r
     -- Green boundary boxes
