@@ -94,6 +94,7 @@ gameRoomLayouts = [
     ]
   ]
 
+-- Generate a random abstract game map tree
 generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (4, 6) :: IO Int
@@ -102,23 +103,26 @@ generateMapTree = do
     where
       hubRoomCount = 1
 
+-- Add a given room as a child to a tree
 addRoom :: Tree RoomType -> Tree RoomType -> Tree RoomType
 addRoom t rt = Node { rootLabel = rootLabel t, subForest = subForest t ++ [rt] }
 
+-- Reursively generate a tree of rooms
 recursiveGenerate :: Tree RoomType -> Int -> Int -> IO (Tree RoomType)
-recursiveGenerate t 0 _ = case rootLabel t of
-    HubRoom -> do
+recursiveGenerate t 0 _ = -- Base case when depth counter is 0
+  case rootLabel t of -- Pattern match on the current room type
+    HubRoom -> do -- If it's a hub room, add 2-3 normal rooms as children
         n <- randomRIO (2, 3) :: IO Int
         foldM (\acc _ -> do
             let newRoom = Node { rootLabel = NormalRoom, subForest = [] }
             child <- recursiveGenerate newRoom 0 0
             return (addRoom acc child)) t [1..n]
-    _ -> return t
+    _ -> return t -- Otherwise, just return the current tree
 recursiveGenerate t depth hubRoomCount = do
-    newRoom <- randomRoomType
+    newRoom <- randomRoomType -- Generate a random room type
     let newNode = Node { rootLabel = newRoom, subForest = []}
     case rootLabel newNode of
-      HubRoom -> do
+      HubRoom -> do -- If the new room is a hub room, then add 2 normal rooms as children (if we have hub rooms left to add)
           if hubRoomCount > 0 then do
             children <- replicateM 2 $ recursiveGenerate (Node { rootLabel = NormalRoom, subForest = [] }) (depth - 1) (hubRoomCount - 1)
             let hubNode = newNode { subForest = children }
@@ -167,10 +171,59 @@ generateMap = do
       Just _ -> do -- Since an error occurred, delete all rooms and regenerate the map
         cmapM_ $ \(GameRoom {}, e) -> destroy e (Proxy @(GameRoom, Position))
         generateMap 
-      Nothing -> cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
+      Nothing -> gameRoomToSprites
+  where
+    insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
+    insertGameRoom parent node = do
+      n <- randomRIO (0, length gameRoomLayouts - 1)
+      exits' <- generateRandomExitOrder
+      case parent of
+        Nothing -> do
+          let gr = roomTypeToGameRoom (rootLabel node) startRoomLayout exits'
+          newEntity (gr, Position (V2 0 0))
+        Just p -> do
+          case p of
+            -1 -> return p -- Invalid parent means error occurred, so do nothing
+            _ -> do
+              Position (V2 px py) <- get p
+              grP <- get p :: System' GameRoom
+              -- Attempt to find the first direction which does not intersect
+              let newLayout = case rootLabel node of
+                    StartRoom -> startRoomLayout
+                    BossRoom  -> bossRoomLayout
+                    LadderRoom -> ladderRoomLayout
+                    _         -> getRoomLayout n
+              intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
+              let res = foldl' (\acc (intersects, dir) ->
+                    case acc of
+                      Just _ -> acc
+                      Nothing -> if not intersects then
+                          Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
+                        else Nothing) Nothing (zip intersections (exits grP))
+              case res of
+                Just (dir, finalPos) -> do
+                  let newGr = roomTypeToGameRoom (rootLabel node) newLayout (filter (/= oppositeDirection dir) exits')
+                  -- Update parent room to remove the used exit
+                  set p (grP { exits = filter (/= dir) (exits grP) })
+                  _ <- case rootLabel node of
+                    BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
+                    LadderRoom -> return 0
+                    _ -> do
+                      enemyNum <- randomRIO (1, 3)
+                      makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
+                  newEntity (newGr, finalPos)
+                Nothing -> do
+                  -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
+                  liftIO $ print $ zip intersections (exits grP)
+                  _ <- newEntity MapError -- Create a dummy entity to indicate error
+                  return (-1) -- Invalid entity to indicate error
+
+gameRoomToSprites :: System' ()
+gameRoomToSprites = cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
         let layout = roomLayout gr
             w = length $ head layout
             h = length layout
+            -- Given a character that represents a tile, and its position within a room layout, select an appropriate sprite
             selectSprite :: Char -> (Int,Int) -> IO (String, Char)
             selectSprite c (x,y)
               | c == 'W' || c == '1' || c == '2' || c == '3' || c == '4' = do
@@ -266,51 +319,6 @@ generateMap = do
               'L' -> void $ newEntity (Ladder, Tile, p, s, BoundaryBox (32,32) (0,0))
               _   -> void $ newEntity (Wall, Tile, p, s, BoundaryBox (64,64) (0,0))
         destroy e (Proxy @(GameRoom, Position))
-  where
-    insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
-    insertGameRoom parent node = do
-      n <- randomRIO (0, length gameRoomLayouts - 1)
-      exits' <- generateRandomExitOrder
-      case parent of
-        Nothing -> do
-          let gr = roomTypeToGameRoom (rootLabel node) startRoomLayout exits'
-          newEntity (gr, Position (V2 0 0))
-        Just p -> do
-          case p of
-            -1 -> return p -- Invalid parent means error occurred, so do nothing
-            _ -> do
-              Position (V2 px py) <- get p
-              grP <- get p :: System' GameRoom
-              -- Attempt to find the first direction which does not intersect
-              let newLayout = case rootLabel node of
-                    StartRoom -> startRoomLayout
-                    BossRoom  -> bossRoomLayout
-                    LadderRoom -> ladderRoomLayout
-                    _         -> getRoomLayout n
-              intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
-              let res = foldl' (\acc (intersects, dir) ->
-                    case acc of
-                      Just _ -> acc
-                      Nothing -> if not intersects then
-                          Just (dir, Position (V2 (px + fst (connectionPosition dir (roomLayout grP) newLayout)) (py + snd (connectionPosition dir (roomLayout grP) newLayout))))
-                        else Nothing) Nothing (zip intersections (exits grP))
-              case res of
-                Just (dir, finalPos) -> do
-                  let newGr = roomTypeToGameRoom (rootLabel node) newLayout (filter (/= oppositeDirection dir) exits')
-                  -- Update parent room to remove the used exit
-                  set p (grP { exits = filter (/= dir) (exits grP) })
-                  _ <- case rootLabel node of
-                    BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
-                    LadderRoom -> return 0
-                    _ -> do
-                      enemyNum <- randomRIO (1, 3)
-                      makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
-                  newEntity (newGr, finalPos)
-                Nothing -> do
-                  -- If all directions intersect, place it in the first direction by shifting it in that direction until it doesn't intersect
-                  liftIO $ print $ zip intersections (exits grP)
-                  _ <- newEntity MapError -- Create a dummy entity to indicate error
-                  return (-1) -- Invalid entity to indicate error
 
 -- Given a direction and two room layouts, finds the position for the new layout relative to the current layout
 connectionPosition :: Direction -> [[Char]] -> [[Char]] -> (Float, Float)

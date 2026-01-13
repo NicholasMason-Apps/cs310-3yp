@@ -94,7 +94,9 @@ stepDungeon dT = do
 -- Block the player from moving into walls
 blockPlayer :: Float -> System' ()
 blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
+    -- Get the next position for the player
     let (Position tempPos) = stepPositionFormula t (Position posP) (Velocity (V2 vx vy))
+    -- For each wall, check for collision and adjust velocity accordingly
     cfoldM (\acc (Wall, Position posW, bbw) -> do
         let
             top = checkBoundaryBoxTopIntersection tempPos bbp posW bbw
@@ -109,8 +111,8 @@ blockPlayer t = cmapM $ \(Player, Position posP, Velocity (V2 vx vy), bbp) -> do
         else
             return acc) (Velocity (V2 vx vy))
 
-
-
+-- Check if a sprite is within the view of the player, returning True if it is, False otherwise
+-- If no player position is given, assume all sprites are in view
 isSpriteInView :: Maybe Position -> Sprite -> Position -> Bool
 isSpriteInView (Just (Position (V2 px py))) (Sprite (w,h) _) (Position (V2 sx sy)) =
     let

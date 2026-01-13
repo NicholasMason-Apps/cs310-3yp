@@ -57,7 +57,7 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic <> playerHealth)
+    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic ) -- <> playerHealth)
 
 drawDungeon :: System' Picture
 drawDungeon = do
@@ -90,7 +90,7 @@ drawDungeon = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    let world = tiles <> player <> enemies <> playerPosText <> playerVelocityText <> playerBox <> enemyBoxes
+    let world = tiles <> player <> enemies <>  playerBox <> enemyBoxes
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world
