@@ -44,6 +44,7 @@ packages:
 #
 extra-deps:
   - gloss-juicy-0.2.3
+  - h-raylib-5.5.3.1
 
 # flags:
 #   sdl2:
@@ -79,3 +80,5 @@ extra-deps:
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+# extra-deps:
+# - h-raylib-5.5.3.1

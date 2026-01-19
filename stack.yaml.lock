@@ -11,6 +11,13 @@ packages:
       size: 273
   original:
     hackage: gloss-juicy-0.2.3
+- completed:
+    hackage: h-raylib-5.5.3.1@sha256:95c091f63d942a1b28998814b575e55848f59f085906773aabe1ddb92d45057f,9486
+    pantry-tree:
+      sha256: 0e509934a12da045ccfbcf75d73b93b708393a38c9da4bd731310869f31fae56
+      size: 31306
+  original:
+    hackage: h-raylib-5.5.3.1
 snapshots:
 - completed:
     sha256: 238fa745b64f91184f9aa518fe04bdde6552533d169b0da5256670df83a0f1a9

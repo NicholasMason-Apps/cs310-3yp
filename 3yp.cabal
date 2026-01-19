@@ -32,6 +32,8 @@ library
       Gloss.Draw
       Gloss.Systems
       Input
+      Raylib.Draw
+      Raylib.Systems
       SDL.Draw
       SDL.Systems
       Sprite
@@ -53,6 +55,7 @@ library
     , containers
     , gloss
     , gloss-juicy
+    , h-raylib
     , linear
     , random
     , random-shuffle
@@ -81,6 +84,36 @@ executable gloss-exe
     , containers
     , gloss
     , gloss-juicy
+    , h-raylib
+    , linear
+    , random
+    , random-shuffle
+    , sdl2
+    , sdl2-image
+    , sdl2-ttf
+    , text
+    , vector
+  default-language: Haskell2010
+
+executable raylib-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_3yp
+  autogen-modules:
+      Paths_3yp
+  hs-source-dirs:
+      app/Raylib
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=--nonmoving-gc
+  build-depends:
+      3yp
+    , JuicyPixels
+    , apecs
+    , apecs-gloss
+    , base >=4.7 && <5
+    , containers
+    , gloss
+    , gloss-juicy
+    , h-raylib
     , linear
     , random
     , random-shuffle
@@ -109,6 +142,7 @@ executable sdl-exe
     , containers
     , gloss
     , gloss-juicy
+    , h-raylib
     , linear
     , random
     , random-shuffle
@@ -138,6 +172,7 @@ test-suite 3yp-test
     , containers
     , gloss
     , gloss-juicy
+    , h-raylib
     , linear
     , random
     , random-shuffle

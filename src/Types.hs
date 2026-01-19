@@ -9,7 +9,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Types where
 
@@ -27,8 +26,17 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified SDL
+import qualified Raylib.Types as RL
+import qualified Raylib.Core.Camera as RL
 
 -- Global stores
+newtype RaylibCamera = RaylibCamera RL.Camera3D deriving Show
+instance Semigroup RaylibCamera where
+    (RaylibCamera c1) <> (RaylibCamera c2) = RaylibCamera c2
+instance Monoid RaylibCamera where
+    mempty = RaylibCamera (RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 0 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective)
+instance Component RaylibCamera where type Storage RaylibCamera = Global RaylibCamera  
+
 newtype Viewport = Viewport (Int, Int) deriving Show
 instance Semigroup Viewport where
     (Viewport (w1, h1)) <> (Viewport (w2, h2)) = Viewport (w1 + w2, h1 + h2)
@@ -255,7 +263,8 @@ makeWorld "World" [''Position,
                     ''MapError,
                     ''Particle,
                     ''CombatAttackParticle,
-                    ''Ladder]
+                    ''Ladder,
+                    ''RaylibCamera]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

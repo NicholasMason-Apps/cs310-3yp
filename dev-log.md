@@ -129,3 +129,9 @@ For progress report:
     - This means we have a completely agnostic back end for game logic, and can plug and play with each renderer as necessary
 - Completion of core gameplay loop (adding ladders) was very simple - reused transition logic, abstracted transition events into a data type to pattern match on and run event based on it, and just deleted all the game space components and recreated the game map
     - Did try storing the event inside the transition itself, however since the World data type is defined using Template Haskell (so at compile time), unable to store the `System World a` type inside the `Transition`, and so had to resort to this
+
+# Term 2 Week 1
+- Got Raylib working in isolation and got a very basic 3D demo in a separate executable - this is forming the basis of the 3D renderer
+- Attempting to adapt this game, however, is causing issues. Since the game logic assumes a 2d plane, the movements are fixed (i.e. pressing UP always increases the y axis). This breaks in first person 3D since the camera changes your forward direction
+    - Potential idea for a solution is to globally store and always use a camera rotation, and in the position calculations include this as a multiplier. The intent is that for 2d the camera would change nothing (i.e. multiplier of 1), however for 3D it would adjust the movement to account for the camera changing direction
+- Camera movement with mouse does work, just not inside WSL
