@@ -135,3 +135,6 @@ For progress report:
 - Attempting to adapt this game, however, is causing issues. Since the game logic assumes a 2d plane, the movements are fixed (i.e. pressing UP always increases the y axis). This breaks in first person 3D since the camera changes your forward direction
     - Potential idea for a solution is to globally store and always use a camera rotation, and in the position calculations include this as a multiplier. The intent is that for 2d the camera would change nothing (i.e. multiplier of 1), however for 3D it would adjust the movement to account for the camera changing direction
 - Camera movement with mouse does work, just not inside WSL
+- Fixed WSL camera movement, suspicion is to do with how RL.disableCursor attempts to lock the cursor for the window, however since WSL runs the graphics application using WSLg and passes it through, it is unable to lock the cursor
+    - used a compile-time flag to specify whether to build for wsl or not
+- rotation in `updateCameraPro` uses degrees as its unit of measurement, which allows player movement directions to be done and normalised

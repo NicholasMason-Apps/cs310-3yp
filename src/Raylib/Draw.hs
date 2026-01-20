@@ -38,7 +38,7 @@ updateCamera = do
     --     mdy = my - fromIntegral centreY
     cmapM_ $ \(Player, Velocity (V2 vx vy), Position (V2 px py)) -> do
         let pos = RL.Vector3 (vy * 0.001) (vx * 0.001) 0
-            rot = RL.Vector3 (mdx * 0.1) (mdy * 0.1) 0
+            rot = RL.Vector3 (mdx*0.3) (mdy*0.3) 0
             -- rot = RL.Vector3 0.1 0 0
         set global $ RaylibCamera $ RL.updateCameraPro cam pos rot 0
         -- cam' <- liftIO $ RL.updateCamera cam RL.CameraModeFirstPerson
