@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -37,8 +38,12 @@ initialize = do
     liftIO $ do
         window <- RL.initWindow 1280 720 "Dungeon Crawler"
         RL.setTargetFPS 60
+#if defined(WSL)
+        return window
+#else
         RL.disableCursor
         return window
+#endif
 
 terminate :: RL.WindowResources -> System' ()
 terminate window = liftIO $ RL.closeWindow $ Just window

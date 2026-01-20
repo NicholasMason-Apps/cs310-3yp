@@ -31,12 +31,14 @@ updateCamera = do
         centreY = 360
     RaylibCamera cam <- get global
     (V2 mx my) <- liftIO RL.getMousePosition
+    (V2 mdx mdy) <- liftIO RL.getMouseDelta
     liftIO $ putStrLn $ "Mouse Position: " ++ show (mx, my)
-    let mdx = mx - fromIntegral centreX
-        mdy = my - fromIntegral centreY
+    liftIO $ putStrLn $ "Mouse Delta: " ++ show (mdx, mdy)
+    -- let mdx = mx - fromIntegral centreX
+    --     mdy = my - fromIntegral centreY
     cmapM_ $ \(Player, Velocity (V2 vx vy), Position (V2 px py)) -> do
         let pos = RL.Vector3 (vy * 0.001) (vx * 0.001) 0
-            rot = RL.Vector3 (mdx * 0.001) (mdy * 0.001) 0
+            rot = RL.Vector3 (mdx * 0.1) (mdy * 0.1) 0
             -- rot = RL.Vector3 0.1 0 0
         set global $ RaylibCamera $ RL.updateCameraPro cam pos rot 0
         -- cam' <- liftIO $ RL.updateCamera cam RL.CameraModeFirstPerson

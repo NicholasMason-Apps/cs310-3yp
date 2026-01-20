@@ -48,8 +48,18 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
+flags:
+  wsl:
+    # description: Enable WSL-specific code
+    manual: True
+    default: False
+
 library:
   source-dirs: src
+  when:
+  - condition: (flag(wsl))
+    cpp-options: -DWSL
+    # else: {}
 
 executables:
   gloss-exe:
