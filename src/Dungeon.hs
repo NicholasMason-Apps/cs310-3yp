@@ -23,6 +23,7 @@ import qualified Data.Map as Map
 import Control.Monad
 import qualified SDL
 import Enemy
+import Raylib.Util.Math (deg2Rad)
 
 handleEnemyCollisions :: Float -> System' ()
 handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
@@ -54,6 +55,8 @@ handleEnemyCollisions dT = cmapM_ $ \(Player, Position posP, v, bbp) -> do
 updatePlayerMovement :: System' ()
 updatePlayerMovement = do
     KeysPressed ks <- get global
+    CameraAngle ca <- get global
+    liftIO $ putStrLn $ "Camera angle: " ++ show ca
     mTr <- cfold (\_ (Transition {}) -> Just ()) Nothing
     if isNothing mTr then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do
@@ -63,16 +66,24 @@ updatePlayerMovement = do
                     GkUp -> V2 ax (ay + playerSpeed)
                     GkDown -> V2 ax (ay - playerSpeed)
                     _ -> V2 ax ay) (V2 0 0) (Set.toList ks)
+                rotatedVal = rotateByYaw ca (V2 vx vy)
                 newSprite
                     | vx == 0 && vy == 0 && sr /= "player-idle" = SpriteRef "player-idle" (Just 0)
                     | (vx /= 0 || vy /= 0) && sr /= "player-walk" = SpriteRef "player-walk" (Just 0)
                     | otherwise = SpriteRef sr mn
-            set e (Velocity (V2 vx vy))
+            set e (Velocity rotatedVal)
             set e newSprite
     else
         cmapM_ $ \(Player, e) -> do
             set e (Velocity (V2 0 0))
             set e (SpriteRef "player-idle" (Just 0))
+    where
+        rotateByYaw :: Maybe (Float,Float) -> V2 Float -> V2 Float
+        rotateByYaw Nothing v = v
+        rotateByYaw (Just (yaw, _)) v = V2 (x * cos ry - y * sin ry) (x * sin ry + y * cos ry)
+            where
+                V2 x y = negate v
+                ry = yaw * deg2Rad
 
 ladderCollision :: System' ()
 ladderCollision = cmapM_ $ \(Player, Position posP, bbP) -> do

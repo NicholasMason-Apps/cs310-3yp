@@ -24,25 +24,29 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Linear
+import Raylib.Util.Math (deg2Rad)
+import Data.Ord (clamp)
 
 updateCamera :: System' ()
 updateCamera = do
-    let centreX = 640
-        centreY = 360
     RaylibCamera cam <- get global
-    (V2 mx my) <- liftIO RL.getMousePosition
+    CameraAngle ca <- get global
     (V2 mdx mdy) <- liftIO RL.getMouseDelta
-    liftIO $ putStrLn $ "Mouse Position: " ++ show (mx, my)
-    liftIO $ putStrLn $ "Mouse Delta: " ++ show (mdx, mdy)
-    -- let mdx = mx - fromIntegral centreX
-    --     mdy = my - fromIntegral centreY
-    cmapM_ $ \(Player, Velocity (V2 vx vy), Position (V2 px py)) -> do
-        let pos = RL.Vector3 (vy * 0.001) (vx * 0.001) 0
-            rot = RL.Vector3 (mdx*0.3) (mdy*0.3) 0
-            -- rot = RL.Vector3 0.1 0 0
-        set global $ RaylibCamera $ RL.updateCameraPro cam pos rot 0
-        -- cam' <- liftIO $ RL.updateCamera cam RL.CameraModeFirstPerson
-        -- set global $ RaylibCamera cam'
+    let yaw = maybe 0 fst ca
+        pitch = maybe 0 snd ca
+        pitch' = clamp (-89,89) (pitch - mdy * 0.3)
+        yaw' = yaw - mdx * 0.3
+        rp = pitch' * deg2Rad
+        ry = yaw' * deg2Rad
+    set global $ CameraAngle $ Just (yaw', pitch')
+    cmapM_ $ \(Player, Position (V2 px py)) -> do
+        let forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
+            playerPos = RL.Vector3 px 2.0 (-py)
+            targetPos = playerPos + forward
+        set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+
+worldTo3D :: Position -> RL.Vector3
+worldTo3D (Position (V2 x y)) = RL.Vector3 x 0 (-y)
 
 draw :: System' ()
 draw = do
@@ -51,15 +55,11 @@ draw = do
         RL.beginDrawing
         RL.clearBackground (RL.Color 37 19 26 255)
         RL.beginMode3D cam
-        -- Draw entities here
-        -- cmapM_ $ \(Position (V2 x y), SpriteRef sref _) -> do
-        --     -- Placeholder for drawing sprites
-        --     RL.drawCube (RL.Vector3 x y 0) 1 1 1 RL.red
-        RL.drawPlane (RL.Vector3 0 0 0) (RL.Vector2 32 32) RL.lightGray -- Draw ground
-        RL.drawCube (RL.Vector3 (-16) 2.5 0) 1 5 32 RL.blue -- blue awll
-        RL.drawCube (RL.Vector3 16 2.5 0) 1 5 32 RL.lime -- lime wall
-        RL.drawCube (RL.Vector3 0 2.5 16) 32 5 1 RL.red -- red wall
-        RL.drawCube (RL.Vector3 0 2.5 (-16)) 32 5 1 RL.orange -- orange wall
+    cmapM_ $ \(Player, pos) -> do
+        liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
+    cmapM_ $ \(Wall, pos) -> do
+        liftIO $ RL.drawCube (worldTo3D pos) 64 64 64 RL.darkGray
+    liftIO $ do
         RL.endMode3D
         RL.drawFPS 10 10
         RL.endDrawing

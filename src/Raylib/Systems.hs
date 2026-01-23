@@ -32,7 +32,7 @@ import qualified Gloss.Systems as GS
 
 initialize :: System' RL.WindowResources
 initialize = do
-    let camera = RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 0 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+    let camera = RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 1 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective
     set global $ RaylibCamera camera
     GS.initialize
     liftIO $ do

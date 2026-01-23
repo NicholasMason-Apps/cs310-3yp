@@ -37,6 +37,15 @@ instance Monoid RaylibCamera where
     mempty = RaylibCamera (RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 0 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective)
 instance Component RaylibCamera where type Storage RaylibCamera = Global RaylibCamera  
 
+
+newtype CameraAngle = CameraAngle (Maybe (Float,Float)) deriving Show
+instance Semigroup CameraAngle where
+    (CameraAngle ca1) <> (CameraAngle ca2) = CameraAngle ca2
+instance Monoid CameraAngle where
+    mempty = CameraAngle Nothing
+instance Component CameraAngle where type Storage CameraAngle = Global CameraAngle
+
+
 newtype Viewport = Viewport (Int, Int) deriving Show
 instance Semigroup Viewport where
     (Viewport (w1, h1)) <> (Viewport (w2, h2)) = Viewport (w1 + w2, h1 + h2)
@@ -57,7 +66,6 @@ newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where (<>) = (+)
 instance Monoid Score where mempty = 0
 instance Component Score where type Storage Score = Global Score
-
 
 data GameState = MenuState | DungeonState | PauseState | CombatState deriving (Show, Eq)
 instance Semigroup GameState where
@@ -264,7 +272,8 @@ makeWorld "World" [''Position,
                     ''Particle,
                     ''CombatAttackParticle,
                     ''Ladder,
-                    ''RaylibCamera]
+                    ''RaylibCamera,
+                    ''CameraAngle]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)
