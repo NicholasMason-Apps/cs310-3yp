@@ -72,17 +72,15 @@ getSpritePicture smap (SpriteRef sr Nothing) = let
         sprite = smap Map.! sr
     in case sprite of
         Sprite _ (GlossRenderer (Left pic)) -> pic
-        Sprite _ (SDLRenderer _) -> Blank
-        Sprite _ (GlossRenderer (Right _)) -> Blank
+        _ -> Blank
 getSpritePicture smap (SpriteRef sr (Just frameNum)) = let
         sprite = smap Map.! sr
     in case sprite of
-        Sprite _ (GlossRenderer (Left _)) -> Blank
-        Sprite _ (SDLRenderer _) -> Blank
         Sprite _ (GlossRenderer (Right a)) -> if frameNum >= frameCount a then
                 fromMaybe V.empty (sprites a) V.! (frameCount a - 1)
             else
                 fromMaybe V.empty (sprites a) V.! frameNum
+        _ -> Blank
 
 -- Transition easing
 easeInOut :: Float -> Float
@@ -107,13 +105,17 @@ spawnParticle startPos endPos sref frameOffset = do
         frameCount' = case rs of
             GlossRenderer (Left _) -> 1
             SDLRenderer (_, Nothing) -> 1
+            RaylibRenderer (_, Nothing) -> 1
             GlossRenderer (Right a) -> frameCount a
             SDLRenderer (_, Just a) -> frameCount a
+            RaylibRenderer (_, Just a) -> frameCount a
         frameSpeed' = case rs of
             GlossRenderer (Left _) -> 0.1
             SDLRenderer (_, Nothing) -> 0.1
+            RaylibRenderer (_, Nothing) -> 0.1
             GlossRenderer (Right a) -> frameSpeed a
             SDLRenderer (_, Just a) -> frameSpeed a
+            RaylibRenderer (_, Just a) -> frameSpeed a
         (Position start) = startPos
         (Position end) = endPos
         vel = (end - start) ^/ ((fromIntegral frameCount' - fromIntegral frameOffset) * frameSpeed')

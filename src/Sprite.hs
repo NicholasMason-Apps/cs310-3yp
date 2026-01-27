@@ -37,10 +37,14 @@ stepAnimations dT = do
         case spriteE of
             GlossRenderer (Left _) -> return $ SpriteRef sr e
             SDLRenderer (_, Nothing) -> return $ SpriteRef sr e
+            RaylibRenderer (_, Nothing) -> return $ SpriteRef sr e
             GlossRenderer (Right a) -> let
                     trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
                 in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a) (afterLoopAnimation a)
             SDLRenderer (_, Just a) -> let
+                    trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
+                in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a) (afterLoopAnimation a)
+            RaylibRenderer (_, Just a) -> let
                     trigger = floor (t / frameSpeed a) /= floor ((t + dT) / frameSpeed a)
                 in return $ updateAnimation (SpriteRef sr e) trigger (frameCount a) (looping a) (afterLoopAnimation a)
     where

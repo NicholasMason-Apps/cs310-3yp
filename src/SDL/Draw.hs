@@ -39,21 +39,19 @@ drawSprite (SpriteRef str Nothing) (SpriteMap smap) (Position pos) (sw, sh) flip
         pos' = SDL.Rectangle (SDL.P (floor <$> pos)) (V2 (fromIntegral (w * sw)) (fromIntegral (h * sh)))
     in
         case rs of
-            GlossRenderer _ -> do
-                putStrLn "Error: GlossRenderer used in SDL rendering system."
             SDLRenderer (t, _) -> SDL.copyEx r t Nothing (Just pos') 0 Nothing flip
+            _ -> putStrLn "Error: incorrect renderer used in SDL rendering system."
 drawSprite (SpriteRef str (Just frameNum)) (SpriteMap smap) (Position pos) (sw,sh) flip r = let
         (Sprite (w,h) rs) = smap Map.! str
     in
         case rs of
-            GlossRenderer _ -> do
-                putStrLn "Error: GlossRenderer used in SDL rendering system."
             SDLRenderer (t, ma) -> do
                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
                     frameWidth = w `div` frameCount a
                     dstRect = SDL.Rectangle (SDL.P (floor <$> pos)) (V2 (fromIntegral (frameWidth * sw)) (fromIntegral (h * sh)))
                     srcRect = SDL.Rectangle (SDL.P (SDL.V2 (fromIntegral (frameNum * frameWidth)) 0)) (SDL.V2 (fromIntegral frameWidth) (fromIntegral h))
                 SDL.copyEx r t (Just srcRect) (Just dstRect) 0 Nothing flip
+            _ -> putStrLn "Error: incorrect renderer used in SDL rendering system."
 
 worldToScreen :: Position -> Maybe Position -> Position
 worldToScreen (Position (V2 x y)) playerPos = case playerPos of
@@ -75,8 +73,8 @@ drawTransition r fps = do
             pos' = SDL.Rectangle (SDL.P (floor <$> pos)) (V2 (fromIntegral w) (fromIntegral h))
             angleDeg = realToFrac (ang * 180/pi)
         case rs of
-            GlossRenderer _ -> liftIO $ putStrLn "Error: GlossRenderer used in SDL rendering system."
             SDLRenderer (t,_) -> liftIO $ SDL.copyEx r t Nothing (Just pos') angleDeg (Just $ SDL.P (V2 (fromIntegral w `div` 2) (fromIntegral h `div` 2))) (V2 False False)
+            _ -> liftIO $ putStrLn "Error: incorrect renderer used in SDL rendering system."
 
 getSprite :: SpriteMap -> SpriteRef -> Sprite
 getSprite (SpriteMap smap) (SpriteRef sr _) = smap Map.! sr
@@ -92,15 +90,6 @@ drawDungeon r fps = do
             flip = if GkLeft `Set.member` ks && GkRight `Set.notMember` ks then V2 True False else V2 False False
         in
             liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) flip r
-    -- Green boundary boxes
-    -- cmapM_ $ \(Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> liftIO $ do
-    --     let
-    --         (Position pos) = worldToScreen $ Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))
-    --         rect = SDL.Rectangle
-    --             (SDL.P (floor <$> pos))
-    --             (SDL.V2 (fromIntegral w) (fromIntegral h))
-    --     SDL.rendererDrawColor r SDL.$= SDL.V4 0 255 0 255 
-    --     SDL.drawRect r (Just rect)
 
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()

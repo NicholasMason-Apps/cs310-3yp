@@ -27,7 +27,6 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified SDL
 import qualified Raylib.Types as RL
-import qualified Raylib.Core.Camera as RL
 
 -- Global stores
 newtype RaylibCamera = RaylibCamera RL.Camera3D deriving Show
@@ -112,14 +111,14 @@ instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 
 
-data RendererSystem a b = GlossRenderer a | SDLRenderer b deriving (Show, Eq)
-instance Semigroup (RendererSystem a b) where
-    (<>) :: RendererSystem a b -> RendererSystem a b -> RendererSystem a b
+data RendererSystem a b c = GlossRenderer a | SDLRenderer b | RaylibRenderer c deriving (Show, Eq)
+instance Semigroup (RendererSystem a b c) where
+    (<>) :: RendererSystem a b c -> RendererSystem a b c -> RendererSystem a b c
     _ <> r2 = r2
-instance Monoid a => Monoid (RendererSystem a b) where
-    mempty :: RendererSystem a b
+instance Monoid a => Monoid (RendererSystem a b c) where
+    mempty :: RendererSystem a b c
     mempty = GlossRenderer mempty
-instance Component (RendererSystem a b) where type Storage (RendererSystem a b) = Global (RendererSystem a b)
+instance Component (RendererSystem a b c) where type Storage (RendererSystem a b c) = Global (RendererSystem a b c)
 
 
 -- Movement and position components
@@ -174,7 +173,7 @@ instance Component Ladder where type Storage Ladder = Map Ladder
 data BoundaryBox = BoundaryBox (Int, Int) (Int, Int) deriving (Show)
 instance Component BoundaryBox where type Storage BoundaryBox = Map BoundaryBox
 
-data Sprite = Sprite (Int, Int) (RendererSystem (Either Picture Animation) (SDL.Texture, Maybe Animation))
+data Sprite = Sprite (Int, Int) (RendererSystem (Either Picture Animation) (SDL.Texture, Maybe Animation) (RL.Texture , Maybe Animation))
 
 data SpriteRef = SpriteRef String (Maybe Int) deriving (Show, Eq, Ord)
 instance Component SpriteRef where type Storage SpriteRef = Map SpriteRef

@@ -190,6 +190,8 @@ stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
                 GlossRenderer (Left _) -> error "Static sprite does not support frame number"
                 SDLRenderer (_, Nothing) -> error "Static sprite does not support frame number"
                 SDLRenderer (_, Just a) -> a
+                RaylibRenderer (_, Nothing) -> error "Static sprite does not support frame number"
+                RaylibRenderer (_, Just a) -> a
         existsTransition <- cfold (\_ (Transition {}) -> Just ()) Nothing
         when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0 ToDungeon
 

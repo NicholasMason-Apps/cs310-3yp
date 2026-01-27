@@ -64,14 +64,16 @@ stepParticles dT = cmapM_ $ \(Particle (Position destP), Position currP, SpriteR
         destroy e (Proxy @Velocity)
     let Sprite _ rs = smap Map.! sref
     case rs of
-        GlossRenderer (Left _) -> return ()
-        SDLRenderer (_, Nothing) -> return ()
         GlossRenderer (Right a) -> when (fromMaybe 0 mn + 1 >= frameCount a) $ do
             destroy e (Proxy @(Particle, SpriteRef, Position))
             cmapM_ $ \(CombatAttackParticle _, e') -> destroy e' (Proxy @CombatAttackParticle)
         SDLRenderer (_, Just a) -> when (fromMaybe 0 mn + 1 >= frameCount a) $ do
             destroy e (Proxy @(Particle, SpriteRef, Position))
             cmapM_ $ \(CombatAttackParticle _, e') -> destroy e' (Proxy @CombatAttackParticle)
+        RaylibRenderer (_, Just a) -> when (fromMaybe 0 mn + 1 >= frameCount a) $ do
+            destroy e (Proxy @(Particle, SpriteRef, Position))
+            cmapM_ $ \(CombatAttackParticle _, e') -> destroy e' (Proxy @CombatAttackParticle)
+        _ -> return ()
 
 
 triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
