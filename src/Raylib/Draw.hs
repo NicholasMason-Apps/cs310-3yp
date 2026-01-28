@@ -19,6 +19,7 @@ import qualified Raylib.Types.Core as RL
 import qualified Raylib.Types as RL
 import qualified Raylib.Util as RL
 import qualified Raylib.Util.Colors as RL
+import qualified Raylib.Core.Textures as RL
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Types
@@ -53,7 +54,7 @@ drawBillboard (SpriteRef str Nothing) (SpriteMap smap) pos flip cam = let
         (Sprite (w,h) rs) = smap Map.! str
     in
         case rs of
-            RaylibRenderer (t, _) -> RL.drawBillboard cam t (worldTo3D pos) 1.0 RL.white
+            RaylibRenderer (t, _) -> RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = let
         (Sprite (w,h) rs) = smap Map.! str
@@ -63,8 +64,9 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
                     frameWidth = w `div` frameCount a
                     -- sourceRec = RL.Rectangle 0 0 1280 720
-                    sourceRec = RL.Rectangle (fromIntegral frameWidth * fromIntegral frameNum) 0 (fromIntegral frameWidth) (fromIntegral h)
-                RL.drawBillboardRec cam t sourceRec (worldTo3D pos) (RL.Vector2 10 10) RL.white
+                    sourceRec = RL.Rectangle 0 0 (fromIntegral w) (fromIntegral h)
+                -- RL.drawBillboardRec cam t sourceRec (worldTo3D pos) (RL.Vector2 10 10) RL.white
+                RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 
 -- drawSprite :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> IO ()
@@ -91,6 +93,7 @@ worldTo3D (Position (V2 x y)) = RL.Vector3 x 0 (-y)
 draw :: System' ()
 draw = do
     RaylibCamera cam <- get global
+    tex <- liftIO $ RL.loadTexture "assets/test.png"
     smap <- get global :: System' SpriteMap
     liftIO $ do
         RL.beginDrawing
@@ -102,7 +105,7 @@ draw = do
         liftIO $ RL.drawCube (worldTo3D pos) 64 64 64 RL.darkGray
     cmapM_ $ \(Enemy _, pos, sref) -> do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
-
+    liftIO $ RL.drawBillboard cam tex (RL.Vector3 0 0 0) 10 RL.white
     liftIO $ do
         RL.endMode3D
         RL.drawFPS 10 10

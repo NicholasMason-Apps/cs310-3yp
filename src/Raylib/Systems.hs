@@ -185,7 +185,7 @@ initialize = do
         RL.disableCursor
         return window
 #endif
-    Sys.initialize spriteList
+    seq w $ Sys.initialize spriteList
     return w
 
 terminate :: RL.WindowResources -> System' ()
