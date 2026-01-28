@@ -9,12 +9,14 @@ import qualified Raylib.Types.Core as RL
 import qualified Raylib.Types as RL
 import qualified Raylib.Util as RL
 import qualified Raylib.Util.Colors as RL
-import Raylib.Systems
+import Raylib.Systems as RL
+import Systems as Sys
 import Types
 
 main :: IO ()
 main = initWorld >>= runSystem (do
-    window <- initialize
+    window <- RL.initialize
+    Sys.initialize RL.spriteList
     run
     terminate window)
 

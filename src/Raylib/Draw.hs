@@ -16,6 +16,7 @@ import qualified Raylib.Core.Camera as RL
 import qualified Raylib.Core.Models as RL
 import qualified Raylib.Core.Text as RL
 import qualified Raylib.Types.Core as RL
+import qualified Raylib.Core.Shapes as RL
 import qualified Raylib.Types as RL
 import qualified Raylib.Util as RL
 import qualified Raylib.Util.Colors as RL
@@ -30,6 +31,7 @@ import Linear
 import Raylib.Util.Math (deg2Rad)
 import Data.Ord (clamp)
 import Data.Maybe (fromMaybe)
+import Utils
 
 updateCamera :: System' ()
 updateCamera = do
@@ -51,7 +53,7 @@ updateCamera = do
 
 drawBillboard :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> RL.Camera3D -> IO ()
 drawBillboard (SpriteRef str Nothing) (SpriteMap smap) pos flip cam = let
-        (Sprite (w,h) rs) = smap Map.! str
+        (Sprite _ rs) = smap Map.! str
     in
         case rs of
             RaylibRenderer (t, _) -> RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
@@ -63,10 +65,9 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
             RaylibRenderer (t, ma) -> do
                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
                     frameWidth = w `div` frameCount a
-                    -- sourceRec = RL.Rectangle 0 0 1280 720
-                    sourceRec = RL.Rectangle 0 0 (fromIntegral w) (fromIntegral h)
-                -- RL.drawBillboardRec cam t sourceRec (worldTo3D pos) (RL.Vector2 10 10) RL.white
-                RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
+                    sourceRec = RL.Rectangle (fromIntegral (frameWidth * frameNum)) 0 (fromIntegral frameWidth) (fromIntegral h)
+                RL.drawBillboardRec cam t sourceRec (worldTo3D pos) (RL.Vector2 64 64) RL.white
+                -- RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 
 -- drawSprite :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> IO ()
@@ -85,19 +86,29 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
 --                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
 --                 frameWidth = w `div` frameCount a
 
-                    
+drawTransition :: System' ()
+drawTransition = do
+    SpriteMap smap <- get global :: System' SpriteMap
+    cmapM_ $ \(Transition p ang _ _ _) -> do
+        let t = easeInOut (min 1 p)
+            dist = Utils.lerp (-2000) 2000 t
+            dx = dist * cos ang
+            dy = dist * sin ang
+            w = 2500
+            h = 2500
+            rect = RL.Rectangle (dx + 1280/2) (-dy) w h
+            origin = RL.Vector2 (w / 2) (h / 2)
+            angleDeg = realToFrac (ang * 180/pi)
+        liftIO $ RL.drawRectanglePro rect origin angleDeg RL.black
 
 worldTo3D :: Position -> RL.Vector3
 worldTo3D (Position (V2 x y)) = RL.Vector3 x 0 (-y)
 
-draw :: System' ()
-draw = do
+drawDungeon :: System' ()
+drawDungeon = do
     RaylibCamera cam <- get global
-    tex <- liftIO $ RL.loadTexture "assets/test.png"
     smap <- get global :: System' SpriteMap
     liftIO $ do
-        RL.beginDrawing
-        RL.clearBackground (RL.Color 37 19 26 255)
         RL.beginMode3D cam
     cmapM_ $ \(Player, pos) -> do
         liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
@@ -105,8 +116,19 @@ draw = do
         liftIO $ RL.drawCube (worldTo3D pos) 64 64 64 RL.darkGray
     cmapM_ $ \(Enemy _, pos, sref) -> do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
-    liftIO $ RL.drawBillboard cam tex (RL.Vector3 0 0 0) 10 RL.white
     liftIO $ do
         RL.endMode3D
+
+draw :: System' ()
+draw = do
+    gs <- get global
+    liftIO $ do
+        RL.beginDrawing
+        RL.clearBackground (RL.Color 37 19 26 255)
+    case gs of
+        DungeonState -> drawDungeon
+        _ -> return ()
+    drawTransition
+    liftIO $ do
         RL.drawFPS 10 10
         RL.endDrawing

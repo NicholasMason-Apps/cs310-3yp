@@ -34,7 +34,7 @@ import Utils
 
 loadSprite :: String -> RL.Texture
 loadSprite path = unsafePerformIO $ do
-    img <- RL.loadImage ("assets/sprites/" ++ path)
+    img <- RL.loadImage ("assets/" ++ path)
     RL.loadTextureFromImage img
 
 spriteList :: [(String, Sprite)]
@@ -176,7 +176,7 @@ initialize :: System' RL.WindowResources
 initialize = do
     let camera = RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 1 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective
     set global $ RaylibCamera camera
-    w <- liftIO $ do
+    liftIO $ do
         window <- RL.initWindow 1280 720 "Dungeon Crawler"
         RL.setTargetFPS 60
 #if defined(WSL)
@@ -185,8 +185,6 @@ initialize = do
         RL.disableCursor
         return window
 #endif
-    seq w $ Sys.initialize spriteList
-    return w
 
 terminate :: RL.WindowResources -> System' ()
 terminate window = liftIO $ RL.closeWindow $ Just window
@@ -206,7 +204,6 @@ run = do
 handleEvents :: System' ()
 handleEvents = do
     isLeft <- liftIO $ RL.isKeyDown RL.KeyLeft
-    -- when (isLeft) $ liftIO $ putStrLn "Left key is down"
     if isLeft then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkLeft `Set.insert` ks
     else
