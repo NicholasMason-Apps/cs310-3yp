@@ -32,11 +32,13 @@ import Raylib.Util.Math (deg2Rad)
 import Data.Ord (clamp)
 import Data.Maybe (fromMaybe)
 import Utils
+import Control.Monad
 
 updateCamera :: System' ()
 updateCamera = do
     RaylibCamera cam <- get global
     CameraAngle ca <- get global
+    gs <- get global
     (V2 mdx mdy) <- liftIO RL.getMouseDelta
     let yaw = maybe 0 fst ca
         pitch = maybe 0 snd ca
@@ -45,11 +47,18 @@ updateCamera = do
         rp = pitch' * deg2Rad
         ry = yaw' * deg2Rad
     set global $ CameraAngle $ Just (yaw', pitch')
-    cmapM_ $ \(Player, Position (V2 px py)) -> do
-        let forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
-            playerPos = RL.Vector3 px 2.0 (-py)
-            targetPos = playerPos + forward
-        set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+    case gs of
+        DungeonState -> cmapM_ $ \(Player, Position (V2 px py)) -> do
+            let playerPos = RL.Vector3 px 2.0 (-py)
+                forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
+                targetPos = playerPos + forward
+            set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+        CombatState -> cmapM_ $ \CombatPlayer -> do
+            let playerPos = RL.Vector3 (-1280/3) 2.0 0
+                forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
+                targetPos = playerPos + forward
+            set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+        _ -> return ()
 
 drawBillboard :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> RL.Camera3D -> IO ()
 drawBillboard (SpriteRef str Nothing) (SpriteMap smap) pos flip cam = let
@@ -86,6 +95,24 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
 --                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
 --                 frameWidth = w `div` frameCount a
 
+drawTexture :: SpriteRef -> SpriteMap -> Position -> IO ()
+drawTexture (SpriteRef str Nothing) (SpriteMap smap) (Position (V2 x y)) = let
+        (Sprite _ rs) = smap Map.! str
+    in
+        case rs of
+            RaylibRenderer (t, _) -> RL.drawTexture t (round x) (round y) RL.white
+            _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
+drawTexture (SpriteRef str (Just frameNum)) (SpriteMap smap) (Position (V2 x y)) = let
+        (Sprite (w,h) rs) = smap Map.! str
+    in
+        case rs of
+            RaylibRenderer (t, ma) -> do
+                let a = fromMaybe (error "Expected animation data for animated sprite") ma
+                    frameWidth = w `div` frameCount a
+                    sourceRec = RL.Rectangle (fromIntegral (frameWidth * frameNum)) 0 (fromIntegral frameWidth) (fromIntegral h)
+                RL.drawTextureRec t sourceRec (RL.Vector2 (fromIntegral (round x)) (fromIntegral (round y))) RL.white
+            _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
+
 drawTransition :: System' ()
 drawTransition = do
     SpriteMap smap <- get global :: System' SpriteMap
@@ -104,14 +131,31 @@ drawTransition = do
 worldTo3D :: Position -> RL.Vector3
 worldTo3D (Position (V2 x y)) = RL.Vector3 x 0 (-y)
 
+drawCombat :: System' ()
+drawCombat = do
+    RaylibCamera cam <- get global
+    smap <- get global :: System' SpriteMap
+    CombatTurn turn <- get global
+    uiState <- get global :: System' UIState
+    liftIO $ do
+        RL.beginMode3D cam
+    cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3) 0 - V2 (1280/2) 0)) (V2 False False) cam
+    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawBillboard sref smap (Position (pos - V2 (1280/2) 0)) (V2 False False) cam
+    liftIO $ do
+        RL.endMode3D
+    when (turn == PlayerTurn) $ liftIO $ case uiState of
+        CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
+        CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
+
+
 drawDungeon :: System' ()
 drawDungeon = do
     RaylibCamera cam <- get global
     smap <- get global :: System' SpriteMap
     liftIO $ do
         RL.beginMode3D cam
-    cmapM_ $ \(Player, pos) -> do
-        liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
+    -- cmapM_ $ \(Player, pos) -> do
+    --     liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
     cmapM_ $ \(Wall, pos) -> do
         liftIO $ RL.drawCube (worldTo3D pos) 64 64 64 RL.darkGray
     cmapM_ $ \(Enemy _, pos, sref) -> do
@@ -127,6 +171,7 @@ draw = do
         RL.clearBackground (RL.Color 37 19 26 255)
     case gs of
         DungeonState -> drawDungeon
+        CombatState -> drawCombat
         _ -> return ()
     drawTransition
     liftIO $ do

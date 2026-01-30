@@ -17,6 +17,8 @@ import System.Exit
 import Linear
 import Control.Monad
 import Types
+import qualified Raylib.Core.Camera as RL
+import qualified Raylib.Types as RL
 import Sprite
 import GameMap
 import Data.Set (Set)
@@ -96,6 +98,10 @@ toDungeonAction = do
 toCombatAction :: System' ()
 toCombatAction = do
     set global CombatState
+    (CameraAngle ca) <- get global :: System' CameraAngle
+    case ca of
+        Just _ -> cmapM_ $ \(CombatEnemy _, Position (V2 x y)) -> set global $ RaylibCamera $ RL.Camera3D (RL.Vector3 0 0 0) (RL.Vector3 x 0 y) (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+        Nothing -> return ()
 
 toNextLevelAction :: System' ()
 toNextLevelAction = do

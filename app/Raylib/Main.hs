@@ -17,6 +17,7 @@ main :: IO ()
 main = initWorld >>= runSystem (do
     window <- RL.initialize
     Sys.initialize RL.spriteList
+    liftIO $ RL.setExitKey RL.KeyBackspace
     run
     terminate window)
 
