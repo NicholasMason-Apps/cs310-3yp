@@ -242,6 +242,8 @@ instance Component Particle where type Storage Particle = Map Particle
 
 type FPS = Int
 
+data Face = FrontFace | BackFace | LeftFace | RightFace | TopFace | BottomFace deriving (Show, Eq, Ord)
+
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
@@ -272,7 +274,8 @@ makeWorld "World" [''Position,
                     ''CombatAttackParticle,
                     ''Ladder,
                     ''RaylibCamera,
-                    ''CameraAngle]
+                    ''CameraAngle,
+                    ''Floor]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

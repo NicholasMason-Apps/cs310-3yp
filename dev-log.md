@@ -139,3 +139,7 @@ For progress report:
     - used a compile-time flag to specify whether to build for wsl or not
 - rotation in `updateCameraPro` uses degrees as its unit of measurement, which allows player movement directions to be done and normalised
 - mapping of the 2d logic into 3d space was difficult. the positioning of elements was easy since it follows the same adaptation as SDL, however allowing for a first person camera to dictate the player's movement direction was difficult due to the yaw of the camera and the movement vectors. however a solution was done by capturing the mouse delta, and storing the mouse delta inside a Maybe such that 2d and 3d can be distinguished against, and therefore decided on whether we apply trigonometry onto the movement vector or not. this is the only logic change thus far
+
+# Term 2 Week 2-5
+- Most work has been the translation between the 2d game into 3d game, with a lot of it being texture drawing as both billboards and 3d objects
+- raylib's examples have been extremely helpful, as the `h-raylib` library is a 1:1 mapping between them

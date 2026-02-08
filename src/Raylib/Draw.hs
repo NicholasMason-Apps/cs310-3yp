@@ -34,6 +34,7 @@ import Data.Ord (clamp)
 import Data.Maybe (fromMaybe)
 import Utils
 import Control.Monad
+import System.Random (randomRIO)
 
 updateCamera :: System' ()
 updateCamera = do
@@ -80,12 +81,15 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
                 -- RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 
-drawTexturedQuad :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> IO ()
-drawTexturedQuad (SpriteRef str Nothing) (SpriteMap smap) pos flip = let
+drawTexturedQuad :: SpriteRef -> SpriteMap -> Position -> V2 Bool ->  Set.Set Face -> IO ()
+drawTexturedQuad (SpriteRef str Nothing) (SpriteMap smap) pos flip faces = let
         (Sprite (w,h) rs) = smap Map.! str
+        pos' = worldTo3D pos
+        pos'' = if TopFace `Set.member` faces then pos' + RL.Vector3 0 (-tileSize) 0 else pos'
+        pos''' = if BottomFace `Set.member` faces then pos' + RL.Vector3 0 tileSize 0 else pos''
     in
         case rs of
-            RaylibRenderer (t, _) -> drawTexturedQuad' t (worldTo3D pos) w h flip RL.white
+            RaylibRenderer (t, _) -> drawTexturedQuad' t pos''' w h flip RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
     where
         drawTexturedQuad' t (RL.Vector3 x y z) w h flip (RL.Color r g b a) = do
@@ -95,35 +99,144 @@ drawTexturedQuad (SpriteRef str Nothing) (SpriteMap smap) pos flip = let
             let hw = fromIntegral w / 2
                 hh = fromIntegral h / 2
                 hl = hw * if V2 True False == flip then -1 else 1
+                tex u v = RL.rlTexCoord2f u (1 - v) -- Flip V coordinate for correct orientation
             -- Front face
-            RL.rlNormal3f 0 0 1
-            RL.rlTexCoord2f 0 0 >> RL.rlVertex3f (x - hw) (y - hh) (z + hl)
-            RL.rlTexCoord2f 1 0 >> RL.rlVertex3f (x + hw) (y - hh) (z + hl)
-            RL.rlTexCoord2f 1 1 >> RL.rlVertex3f (x + hw) (y + hh) (z + hl)
-            RL.rlTexCoord2f 0 1 >> RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+            when (FrontFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 0 1
+                tex 0 0 >> RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                tex 1 0 >> RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+                tex 1 1 >> RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                tex 0 1 >> RL.rlVertex3f (x - hw) (y + hh) (z + hl)
             -- Back face
-            
+            when (BackFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 0 (-1)
+                tex 1 0 >> RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                tex 1 1 >> RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+                tex 0 1 >> RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+                tex 0 0 >> RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+            -- Left face
+            when (LeftFace `Set.member` faces) $ do
+                RL.rlNormal3f (-1) 0 0
+                tex 0 0 >> RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                tex 1 0 >> RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                tex 1 1 >> RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+                tex 0 1 >> RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+            -- Right face
+            when (RightFace `Set.member` faces) $ do
+                RL.rlNormal3f 1 0 0
+                tex 1 0 >> RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+                tex 1 1 >> RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+                tex 0 1 >> RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                tex 0 0 >> RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+            -- Top face
+            when (TopFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 1 0
+                tex 0 1 >> RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+                tex 0 0 >> RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+                tex 1 0 >> RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                tex 1 1 >> RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+            -- Bottom face
+            when (BottomFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 (-1) 0
+                tex 1 1 >> RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                tex 1 0 >> RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                tex 0 0 >> RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+                tex 0 1 >> RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+
             RL.rlEnd
             RL.rlSetTexture 0
 
-drawTexturedQuad (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip = let
+drawTexturedQuad (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip faces = let
         (Sprite (w,h) rs) = smap Map.! str
+        pos' = worldTo3D pos
+        pos'' = if TopFace `Set.member` faces then pos' + RL.Vector3 0 (-tileSize) 0 else pos'
+        pos''' = if BottomFace `Set.member` faces then pos' + RL.Vector3 0 tileSize 0 else pos''
     in
         case rs of
             RaylibRenderer (t, ma) -> do
                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
                     frameWidth = w `div` frameCount a
                     sourceRec = RL.Rectangle (fromIntegral (frameWidth * frameNum)) 0 (fromIntegral frameWidth) (fromIntegral h)
-                drawTexturedQuadRec t sourceRec (worldTo3D pos) frameWidth h flip RL.white
+                drawTexturedQuadRec t sourceRec pos''' (fromIntegral frameWidth) (fromIntegral h) flip RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
     where
         drawTexturedQuadRec t (RL.Rectangle sx sy sw sh) (RL.Vector3 x y z) w h flip (RL.Color r g b a) = do
             RL.rlSetTexture (RL.texture'id t)
             RL.rlBegin RL.RLQuads
             RL.rlColor4ub r g b a
-            let hw = fromIntegral w / 2
+            let hw = w / 2
                 hh = fromIntegral h / 2
-            return ()
+                l = w * if V2 True False == flip then -1 else 1
+                hl = l / 2
+                tex u v = RL.rlTexCoord2f u (1 - v) -- Flip V coordinate for correct orientation
+            -- Front face
+            when (FrontFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 0 1
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+            -- Back face
+            when (BackFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 0 (-1)
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+            -- Left face
+            when (LeftFace `Set.member` faces) $ do
+                RL.rlNormal3f (-1) 0 0
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+            -- Right face
+            when (RightFace `Set.member` faces) $ do
+                RL.rlNormal3f 1 0 0
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+            -- Top face
+            when (TopFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 1 0
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z - hl)
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y + hh) (z - hl)
+            -- Bottom face
+            when (BottomFace `Set.member` faces) $ do
+                RL.rlNormal3f 0 (-1) 0
+                RL.rlTexCoord2f ((sx + sw) / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z - hl)
+                RL.rlTexCoord2f ((sx + sw) / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+                RL.rlTexCoord2f (sx / w) ((sy + sh) / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+                RL.rlTexCoord2f (sx / w) (sy / fromIntegral h)
+                RL.rlVertex3f (x + hw) (y - hh) (z - hl)
+            RL.rlEnd
+            RL.rlSetTexture 0
 
 drawTexture :: SpriteRef -> SpriteMap -> Position -> IO ()
 drawTexture (SpriteRef str Nothing) (SpriteMap smap) (Position (V2 x y)) = let
@@ -186,8 +299,10 @@ drawDungeon = do
         RL.beginMode3D cam
     -- cmapM_ $ \(Player, pos) -> do
     --     liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
-    cmapM_ $ \(Wall, pos) -> do
-        liftIO $ RL.drawCube (worldTo3D pos) 64 64 64 RL.darkGray
+    cmapM_ $ \(Wall, pos, sref) -> do
+        liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [FrontFace, BackFace, LeftFace, RightFace])
+    cmapM_ $ \(Floor, pos, sref) -> do
+        liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [TopFace])
     cmapM_ $ \(Enemy _, pos, sref) -> do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
