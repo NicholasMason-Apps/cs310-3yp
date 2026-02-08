@@ -136,7 +136,7 @@ stepPlayerAttack dT = do
 stepEnemyAttack :: Float -> System' ()
 stepEnemyAttack dT = do
     cmapM_ $ \(CombatEnemy e', SpriteRef sr n, e) -> do
-        when (sr == "skeleton-idle" || sr == "vampire-idle" || sr == "reaper-idle") $ do
+        when (sr == "skeleton-idle" || sr == "vampire-idle" || sr == "reaper-idle" || sr == "golden-reaper-idle") $ do
             set global $ CombatTurn PlayerTurn
             set e (Position (V2 (1280 / 3) 0))
         enemy <- get e' :: System' Enemy

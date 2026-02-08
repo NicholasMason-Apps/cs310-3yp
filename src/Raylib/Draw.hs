@@ -20,6 +20,7 @@ import qualified Raylib.Core.Shapes as RL
 import qualified Raylib.Types as RL
 import qualified Raylib.Util as RL
 import qualified Raylib.Util.Colors as RL
+import qualified Raylib.Util.RLGL as RL
 import qualified Raylib.Core.Textures as RL
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -79,21 +80,50 @@ drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = le
                 -- RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 
--- drawSprite :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> IO ()
--- drawSprite (SpriteRef str Nothing) (SpriteMap smap) pos flip = let
---         (Sprite (w,h) rs) = smap Map.! str
---         pos' = worldTo3D pos
---     in
---         case rs of
---             RaylibRenderer (t, _) -> RL.drawModel t pos' 1 RL.white
---             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
--- drawSprite (SpriteRef str Nothing) (SpriteMap smap) pos flip = let
---         (Sprite (w,h) rs) = smap Map.! str
---     in
---         case rs of
---             RaylibRenderer (t, ma) -> do
---                 let a = fromMaybe (error "Expected animation data for animated sprite") ma
---                 frameWidth = w `div` frameCount a
+drawTexturedQuad :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> IO ()
+drawTexturedQuad (SpriteRef str Nothing) (SpriteMap smap) pos flip = let
+        (Sprite (w,h) rs) = smap Map.! str
+    in
+        case rs of
+            RaylibRenderer (t, _) -> drawTexturedQuad' t (worldTo3D pos) w h flip RL.white
+            _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
+    where
+        drawTexturedQuad' t (RL.Vector3 x y z) w h flip (RL.Color r g b a) = do
+            RL.rlSetTexture (RL.texture'id t)
+            RL.rlBegin RL.RLQuads
+            RL.rlColor4ub r g b a
+            let hw = fromIntegral w / 2
+                hh = fromIntegral h / 2
+                hl = hw * if V2 True False == flip then -1 else 1
+            -- Front face
+            RL.rlNormal3f 0 0 1
+            RL.rlTexCoord2f 0 0 >> RL.rlVertex3f (x - hw) (y - hh) (z + hl)
+            RL.rlTexCoord2f 1 0 >> RL.rlVertex3f (x + hw) (y - hh) (z + hl)
+            RL.rlTexCoord2f 1 1 >> RL.rlVertex3f (x + hw) (y + hh) (z + hl)
+            RL.rlTexCoord2f 0 1 >> RL.rlVertex3f (x - hw) (y + hh) (z + hl)
+            -- Back face
+            
+            RL.rlEnd
+            RL.rlSetTexture 0
+
+drawTexturedQuad (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip = let
+        (Sprite (w,h) rs) = smap Map.! str
+    in
+        case rs of
+            RaylibRenderer (t, ma) -> do
+                let a = fromMaybe (error "Expected animation data for animated sprite") ma
+                    frameWidth = w `div` frameCount a
+                    sourceRec = RL.Rectangle (fromIntegral (frameWidth * frameNum)) 0 (fromIntegral frameWidth) (fromIntegral h)
+                drawTexturedQuadRec t sourceRec (worldTo3D pos) frameWidth h flip RL.white
+            _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
+    where
+        drawTexturedQuadRec t (RL.Rectangle sx sy sw sh) (RL.Vector3 x y z) w h flip (RL.Color r g b a) = do
+            RL.rlSetTexture (RL.texture'id t)
+            RL.rlBegin RL.RLQuads
+            RL.rlColor4ub r g b a
+            let hw = fromIntegral w / 2
+                hh = fromIntegral h / 2
+            return ()
 
 drawTexture :: SpriteRef -> SpriteMap -> Position -> IO ()
 drawTexture (SpriteRef str Nothing) (SpriteMap smap) (Position (V2 x y)) = let

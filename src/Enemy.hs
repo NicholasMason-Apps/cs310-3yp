@@ -56,6 +56,7 @@ stepEnemyAI = cmapM_ $ \(Player, Position posP) -> do
                     "reaper-idle" -> SpriteRef "reaper-walk" (Just 0)
                     "vampire-idle" -> SpriteRef "vampire-walk" (Just 0)
                     "skeleton-idle" -> SpriteRef "skeleton-walk" (Just 0)
+                    "golden-reaper-idle" -> SpriteRef "golden-reaper-walk" (Just 0)
                     _ -> SpriteRef str mn
             return (Velocity newVel, sref')
         else
@@ -63,6 +64,7 @@ stepEnemyAI = cmapM_ $ \(Player, Position posP) -> do
                     "reaper-walk" -> SpriteRef "reaper-idle" (Just 0)
                     "vampire-walk" -> SpriteRef "vampire-idle" (Just 0)
                     "skeleton-walk" -> SpriteRef "skeleton-idle" (Just 0)
+                    "golden-reaper-walk" -> SpriteRef "golden-reaper-idle" (Just 0)
                     _ -> SpriteRef str mn
             in
                 return (Velocity (V2 0 0), sref')
