@@ -27,6 +27,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified SDL
 import qualified Raylib.Types as RL
+import qualified SDL.Font
 
 -- Global stores
 newtype RaylibCamera = RaylibCamera RL.Camera3D deriving Show
@@ -35,6 +36,16 @@ instance Semigroup RaylibCamera where
 instance Monoid RaylibCamera where
     mempty = RaylibCamera (RL.Camera3D (RL.Vector3 0 2 4) (RL.Vector3 0 2 0) (RL.Vector3 0 1 0) 70 RL.CameraPerspective)
 instance Component RaylibCamera where type Storage RaylibCamera = Global RaylibCamera  
+
+
+newtype FontResource = FontResource (RendererSystem () SDL.Font.Font ()) deriving Show
+
+newtype FontMap = FontMap (Map.Map String FontResource)
+instance Semigroup FontMap where
+    (FontMap m1) <> (FontMap m2) = FontMap (m1 `mappend` m2)
+instance Monoid FontMap where
+    mempty = FontMap mempty
+instance Component FontMap where type Storage FontMap = Global FontMap
 
 
 newtype CameraAngle = CameraAngle (Maybe (Float,Float)) deriving Show
@@ -225,6 +236,9 @@ data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking | Pla
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile
 
+data CombatWall = CombatWall deriving (Show)
+instance Component CombatWall where type Storage CombatWall = Map CombatWall
+
 data TransitionEvent = ToCombat | ToDungeon | ToNextLevel deriving (Show, Eq)
 
 -- Transition Components
@@ -275,7 +289,9 @@ makeWorld "World" [''Position,
                     ''Ladder,
                     ''RaylibCamera,
                     ''CameraAngle,
-                    ''Floor]
+                    ''Floor,
+                    ''CombatWall
+                    ]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)

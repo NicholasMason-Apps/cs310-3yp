@@ -168,10 +168,10 @@ initialize = do
 
 inputBindings :: KeyBindings Key
 inputBindings = KeyBindings $ Map.fromList [
-        (SpecialKey KeyUp, GkUp),
-        (SpecialKey KeyDown, GkDown),
-        (SpecialKey KeyLeft, GkLeft),
-        (SpecialKey KeyRight, GkRight),
+        (Char 'w', GkUp),
+        (Char 's', GkDown),
+        (Char 'a', GkLeft),
+        (Char 'd', GkRight),
         (SpecialKey KeySpace, GkSpace),
         (SpecialKey KeyEsc, GkEsc),
         (Char 'e', GkE),

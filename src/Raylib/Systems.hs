@@ -204,22 +204,22 @@ run = do
 
 handleEvents :: System' ()
 handleEvents = do
-    isLeft <- liftIO $ RL.isKeyDown RL.KeyLeft
+    isLeft <- liftIO $ RL.isKeyDown RL.KeyA
     if isLeft then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkLeft `Set.insert` ks
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkLeft `Set.delete` ks
-    isRight <- liftIO $ RL.isKeyDown RL.KeyRight
+    isRight <- liftIO $ RL.isKeyDown RL.KeyD
     if isRight then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkRight `Set.insert` ks
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkRight `Set.delete` ks
-    isUp <- liftIO $ RL.isKeyDown RL.KeyUp
+    isUp <- liftIO $ RL.isKeyDown RL.KeyW
     if isUp then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkUp `Set.insert` ks
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkUp `Set.delete` ks
-    isDown <- liftIO $ RL.isKeyDown RL.KeyDown
+    isDown <- liftIO $ RL.isKeyDown RL.KeyS
     if isDown then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkDown `Set.insert` ks
     else

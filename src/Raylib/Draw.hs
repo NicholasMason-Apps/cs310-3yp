@@ -48,18 +48,17 @@ updateCamera = do
         yaw' = yaw - mdx * 0.3
         rp = pitch' * deg2Rad
         ry = yaw' * deg2Rad
-    set global $ CameraAngle $ Just (yaw', pitch')
     case gs of
         DungeonState -> cmapM_ $ \(Player, Position (V2 px py)) -> do
             let playerPos = RL.Vector3 px 2.0 (-py)
                 forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
                 targetPos = playerPos + forward
+            set global $ CameraAngle $ Just (yaw', pitch')
             set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
-        CombatState -> cmapM_ $ \CombatPlayer -> do
-            let playerPos = RL.Vector3 (-1280/3) 2.0 0
-                forward = RL.Vector3 (cos rp * sin ry) (sin rp) (cos ry * cos rp)
-                targetPos = playerPos + forward
-            set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
+        CombatState -> cmapM_ $ \(CombatEnemy _, Position (V2 ex ey)) -> do
+            let camPos = RL.Vector3 (-1280/3) 2.0 0
+                targetPos = RL.Vector3 ex 1.0 ey
+            set global $ RaylibCamera $ RL.Camera3D camPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
         _ -> return ()
 
 drawBillboard :: SpriteRef -> SpriteMap -> Position -> V2 Bool -> RL.Camera3D -> IO ()
@@ -282,8 +281,13 @@ drawCombat = do
     uiState <- get global :: System' UIState
     liftIO $ do
         RL.beginMode3D cam
-    cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3) 0 - V2 (1280/2) 0)) (V2 False False) cam
-    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawBillboard sref smap (Position (pos - V2 (1280/2) 0)) (V2 False False) cam
+    cmapM_ $ \(CombatWall, pos, sref) -> do
+        liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [FrontFace, BackFace, LeftFace, RightFace])
+    cmapM_ $ \(CombatTile, pos, sref) -> do
+        liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [TopFace])
+    cmapM_ $ \(CombatEnemy _, sref) -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3) 0 - V2 (1280/2) 0)) (V2 False False) cam
+    cmapM_ $ \(Particle _, Position pos, sref) -> do
+        liftIO $ drawBillboard sref smap (Position ((pos * V2 0.27 1) - V2 (1280/3) 0 + V2 80 0)) (V2 False False) cam
     liftIO $ do
         RL.endMode3D
     when (turn == PlayerTurn) $ liftIO $ case uiState of
@@ -297,8 +301,6 @@ drawDungeon = do
     smap <- get global :: System' SpriteMap
     liftIO $ do
         RL.beginMode3D cam
-    -- cmapM_ $ \(Player, pos) -> do
-    --     liftIO $ RL.drawCube (worldTo3D pos) 32 5 32 RL.yellow
     cmapM_ $ \(Wall, pos, sref) -> do
         liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [FrontFace, BackFace, LeftFace, RightFace])
     cmapM_ $ \(Floor, pos, sref) -> do
@@ -307,6 +309,8 @@ drawDungeon = do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
         RL.endMode3D
+    playerHealth <- cfold (\acc (Player, Health hp) -> Just hp) Nothing
+    liftIO $ RL.drawText ("Health: " ++ maybe "N/A" show playerHealth) 700 10 20 RL.white
 
 draw :: System' ()
 draw = do

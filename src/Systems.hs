@@ -45,14 +45,29 @@ initialize spriteList = do
         getTileSprite = do
             n <- randomRIO (1,tileCount) :: IO Integer
             return $ "tile" ++ show n
+        getWallSprite :: IO String
+        getWallSprite = do
+            n <- randomRIO (1,wallTopCount) :: IO Integer
+            return $ "wall-top" ++ show n
     tileList <- liftIO $ sequence [ do
-        s <- getTileSprite
-        let sref = SpriteRef s Nothing
+        t <- getTileSprite
+        w <- getWallSprite
+        let c = if x == -1 || x == ceiling (1280 / tileSize)+1 || y == -1 || y == ceiling (720 / tileSize)+1 then
+                    'W'
+                else
+                    'T'
+            sref = if c == 'W' then
+                SpriteRef w Nothing
+            else
+                SpriteRef t Nothing
             pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize))
-        return (sref, pos)
-        | x <- [0..ceiling (1280 / tileSize)], y <- [0..ceiling (720 / tileSize)] ]
-    forM_ tileList $ \(s, p) -> do
-        void $ newEntity (CombatTile, p, s)
+            
+        return (sref, pos, c)
+        | x <- [-1..ceiling (1280 / tileSize)+1], y <- [-1..ceiling (720 / tileSize)+1] ]
+    forM_ tileList $ \(s, p, c) -> do
+        case c of
+            'W' -> void $ newEntity (CombatWall, p, s)
+            _ -> void $ newEntity (CombatTile, p, s)
 
 incrementTime :: Float -> System' ()
 incrementTime dT = modify global $ \(Time t) -> Time (t + dT)

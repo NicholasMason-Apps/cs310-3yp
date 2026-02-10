@@ -47,7 +47,6 @@ draw = do
     SpriteMap smap <- get global
     Viewport (w, h) <- get global
     drawTransitionPic <- drawTransition
-    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
     particles <- foldDraw $ \(Particle _, pos, s) -> translate' pos $ getSpritePicture smap s
     let
         scaleFactorX = fromIntegral w / 1280
@@ -90,7 +89,8 @@ drawDungeon = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    let world = tiles <> player <> enemies <>  playerBox <> enemyBoxes
+    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.3 0.3 . Text $ "Health: " ++ show hp
+    let world = tiles <> player <> enemies <>  playerHealth
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world
@@ -112,4 +112,5 @@ drawCombat = do
         else
             return $ player <> enemy
     tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
-    return $ tiles <> enemyPlayerLayer <> ui
+    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.3 0.3 . Text $ "Health: " ++ show hp
+    return $ tiles <> enemyPlayerLayer <> ui <> playerHealth

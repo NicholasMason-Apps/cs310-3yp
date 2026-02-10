@@ -29,10 +29,14 @@ import System.IO.Unsafe (unsafePerformIO)
 import Utils
 import Types (RendererSystem(GlossRenderer))
 import Input
+import Control.Monad.IO.Class (MonadIO)
 
 
 loadSprite :: SDL.Renderer -> FilePath -> SDL.Texture
 loadSprite r path = unsafePerformIO $ loadTexture r ("assets/" ++ path)
+
+loadFont :: MonadIO m => FilePath -> Int -> m SDL.Font.Font
+loadFont path size = SDL.Font.load ("assets/" ++ path) size
 
 initialize :: SDL.WindowConfig -> SDL.Renderer -> System' ()
 initialize w r = do
@@ -173,10 +177,10 @@ initialize w r = do
 
 inputBindings :: KeyBindings SDL.Keycode
 inputBindings = KeyBindings $ Map.fromList [
-        (SDL.KeycodeUp, GkUp),
-        (SDL.KeycodeDown, GkDown),
-        (SDL.KeycodeLeft, GkLeft),
-        (SDL.KeycodeRight, GkRight),
+        (SDL.KeycodeW, GkUp),
+        (SDL.KeycodeS, GkDown),
+        (SDL.KeycodeA, GkLeft),
+        (SDL.KeycodeD, GkRight),
         (SDL.KeycodeSpace, GkSpace),
         (SDL.KeycodeEscape, GkEsc),
         (SDL.KeycodeE, GkE),
