@@ -143,3 +143,7 @@ For progress report:
 # Term 2 Week 2-5
 - Most work has been the translation between the 2d game into 3d game, with a lot of it being texture drawing as both billboards and 3d objects
 - raylib's examples have been extremely helpful, as the `h-raylib` library is a 1:1 mapping between them
+
+# Term 2 Week 5
+- This week saw the completion of 3D texture rendering for raylib, meaning that the basis of that rendering system are now complete
+    - Completion was simple - since the h-raylib library is a 1:1 mapping between Haskell and the C API, all the raylib tutorials can be translated, and luckily a Raylib example exists that solves this exact issue
