@@ -38,9 +38,8 @@ instance Monoid RaylibCamera where
 instance Component RaylibCamera where type Storage RaylibCamera = Global RaylibCamera  
 
 
-newtype FontResource = FontResource (RendererSystem () SDL.Font.Font ()) deriving Show
 
-newtype FontMap = FontMap (Map.Map String FontResource)
+newtype FontMap = FontMap (Map.Map String (RendererSystem () SDL.Font.Font ()))
 instance Semigroup FontMap where
     (FontMap m1) <> (FontMap m2) = FontMap (m1 `mappend` m2)
 instance Monoid FontMap where
@@ -258,6 +257,18 @@ type FPS = Int
 
 data Face = FrontFace | BackFace | LeftFace | RightFace | TopFace | BottomFace deriving (Show, Eq, Ord)
 
+
+-- UI Components
+data Button = Button deriving Show
+instance Component Button where type Storage Button = Map Button
+
+newtype IsClicked = IsClicked Bool
+instance Component IsClicked where type Storage IsClicked = Map IsClicked
+
+newtype TextLabel = TextLabel String deriving Show
+instance Component TextLabel where type Storage TextLabel = Map TextLabel
+
+
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
@@ -290,7 +301,11 @@ makeWorld "World" [''Position,
                     ''RaylibCamera,
                     ''CameraAngle,
                     ''Floor,
-                    ''CombatWall
+                    ''CombatWall,
+                    ''FontMap,
+                    ''Button,
+                    ''IsClicked,
+                    ''TextLabel
                     ]
 
 type System' a = System World a

@@ -173,6 +173,8 @@ initialize w r = do
                         ("transition", Sprite (2500, 2500) (SDLRenderer (loadSprite r "ui/transition.png", Nothing))),
                         ("ladder", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/ladder.png", Nothing )))
                     ]
+    font <- loadFont "Roboto-Regular.ttf" 16
+    set global $ FontMap $ Map.fromList [("roboto", SDLRenderer font)]
     Sys.initialize spriteList
 
 inputBindings :: KeyBindings SDL.Keycode

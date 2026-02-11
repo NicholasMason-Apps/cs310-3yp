@@ -30,6 +30,28 @@ import qualified Data.Set as Set
 import Utils
 import Foreign.C (CInt(CInt), CFloat (CFloat))
 
+drawText :: SDL.Renderer -> SDL.Font.Color -> Position -> FontMap -> String -> IO ()
+drawText r col (Position pos) (FontMap fm) str = do
+    let font = fm Map.! "roboto"
+    case font of
+        SDLRenderer font' -> do
+            (tex, size) <- generateSolidText r font' col str
+            SDL.copy r tex Nothing (Just $ round <$> SDL.Rectangle (SDL.P pos) size)
+            SDL.destroyTexture tex
+        _ -> return ()
+
+-- Render text to screen easily
+generateText :: SDL.Renderer -> SDL.Font.Font -> (SDL.Font.Color -> T.Text -> IO SDL.Surface) -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Float)
+generateText r font f col str = do
+    let text = T.pack str
+    surface <- f col text
+    tex <- SDL.createTextureFromSurface r surface
+    SDL.freeSurface surface
+    (w,h) <- SDL.Font.size font text
+    pure (tex, fromIntegral <$> V2 w h)
+
+generateSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Float)
+generateSolidText r font = generateText r font (SDL.Font.solid font)
 
 -- Draw a sprite given its SpriteRef and position
 -- For sprite sheets, use the frame number to determine which part of the sheet to draw by applying a cropping rectangle
@@ -108,8 +130,13 @@ drawCombat r fps = do
 draw :: SDL.Renderer -> FPS -> System' ()
 draw r fps = do
     gs <- get global
+    fm <- get global :: System' FontMap
     case gs of
-        DungeonState -> drawDungeon r fps
-        CombatState  -> drawCombat r fps
+        DungeonState -> do
+            cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
+            drawDungeon r fps
+        CombatState  -> do
+            cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
+            drawCombat r fps
         _ -> return () -- drawMenuOrPause r fps
     drawTransition r fps

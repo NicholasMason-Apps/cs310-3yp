@@ -56,7 +56,7 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic ) -- <> playerHealth)
+    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic )
 
 drawDungeon :: System' Picture
 drawDungeon = do

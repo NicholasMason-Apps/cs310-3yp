@@ -56,7 +56,7 @@ updatePlayerMovement :: System' ()
 updatePlayerMovement = do
     KeysPressed ks <- get global
     CameraAngle ca <- get global
-    liftIO $ putStrLn $ "Camera angle: " ++ show ca
+    -- liftIO $ putStrLn $ "Camera angle: " ++ show ca
     mTr <- cfold (\_ (Transition {}) -> Just ()) Nothing
     if isNothing mTr then
         cmapM_ $ \(Player, Velocity _, SpriteRef sr mn, e) -> do

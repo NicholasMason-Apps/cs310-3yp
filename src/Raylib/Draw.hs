@@ -293,6 +293,7 @@ drawCombat = do
     when (turn == PlayerTurn) $ liftIO $ case uiState of
         CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
         CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
+    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 700 10 20 RL.white
 
 
 drawDungeon :: System' ()
@@ -309,8 +310,7 @@ drawDungeon = do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
         RL.endMode3D
-    playerHealth <- cfold (\acc (Player, Health hp) -> Just hp) Nothing
-    liftIO $ RL.drawText ("Health: " ++ maybe "N/A" show playerHealth) 700 10 20 RL.white
+    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 700 10 20 RL.white
 
 draw :: System' ()
 draw = do
