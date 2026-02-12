@@ -41,11 +41,17 @@ enemyReaperAttackFrames = Set.fromList [6, 11]
 enemyGoldenReaperAttackFrames :: Set.Set Int
 enemyGoldenReaperAttackFrames = Set.fromList [6, 11]
 
+playerShieldFrames :: Set.Set Int
+playerShieldFrames = Set.fromList [1,2,3]
+
 playerDamage :: Int
 playerDamage = 20
 
 enemyDamage :: Int
 enemyDamage = 5
+
+bossDamage :: Int
+bossDamage = 15
 
 stepPlayerTurn :: Float -> System' ()
 stepPlayerTurn dT = do
@@ -101,34 +107,35 @@ stepPlayerAttack dT = do
         when attackHitCondition $ cmapM_ $ \(CombatEnemy e', SpriteRef sr' _, ce) -> do
             enemy <- get e' :: System' Enemy
             Health hp <- get e' :: System' Health
-            if hp - playerDamage > 0 then
-                case enemyType enemy of
-                    Reaper -> when (sr' /= "reaper-hit") $ do
-                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                        set ce (SpriteRef "reaper-hit" (Just 1))
-                    Vampire -> when (sr' /= "vampire-hit") $ do
-                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                        set ce (SpriteRef "vampire-hit" (Just 1))
-                    Skeleton -> when (sr' /= "skeleton-hit") $ do
-                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                        set ce (SpriteRef "skeleton-hit" (Just 1))
-                    GoldenReaper -> when (sr' /= "golden-reaper-hit") $ do
-                        modify e' $ \(Health hp) -> Health (hp - playerDamage)
-                        set ce (SpriteRef "golden-reaper-hit" (Just 1))
-            else
-                case enemyType enemy of
-                    Reaper -> when (sr' /= "reaper-death") $ do
-                        set ce (SpriteRef "reaper-death" (Just 1))
-                        set global $ CombatTurn PlayerWin
-                    Vampire -> when (sr' /= "vampire-death") $ do
-                        set ce (SpriteRef "vampire-death" (Just 1))
-                        set global $ CombatTurn PlayerWin
-                    Skeleton -> when (sr' /= "skeleton-death") $ do
-                        set ce (SpriteRef "skeleton-death" (Just 1))
-                        set global $ CombatTurn PlayerWin
-                    GoldenReaper -> when (sr' /= "golden-reaper-death") $ do
-                        set ce (SpriteRef "golden-reaper-death" (Just 1))
-                        set global $ CombatTurn PlayerWin
+            when (sr' == "skeleton-idle" || sr' == "vampire-idle" || sr' == "reaper-idle" || sr' == "golden-reaper-idle") $ do
+                if hp - playerDamage > 0 then
+                    case enemyType enemy of
+                        Reaper -> when (sr' /= "reaper-hit") $ do
+                            modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                            set ce (SpriteRef "reaper-hit" (Just 1))
+                        Vampire -> when (sr' /= "vampire-hit") $ do
+                            modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                            set ce (SpriteRef "vampire-hit" (Just 1))
+                        Skeleton -> when (sr' /= "skeleton-hit") $ do
+                            modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                            set ce (SpriteRef "skeleton-hit" (Just 1))
+                        GoldenReaper -> when (sr' /= "golden-reaper-hit") $ do
+                            modify e' $ \(Health hp) -> Health (hp - playerDamage)
+                            set ce (SpriteRef "golden-reaper-hit" (Just 1))
+                else
+                    case enemyType enemy of
+                        Reaper -> when (sr' /= "reaper-death") $ do
+                            set ce (SpriteRef "reaper-death" (Just 1))
+                            set global $ CombatTurn PlayerWin
+                        Vampire -> when (sr' /= "vampire-death") $ do
+                            set ce (SpriteRef "vampire-death" (Just 1))
+                            set global $ CombatTurn PlayerWin
+                        Skeleton -> when (sr' /= "skeleton-death") $ do
+                            set ce (SpriteRef "skeleton-death" (Just 1))
+                            set global $ CombatTurn PlayerWin
+                        GoldenReaper -> when (sr' /= "golden-reaper-death") $ do
+                            set ce (SpriteRef "golden-reaper-death" (Just 1))
+                            set global $ CombatTurn PlayerWin
         when (sr == "player-idle" && isNothing particle) $ do
             set global $ CombatTurn EnemyTurn
             set e (Position (V2 ((-1280 / 3)) 0))
@@ -140,21 +147,23 @@ stepEnemyAttack dT = do
             set global $ CombatTurn PlayerTurn
             set e (Position (V2 (1280 / 3) 0))
         enemy <- get e' :: System' Enemy
+        KeysPressed ks <- get global
+        cmapM_ $ \(CombatPlayer, SpriteRef sr' _, cp) -> do
+            when (sr' == "player-idle" && (GkF `Set.member` ks)) $ do
+                set cp (SpriteRef "player-shield" (Just 0))
+                set global $ ShieldCooldown 1.0
         case enemyType enemy of
-            Skeleton -> when (fromMaybe 0 n `Set.member` enemySkeletonAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
-                when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
-                    set cp (SpriteRef "player-hit" (Just 1))
-            Vampire -> when (fromMaybe 0 n `Set.member` enemyVampireAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
-                when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
-                    set cp (SpriteRef "player-hit" (Just 1))
-            Reaper -> when (fromMaybe 0 n `Set.member` enemyReaperAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
-                when (sr' /= "player-hit") $ do
-                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
-                    set cp (SpriteRef "player-hit" (Just 1))
-            GoldenReaper -> when (fromMaybe 0 n `Set.member` enemyGoldenReaperAttackFrames) $ cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' _) -> do
-                when (sr' /= "player-hit") $ do
+            Skeleton -> when (fromMaybe 0 n `Set.member` enemySkeletonAttackFrames) hitPlayer
+            Vampire -> when (fromMaybe 0 n `Set.member` enemyVampireAttackFrames) hitPlayer
+            Reaper -> when (fromMaybe 0 n `Set.member` enemyReaperAttackFrames) hitPlayer
+            GoldenReaper -> when (fromMaybe 0 n `Set.member` enemyGoldenReaperAttackFrames) hitPlayer
+    where
+        hitPlayer = cmapM_ $ \(CombatPlayer, cp, SpriteRef sr' n) -> do
+            when (sr' /= "player-hit") $ do
+                if sr' == "player-shield" && fromMaybe 0 n `Set.member` playerShieldFrames then do
+                    modify global $ \(ShieldCooldown _) -> ShieldCooldown 0
+                    void $ newEntity (FloatingText 0 1.0, Position (V2 (-1280 / 3) (-20)), TextLabel "Blocked!", Velocity (V2 0 20))
+                else do
                     cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
                     set cp (SpriteRef "player-hit" (Just 1))
 stepEnemyTurn :: Float -> System' ()
@@ -182,7 +191,7 @@ stepEnemyTurn dT = do
 stepPlayerWin :: Float -> System' ()
 stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
     cmapIf (\(CombatPlayer, SpriteRef sr' _) -> sr' == "player-idle") (\CombatPlayer -> Position (V2 ((-1280 / 3)) 0))
-    when (sr == "vampire-death" || sr == "skeleton-death" || sr == "reaper-death") $ do
+    when (sr == "vampire-death" || sr == "skeleton-death" || sr == "reaper-death" || sr == "golden-reaper-death") $ do
         SpriteMap smap <- get global
         let Sprite _ spriteE = smap Map.! sr
             anim = case spriteE of

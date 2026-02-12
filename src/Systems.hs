@@ -70,7 +70,9 @@ initialize spriteList = do
             _ -> void $ newEntity (CombatTile, p, s)
 
 incrementTime :: Float -> System' ()
-incrementTime dT = modify global $ \(Time t) -> Time (t + dT)
+incrementTime dT = do
+    modify global $ \(Time t) -> Time (t + dT)
+    modify global $ \(ShieldCooldown sc) -> ShieldCooldown (max 0 (sc - dT))
 
 -- Remove Velocity component from particles whose destination position has been reached
 -- When a particle finishes its animation, remove it from the world
@@ -140,6 +142,12 @@ stepTransition dT = cmapM_ $ \(Transition p ang spd fired event, e) -> do
     else
         set e Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = fired || p' >= 0.5, trEvent = event }
 
+stepFloatingText :: Float -> System' ()
+stepFloatingText dt = cmapM_ $ \(ft, e) -> if currLifetime ft + dt >= lifetime ft then 
+        destroy e (Proxy @(FloatingText, Position, TextLabel, Velocity))
+    else 
+        set e $ ft { currLifetime = currLifetime ft + dt }
+
 -- TODO: Add boundary box collision check and stop player movement
 step :: Float -> System' ()
 step dT = do
@@ -148,6 +156,7 @@ step dT = do
     stepAnimations dT
     stepParticles dT
     stepTransition dT
+    stepFloatingText dT
     case gs of
         DungeonState -> stepDungeon dT
         CombatState  -> stepCombat dT

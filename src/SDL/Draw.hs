@@ -133,10 +133,11 @@ draw r fps = do
     fm <- get global :: System' FontMap
     case gs of
         DungeonState -> do
-            cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
             drawDungeon r fps
-        CombatState  -> do
             cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
+        CombatState  -> do
             drawCombat r fps
+            cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
         _ -> return () -- drawMenuOrPause r fps
     drawTransition r fps
+    cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (worldToScreen pos Nothing) fm str

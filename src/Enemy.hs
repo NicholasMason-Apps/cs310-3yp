@@ -40,8 +40,8 @@ makeEnemy enemy pos = do
             Skeleton -> (SpriteRef "skeleton-idle" (Just 0), BoundaryBox (24, 26) (-2, -11))
             GoldenReaper -> (SpriteRef "golden-reaper-idle" (Just 0), BoundaryBox (16, 26) (-1, -12))
     n <- case enemyType enemy of
-        GoldenReaper -> liftIO $ randomRIO (100, 150)
-        _ -> liftIO $ randomRIO (25, 45)
+        GoldenReaper -> liftIO $ randomRIO (150, 200)
+        _ -> liftIO $ randomRIO (35, 50)
     newEntity (enemy, pos, Velocity (V2 0 0), sref, bbox, Health n)
 
 stepEnemyAI :: System' ()

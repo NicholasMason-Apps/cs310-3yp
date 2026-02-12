@@ -95,6 +95,7 @@ data GameKey = GkUp
             | GkE
             | GkSpace
             | GkQ
+            | GkF
             deriving (Show, Eq, Ord)
 
 newtype KeyBindings rawKey = KeyBindings (Map.Map rawKey GameKey)
@@ -238,6 +239,16 @@ instance Component CombatTile where type Storage CombatTile = Map CombatTile
 data CombatWall = CombatWall deriving (Show)
 instance Component CombatWall where type Storage CombatWall = Map CombatWall
 
+newtype ShieldCooldown = ShieldCooldown Float deriving (Show, Num)
+instance Semigroup ShieldCooldown where
+    (<>) :: ShieldCooldown -> ShieldCooldown -> ShieldCooldown
+    (ShieldCooldown sc1) <> (ShieldCooldown sc2) = ShieldCooldown (sc1 + sc2) 
+instance Monoid ShieldCooldown where
+    mempty :: ShieldCooldown
+    mempty = ShieldCooldown 0
+instance Component ShieldCooldown where type Storage ShieldCooldown = Global ShieldCooldown
+
+
 data TransitionEvent = ToCombat | ToDungeon | ToNextLevel deriving (Show, Eq)
 
 -- Transition Components
@@ -268,6 +279,11 @@ instance Component IsClicked where type Storage IsClicked = Map IsClicked
 newtype TextLabel = TextLabel String deriving Show
 instance Component TextLabel where type Storage TextLabel = Map TextLabel
 
+data FloatingText = FloatingText {
+    currLifetime :: Float,
+    lifetime :: Float
+} deriving Show
+instance Component FloatingText where type Storage FloatingText = Map FloatingText
 
 -- Define all the components in the world
 makeWorld "World" [''Position,
@@ -305,7 +321,9 @@ makeWorld "World" [''Position,
                     ''FontMap,
                     ''Button,
                     ''IsClicked,
-                    ''TextLabel
+                    ''TextLabel,
+                    ''ShieldCooldown,
+                    ''FloatingText
                     ]
 
 type System' a = System World a

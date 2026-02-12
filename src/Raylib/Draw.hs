@@ -35,6 +35,7 @@ import Data.Maybe (fromMaybe)
 import Utils
 import Control.Monad
 import System.Random (randomRIO)
+import SDL.Draw (worldToScreen)
 
 updateCamera :: System' ()
 updateCamera = do
@@ -56,8 +57,9 @@ updateCamera = do
             set global $ CameraAngle $ Just (yaw', pitch')
             set global $ RaylibCamera $ RL.Camera3D playerPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
         CombatState -> cmapM_ $ \(CombatEnemy _, Position (V2 ex ey)) -> do
-            let camPos = RL.Vector3 (-1280/3) 2.0 0
-                targetPos = RL.Vector3 ex 1.0 ey
+            let camPos = RL.Vector3 (-1280/3 - 40) 2.0 120
+                -- V2 (1280/3) 0 - V2 (1280/2) 0
+                targetPos = RL.Vector3 (1280/3) 1.0 (ey - 30) - RL.Vector3 (1280/2 + 70) 0 0
             set global $ RaylibCamera $ RL.Camera3D camPos targetPos (RL.Vector3 0 1 0) 70 RL.CameraPerspective
         _ -> return ()
 
@@ -66,7 +68,7 @@ drawBillboard (SpriteRef str Nothing) (SpriteMap smap) pos flip cam = let
         (Sprite _ rs) = smap Map.! str
     in
         case rs of
-            RaylibRenderer (t, _) -> RL.drawBillboard cam t (worldTo3D pos) 10 RL.white
+            RaylibRenderer (t, _) -> RL.drawBillboard cam t (worldTo3D pos) 64 RL.white
             _ -> putStrLn "Error: incorrect renderer used in Raylib rendering system."
 drawBillboard (SpriteRef str (Just frameNum)) (SpriteMap smap) pos flip cam = let
         (Sprite (w,h) rs) = smap Map.! str
@@ -285,15 +287,20 @@ drawCombat = do
         liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [FrontFace, BackFace, LeftFace, RightFace])
     cmapM_ $ \(CombatTile, pos, sref) -> do
         liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [TopFace])
-    cmapM_ $ \(CombatEnemy _, sref) -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3) 0 - V2 (1280/2) 0)) (V2 False False) cam
+    cmapM_ $ \(CombatEnemy _, Position pos, sref) -> case pos of
+            V2 x y | x == 1280 / 3 && y == 0 -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3) 0 - V2 (1280/2) 0)) (V2 False False) cam
+            _ -> liftIO $ drawBillboard sref smap (Position pos) (V2 False False) cam
+    cmapM_ $ \(CombatPlayer, Position pos, sref) -> case pos of
+        V2 x y | x == 1280 / 3 - tileSize && y == 0 -> liftIO $ drawBillboard sref smap (Position (V2 (1280/3 - tileSize) 0 - V2 (1280/2) 0)) (V2 False False) cam
+        _ -> liftIO $ drawBillboard sref smap (Position pos) (V2 False False) cam
     cmapM_ $ \(Particle _, Position pos, sref) -> do
-        liftIO $ drawBillboard sref smap (Position ((pos * V2 0.27 1) - V2 (1280/3) 0 + V2 80 0)) (V2 False False) cam
+        liftIO $ drawBillboard sref smap (Position ((pos * V2 0.18 1) - V2 (1280/3) 0 + V2 80 0)) (V2 False False) cam
     liftIO $ do
         RL.endMode3D
     when (turn == PlayerTurn) $ liftIO $ case uiState of
         CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
         CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
-    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 700 10 20 RL.white
+    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
 
 
 drawDungeon :: System' ()
@@ -308,9 +315,12 @@ drawDungeon = do
         liftIO $ drawTexturedQuad sref smap pos (V2 False False) (Set.fromList [TopFace])
     cmapM_ $ \(Enemy _, pos, sref) -> do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
+    cmapM_ $ \(Ladder, pos, sref) -> do
+        liftIO $ drawTexturedQuad (SpriteRef "tile1" Nothing) smap pos (V2 False False) (Set.fromList [TopFace])
+        liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
         RL.endMode3D
-    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 700 10 20 RL.white
+    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
 
 draw :: System' ()
 draw = do
@@ -323,6 +333,9 @@ draw = do
         CombatState -> drawCombat
         _ -> return ()
     drawTransition
+    cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> do
+        let (Position (V2 x y)) = worldToScreen pos Nothing
+        liftIO $ RL.drawText str (round x) (round y) 20 RL.white
     liftIO $ do
         RL.drawFPS 10 10
         RL.endDrawing

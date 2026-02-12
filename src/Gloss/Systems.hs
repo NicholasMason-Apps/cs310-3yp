@@ -62,6 +62,10 @@ initialize = do
                             Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 5, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/hit.png" 5 (320,64), looping = False, afterLoopAnimation = Just "player-idle" }))
                         ),
                         (
+                            "player-shield",
+                            Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 6, frameSpeed = 0.1, sprites = Just $ loadAnimatedSprite "player/shield.png" 6 (384,64), looping = False, afterLoopAnimation = Just "player-idle" }))
+                        ),
+                        (
                             "skeleton-idle",
                             Sprite (64,64) (GlossRenderer (Right $ Animation { frameCount = 6, frameSpeed = 0.3, sprites = Just $ loadAnimatedSprite "enemies/skeleton/idle.png" 6 (384,64), looping = True, afterLoopAnimation = Nothing }))
                         ),
@@ -175,7 +179,8 @@ inputBindings = KeyBindings $ Map.fromList [
         (SpecialKey KeySpace, GkSpace),
         (SpecialKey KeyEsc, GkEsc),
         (Char 'e', GkE),
-        (Char 'q', GkQ)
+        (Char 'q', GkQ),
+        (Char 'f', GkF)
     ]
 
 handleEvent :: Event -> System' ()

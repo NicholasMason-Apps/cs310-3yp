@@ -70,6 +70,10 @@ initialize w r = do
                             Sprite (320,64) (SDLRenderer (loadSprite r "player/hit.png", Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
                         ),
                         (
+                            "player-shield",
+                            Sprite (384,64) (SDLRenderer (loadSprite r "player/shield.png", Just $ Animation { frameCount = 6, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
+                        ),
+                        (
                             "skeleton-idle",
                             Sprite (384,64) (SDLRenderer (loadSprite r "enemies/skeleton/idle.png", Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing, sprites = Nothing }))
                         ),
@@ -186,7 +190,8 @@ inputBindings = KeyBindings $ Map.fromList [
         (SDL.KeycodeSpace, GkSpace),
         (SDL.KeycodeEscape, GkEsc),
         (SDL.KeycodeE, GkE),
-        (SDL.KeycodeQ, GkQ)
+        (SDL.KeycodeQ, GkQ),
+        (SDL.KeycodeF, GkF)
     ]
 
 handlePayload :: [SDL.EventPayload] -> System' ()

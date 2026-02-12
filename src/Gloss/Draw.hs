@@ -56,7 +56,9 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
-    return $ scale scaleFactor scaleFactor (p <> particles <> drawTransitionPic )
+    floatingText <- foldDraw $ \(FloatingText _ _, pos, TextLabel str) -> translate' pos $ color white $ scale 0.1 0.1 $ Text str
+    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-620) 320 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
+    return $ scale scaleFactor scaleFactor (p <> particles <> floatingText <> playerHealth <> drawTransitionPic )
 
 drawDungeon :: System' Picture
 drawDungeon = do
@@ -89,8 +91,7 @@ drawDungeon = do
     let playerVelocityText = case (playerVelocity, playerPos) of
             (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
             _         -> Blank
-    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.3 0.3 . Text $ "Health: " ++ show hp
-    let world = tiles <> player <> enemies <>  playerHealth
+    let world = tiles <> player <> enemies
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world
@@ -112,5 +113,4 @@ drawCombat = do
         else
             return $ player <> enemy
     tiles <- foldDraw $ \(CombatTile, pos, s) -> translate' pos $ getSpritePicture smap s
-    playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-600) 300 . scale 0.3 0.3 . Text $ "Health: " ++ show hp
-    return $ tiles <> enemyPlayerLayer <> ui <> playerHealth
+    return $ tiles <> enemyPlayerLayer <> ui

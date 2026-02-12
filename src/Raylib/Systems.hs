@@ -68,6 +68,10 @@ spriteList = [
             Sprite (320,64) (RaylibRenderer (loadSprite "player/hit.png", Just $ Animation { frameCount = 5, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
         ),
         (
+            "player-shield",
+            Sprite (384,64) (RaylibRenderer (loadSprite "player/shield.png", Just $ Animation { frameCount = 6, frameSpeed = 0.1, looping = False, afterLoopAnimation = Just "player-idle", sprites = Nothing }))
+        ),
+        (
             "skeleton-idle",
             Sprite (384,64) (RaylibRenderer (loadSprite "enemies/skeleton/idle.png", Just $ Animation { frameCount = 6, frameSpeed = 0.3, looping = True, afterLoopAnimation = Nothing, sprites = Nothing }))
         ),
@@ -169,7 +173,7 @@ spriteList = [
         ("combat-attack-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui.png", Nothing ))),
         ("combat-magic-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui-magic.png", Nothing ))),
         ("transition", Sprite (2500, 2500) (RaylibRenderer (loadSprite "ui/transition.png", Nothing))),
-        ("ladder", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/ladder.png", Nothing )))
+        ("ladder", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/ladder-raylib.png", Nothing )))
     ]
 
 initialize :: System' RL.WindowResources
@@ -244,3 +248,8 @@ handleEvents = do
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkQ `Set.insert` ks
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkQ `Set.delete` ks
+    isF <- liftIO $ RL.isKeyPressed RL.KeyF
+    if isF then
+        modify global $ \(KeysPressed ks) -> KeysPressed $ GkF `Set.insert` ks
+    else
+        modify global $ \(KeysPressed ks) -> KeysPressed $ GkF `Set.delete` ks
