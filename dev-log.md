@@ -147,3 +147,5 @@ For progress report:
 # Term 2 Week 5
 - This week saw the completion of 3D texture rendering for raylib, meaning that the basis of that rendering system are now complete
     - Completion was simple - since the h-raylib library is a 1:1 mapping between Haskell and the C API, all the raylib tutorials can be translated, and luckily a Raylib example exists that solves this exact issue
+- This week also saw the extension of combat with a QTE shield mechanic - press the 'F' key at the right time to prevent damage
+    - This was done to deepen gameplay - implementation was not difficult as it only required capturing an additional key input and adding additional logic to the enemy's attack step function, along with a new global component for tracking the player's shield state and cooldown. Overall, was not technically difficult
