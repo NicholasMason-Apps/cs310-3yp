@@ -15,4 +15,4 @@ main = do
     w <- initWorld
     runWith w $ do
         initialize
-        play (InWindow "Dungeon Crawler" (1280, 720) (10, 10)) (makeColorI 37 19 26 255) 60 draw handleEvent step
+        play (InWindow "Hungeon" (1280, 720) (10, 10)) (makeColorI 37 19 26 255) 60 draw handleEvent step

@@ -31,7 +31,7 @@ getSprite :: Map.Map String Sprite -> SpriteRef -> Sprite
 getSprite smap (SpriteRef sr _) = smap Map.! sr
 
 drawTransition :: System' Picture
-drawTransition = foldDraw $ \(Transition p ang _ _ _) -> 
+drawTransition = foldDraw $ \(Transition p ang _ _ _) ->
     let t = easeInOut (min 1 p)
         dist = Utils.lerp (-2000) 2000 t
         dx = dist * cos ang
@@ -55,43 +55,34 @@ draw = do
     p <- case gs of
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
+        MenuState -> drawMenu
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
     floatingText <- foldDraw $ \(FloatingText _ _, pos, TextLabel str) -> translate' pos $ color white $ scale 0.1 0.1 $ Text str
     playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-620) 320 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
     return $ scale scaleFactor scaleFactor (p <> particles <> floatingText <> playerHealth <> drawTransitionPic )
+
+drawMenu :: System' Picture
+drawMenu = do
+    SpriteMap smap <- get global
+    let titleScreen = getSpritePicture smap (SpriteRef "title-screen" Nothing)
+    buttons <- foldDraw $ \(Button _, pos, SpriteRef sref m) -> translate' pos $ getSpritePicture smap (SpriteRef sref m)
+    return $ titleScreen <> buttons
 
 drawDungeon :: System' Picture
 drawDungeon = do
     KeysPressed ks <- get global
     SpriteMap smap <- get global
     playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
-    playerVelocity <- cfold (\_ (Player, Velocity v) -> Just v) Nothing
     player <- foldDraw $ \(Player, pos, s) -> let
             playerPic = getSpritePicture smap s
         in
             if GkLeft `Set.member` ks && GkRight `Set.notMember` ks then translate' pos $ scale (-1) 1 playerPic else translate' pos playerPic
-    playerBox <- foldDraw $ \(Player, BoundaryBox (w,h) (ox,oy)) -> let
-            boxPic = color green $ rectangleWire (fromIntegral w) (fromIntegral h)
-        in
-            case playerPos of
-                Just (Position (V2 px py)) -> translate' (Position (V2 (px + fromIntegral ox) (py + fromIntegral oy))) boxPic
-                Nothing         -> Blank
-    -- targets <- foldDraw $ \(Target, pos) -> translate' pos $ color red $ scale 10 10 diamond
     enemies <- foldDraw $ \(Enemy _, pos, s) -> translate' pos $ getSpritePicture smap s
-    enemyBoxes <- foldDraw $ \(Enemy _, Position (V2 x y), BoundaryBox (w,h) (ox,oy)) -> let
-            boxPic = color blue $ rectangleWire (fromIntegral w) (fromIntegral h)
-        in
-            translate' (Position (V2 (x + fromIntegral ox) (y + fromIntegral oy))) boxPic
+    items <- foldDraw $ \(Item, pos, s) -> translate' pos $ getSpritePicture smap s
     tiles <- foldDraw $ \(Tile, pos, s) -> if isSpriteInView playerPos (getSprite smap s) pos
         then translate' pos $ getSpritePicture smap s
         else Blank
-    let playerPosText = case playerPos of
-            Just (Position (V2 x y)) -> color white $ translate' (Position (V2 (x-50) (y+20))) $ scale 0.1 0.1 $ Text $ "Position: (" ++ show (round x) ++ "," ++ show (round y) ++ ")"
-            Nothing       -> Blank
-    let playerVelocityText = case (playerVelocity, playerPos) of
-            (Just (V2 vx vy), Just (Position (V2 x y))) -> color white $ translate' (Position (V2 (x-50) (y+50))) $ scale 0.1 0.1 $ Text $ "Velocity: (" ++ show (round vx) ++ "," ++ show (round vy) ++ ")"
-            _         -> Blank
-    let world = tiles <> player <> enemies
+    let world = tiles <> player <> enemies <> items
     let camera = case playerPos of
             Just (Position (V2 x y)) -> translate (-x) (-y) world
             Nothing       -> world

@@ -27,7 +27,7 @@ main = do
 
     -- Create window and renderer
     let windowConfig = SDL.defaultWindow { SDL.windowInitialSize = SDL.V2 1280 720, SDL.windowMode = SDL.Windowed, SDL.windowHighDPI = True, SDL.windowResizable = False }
-    window <- SDL.createWindow (T.pack "Dungeon Crawler") windowConfig
+    window <- SDL.createWindow (T.pack "Hungeon") windowConfig
     
     let rendererConfig = SDL.defaultRenderer { SDL.rendererType = SDL.AcceleratedVSyncRenderer, SDL.rendererTargetTexture = False }
     renderer <- SDL.createRenderer window (-1) rendererConfig

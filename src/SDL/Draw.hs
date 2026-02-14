@@ -28,7 +28,6 @@ import Data.Maybe (fromMaybe)
 import Dungeon
 import qualified Data.Set as Set
 import Utils
-import Foreign.C (CInt(CInt), CFloat (CFloat))
 
 drawText :: SDL.Renderer -> SDL.Font.Color -> Position -> FontMap -> String -> IO ()
 drawText r col (Position pos) (FontMap fm) str = do
@@ -75,12 +74,10 @@ drawSprite (SpriteRef str (Just frameNum)) (SpriteMap smap) (Position pos) (sw,s
                 SDL.copyEx r t (Just srcRect) (Just dstRect) 0 Nothing flip
             _ -> putStrLn "Error: incorrect renderer used in SDL rendering system."
 
-worldToScreen :: Position -> Maybe Position -> Position
-worldToScreen (Position (V2 x y)) playerPos = case playerPos of
-    Just (Position (V2 px py)) -> Position (V2 (x - px + 1280/2 - pw/2) ((-y) + py + 720/2 - ph/2))
-    Nothing -> Position (V2 (x + 1280/2 - tileSize / 2) ((-y) + 720/2 - tileSize / 2))
-    where
-        (pw,ph) = (64,64)
+worldToScreen :: Position -> Maybe Position -> Int -> Int -> Position
+worldToScreen (Position (V2 x y)) playerPos w h = case playerPos of
+    Just (Position (V2 px py)) -> Position (V2 (x - px + 1280/2 - fromIntegral w/2) ((-y) + py + 720/2 - fromIntegral h/2))
+    Nothing -> Position (V2 (x + 1280/2 - fromIntegral w/2) ((-y) + 720/2 - fromIntegral h/2))
 
 drawTransition :: SDL.Renderer -> FPS -> System' ()
 drawTransition r fps = do
@@ -91,7 +88,7 @@ drawTransition r fps = do
             dx = dist * cos ang
             dy = dist * sin ang
             (Sprite (w,h) rs) = smap Map.! "transition"
-            (Position pos) = worldToScreen (Position (V2 (dx - fromIntegral w + 1200) (dy + 1200))) Nothing
+            (Position pos) = worldToScreen (Position (V2 (dx - fromIntegral w + 1200) (dy + 1200))) Nothing 64 64
             pos' = SDL.Rectangle (SDL.P (floor <$> pos)) (V2 (fromIntegral w) (fromIntegral h))
             angleDeg = realToFrac (ang * 180/pi)
         case rs of
@@ -106,23 +103,31 @@ drawDungeon r fps = do
     smap <- get global :: System' SpriteMap
     KeysPressed ks <- get global
     playerPos <- cfold (\_ (Player, p) -> Just p) Nothing
-    cmapM_ $ \(Tile, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
-    cmapM_ $ \(Enemy _, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) (V2 False False) r
+    cmapM_ $ \(Tile, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos 64 64) (1,1) (V2 False False) r
+    cmapM_ $ \(Enemy _, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos 64 64) (1,1) (V2 False False) r
+    cmapM_ $ \(Item, pos, sref) -> when (isSpriteInView playerPos (getSprite smap sref) pos) $ liftIO $ drawSprite sref smap (worldToScreen pos playerPos 64 64) (1,1) (V2 False False) r
     cmapM_ $ \(Player, pos, sref) -> let
             flip = if GkLeft `Set.member` ks && GkRight `Set.notMember` ks then V2 True False else V2 False False
         in
-            liftIO $ drawSprite sref smap (worldToScreen pos playerPos) (1,1) flip r
+            liftIO $ drawSprite sref smap (worldToScreen pos playerPos 64 64) (1,1) flip r
 
+drawMenu :: SDL.Renderer -> FPS -> System' ()
+drawMenu r fps = do
+    SpriteMap smap <- get global :: System' SpriteMap
+    liftIO $ drawSprite (SpriteRef "title-screen" Nothing) (SpriteMap smap) (Position (V2 0 0)) (1,1) (V2 False False) r
+    cmapM_ $ \(Button _, pos, SpriteRef sref m) -> do
+        let (Sprite (w,h) _) = smap Map.! sref
+        liftIO $ drawSprite (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h) (1,1) (V2 False False) r
 
 drawCombat :: SDL.Renderer -> FPS -> System' ()
 drawCombat r fps = do
     smap <- get global :: System' SpriteMap
     CombatTurn turn <- get global
     uiState <- get global :: System' UIState
-    cmapM_ $ \(CombatTile, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos Nothing) (1,1) (V2 False False) r
-    cmapM_ $ \(CombatPlayer, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 False False) r
-    cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing) (2,2) (V2 True False) r
-    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-16) 16)) Nothing) (1,1) (V2 False False) r
+    cmapM_ $ \(CombatTile, pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen pos Nothing 64 64) (1,1) (V2 False False) r
+    cmapM_ $ \(CombatPlayer, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing 64 64) (2,2) (V2 False False) r
+    cmapM_ $ \(CombatEnemy _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-32) 32)) Nothing 64 64) (2,2) (V2 True False) r
+    cmapM_ $ \(Particle _, Position pos, sref) -> liftIO $ drawSprite sref smap (worldToScreen (Position (pos + V2 (-16) 16)) Nothing 64 64) (1,1) (V2 False False) r
     when (turn == PlayerTurn) $ liftIO $ case uiState of
             CombatAttackSelectUI -> drawSprite (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
             CombatMagicSelectUI  -> drawSprite (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
@@ -138,6 +143,7 @@ draw r fps = do
         CombatState  -> do
             drawCombat r fps
             cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
+        MenuState -> drawMenu r fps
         _ -> return () -- drawMenuOrPause r fps
     drawTransition r fps
-    cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (worldToScreen pos Nothing) fm str
+    cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (worldToScreen pos Nothing 64 64) fm str

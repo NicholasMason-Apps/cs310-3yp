@@ -318,9 +318,19 @@ drawDungeon = do
     cmapM_ $ \(Ladder, pos, sref) -> do
         liftIO $ drawTexturedQuad (SpriteRef "tile1" Nothing) smap pos (V2 False False) (Set.fromList [TopFace])
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
+    cmapM_ $ \(Item, pos, sref) -> do
+        liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
         RL.endMode3D
     cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
+
+drawMenu :: System' ()
+drawMenu = do
+    SpriteMap smap <- get global
+    liftIO $ drawTexture (SpriteRef "title-screen" Nothing) (SpriteMap smap) (Position (V2 0 0))
+    cmapM_ $ \(Button _, pos, SpriteRef sref m) -> do
+        let (Sprite (w,h) _) = smap Map.! sref
+        liftIO $ drawTexture (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h)
 
 draw :: System' ()
 draw = do
@@ -331,10 +341,11 @@ draw = do
     case gs of
         DungeonState -> drawDungeon
         CombatState -> drawCombat
+        MenuState -> drawMenu
         _ -> return ()
     drawTransition
     cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> do
-        let (Position (V2 x y)) = worldToScreen pos Nothing
+        let (Position (V2 x y)) = worldToScreen pos Nothing 64 64
         liftIO $ RL.drawText str (round x) (round y) 20 RL.white
     liftIO $ do
         RL.drawFPS 10 10

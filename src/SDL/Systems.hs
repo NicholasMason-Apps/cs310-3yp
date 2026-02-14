@@ -175,7 +175,11 @@ initialize w r = do
                         ("combat-attack-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing ))),
                         ("combat-magic-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui-magic.png", Nothing ))),
                         ("transition", Sprite (2500, 2500) (SDLRenderer (loadSprite r "ui/transition.png", Nothing))),
-                        ("ladder", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/ladder.png", Nothing )))
+                        ("ladder", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/ladder.png", Nothing ))),
+                        ("heart", Sprite (64,64) (SDLRenderer (loadSprite r "items/heart.png", Nothing ))),
+                        ("title-screen", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/title-screen.png", Nothing ))),
+                        ("start-game-button", Sprite (300, 60) (SDLRenderer (loadSprite r "ui/start-game/button.png", Nothing ))),
+                        ("start-game-button-hover", Sprite (300, 60) (SDLRenderer (loadSprite r "ui/start-game/hover.png", Nothing )))
                     ]
     font <- loadFont "Roboto-Regular.ttf" 16
     set global $ FontMap $ Map.fromList [("roboto", SDLRenderer font)]
@@ -199,7 +203,22 @@ handlePayload = mapM_ handleEvent
 
 handleEvent :: SDL.EventPayload -> System' ()
 handleEvent (SDL.KeyboardEvent ev) = handleKeyEvent ev
+handleEvent (SDL.MouseMotionEvent ev) = handleMouseMotionEvent ev
+handleEvent (SDL.MouseButtonEvent ev) = handleMouseButtonEvent ev
 handleEvent _ = return ()
+
+handleMouseButtonEvent :: SDL.MouseButtonEventData -> System' ()
+handleMouseButtonEvent ev
+    | SDL.mouseButtonEventMotion ev == SDL.Pressed && SDL.mouseButtonEventButton ev == SDL.ButtonLeft = modify global $ \(KeysPressed ks) -> KeysPressed $ Set.insert GkLMB ks
+    | SDL.mouseButtonEventMotion ev == SDL.Released && SDL.mouseButtonEventButton ev == SDL.ButtonLeft = modify global $ \(KeysPressed ks) -> KeysPressed $ Set.delete GkLMB ks
+    | otherwise = return ()
+
+handleMouseMotionEvent :: SDL.MouseMotionEventData -> System' ()
+handleMouseMotionEvent ev = let
+        (SDL.P (V2 x y)) = SDL.mouseMotionEventPos ev
+    in do
+        Viewport (w, h) <- get global
+        modify global $ \(MousePosition _) -> MousePosition (V2 (fromIntegral x - fromIntegral w / 2) (fromIntegral h / 2 - fromIntegral y))
 
 handleKeyEvent :: SDL.KeyboardEventData -> System' ()
 handleKeyEvent ev

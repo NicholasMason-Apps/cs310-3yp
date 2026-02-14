@@ -32,7 +32,7 @@ getRoomSize :: [String] -> (Float, Float)
 getRoomSize layout = (fromIntegral (length (head layout)) * tileSize, fromIntegral (length layout) * tileSize)
 
 startRoomLayout :: [String]
-startRoomLayout = 
+startRoomLayout =
   [ "WWWWW1WWWW"
   , "WTTTTTTTT2"
   , "4TTTTTTTTW"
@@ -41,7 +41,7 @@ startRoomLayout =
   ]
 
 bossRoomLayout :: [String]
-bossRoomLayout = 
+bossRoomLayout =
   [ "WWWW1WWWW"
   , "WTTTTTTTW"
   , "4TTTTTTT2"
@@ -50,10 +50,19 @@ bossRoomLayout =
   ]
 
 ladderRoomLayout :: [String]
-ladderRoomLayout = 
+ladderRoomLayout =
   [ "WWWW1WWWW"
   , "WTTTTTTTW"
   , "4TTTLTTT2"
+  , "WTTTTTTTW"
+  , "WWWW3WWWW"
+  ]
+
+heartRoomLayout :: [String]
+heartRoomLayout =
+  [ "WWWW1WWWW"
+  , "WTTTTTTTW"
+  , "4TTTHTTT2"
   , "WTTTTTTTW"
   , "WWWW3WWWW"
   ]
@@ -90,7 +99,7 @@ gameRoomLayouts = [
     , "WTTTTTW"
     , "WTTTTTW"
     , "WTTTTTW"
-    , "WWW3WWW" 
+    , "WWW3WWW"
     ]
   ]
 
@@ -99,13 +108,22 @@ generateMapTree :: IO (Tree RoomType)
 generateMapTree = do
     depth <- randomRIO (4, 6) :: IO Int
     t <- recursiveGenerate (Node { rootLabel = StartRoom, subForest = [] }) depth hubRoomCount
-    return $ addBossRoom t
+    return $ addHeartRoom $ addBossRoom t
     where
       hubRoomCount = 1
 
 -- Add a given room as a child to a tree
 addRoom :: Tree RoomType -> Tree RoomType -> Tree RoomType
 addRoom t rt = Node { rootLabel = rootLabel t, subForest = subForest t ++ [rt] }
+
+addHeartRoom :: Tree RoomType -> Tree RoomType
+addHeartRoom tree =
+  let
+    leaves = collectLeavesWithDepth tree
+    (_, shallowestPath) = minimumBy (comparing fst) leaves
+    heartNode = Node HeartRoom []
+  in
+    updateAtPath shallowestPath (\leaf -> leaf { subForest = subForest leaf ++ [heartNode] }) tree
 
 -- Reursively generate a tree of rooms
 recursiveGenerate :: Tree RoomType -> Int -> Int -> IO (Tree RoomType)
@@ -170,7 +188,7 @@ generateMap = do
   case err of
       Just _ -> do -- Since an error occurred, delete all rooms and regenerate the map
         cmapM_ $ \(GameRoom {}, e) -> destroy e (Proxy @(GameRoom, Position))
-        generateMap 
+        generateMap
       Nothing -> gameRoomToSprites
   where
     insertGameRoom :: Maybe Entity -> Tree RoomType -> System' Entity
@@ -192,6 +210,7 @@ generateMap = do
                     StartRoom -> startRoomLayout
                     BossRoom  -> bossRoomLayout
                     LadderRoom -> ladderRoomLayout
+                    HeartRoom -> heartRoomLayout
                     _         -> getRoomLayout n
               intersections <- mapM (\dir -> checkRoomIntersectionInDirection p dir newLayout) (exits grP)
               let res = foldl' (\acc (intersects, dir) ->
@@ -208,6 +227,7 @@ generateMap = do
                   _ <- case rootLabel node of
                     BossRoom -> makeEnemy (Enemy GoldenReaper) finalPos
                     LadderRoom -> return 0
+                    HeartRoom -> return 0
                     _ -> do
                       enemyNum <- randomRIO (1, 3)
                       makeEnemy (Enemy $ toEnum (enemyNum - 1)) finalPos
@@ -298,6 +318,7 @@ gameRoomToSprites = cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
                 n <- randomRIO (1, wallBottomCount) :: IO Integer
                 return ("wall-bottom" ++ show n, 'W')
         | c == 'L' = return ("ladder", c)
+        | c == 'H' = return ("heart", c)
         | otherwise = do
           n <- randomRIO (1, tileCount) :: IO Integer
           return ("tile" ++ show n, 'T')
@@ -321,6 +342,9 @@ gameRoomToSprites = cmapM_ $ \(gr, Position (V2 grx gry), e) -> do
       case t of
         'T' -> void $ newEntity (Floor, Tile, p, s)
         'L' -> void $ newEntity (Ladder, Tile, p, s, BoundaryBox (32,32) (0,0))
+        'H' -> do
+          void $ newEntity (Floor, Tile, p, SpriteRef "tile1" Nothing)
+          void $ newEntity (Heart, Item, p, s, BoundaryBox (32,32) (0,0))
         _   -> void $ newEntity (Wall, Tile, p, s, BoundaryBox (64,64) (0,0))
   destroy e (Proxy @(GameRoom, Position))
 

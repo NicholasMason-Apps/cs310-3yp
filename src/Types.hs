@@ -82,7 +82,7 @@ instance Semigroup GameState where
     _ <> gs2 = gs2
 instance Monoid GameState where
     mempty :: GameState
-    mempty = DungeonState
+    mempty = MenuState
 instance Component GameState where type Storage GameState = Global GameState
 
 
@@ -96,6 +96,7 @@ data GameKey = GkUp
             | GkSpace
             | GkQ
             | GkF
+            | GkLMB
             deriving (Show, Eq, Ord)
 
 newtype KeyBindings rawKey = KeyBindings (Map.Map rawKey GameKey)
@@ -198,7 +199,7 @@ data Animation = Animation { frameCount :: Int
 
 
 -- Dungeon components
-data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom | LadderRoom deriving (Show, Eq)
+data RoomType = StartRoom | NormalRoom | BossRoom | HubRoom | LadderRoom | HeartRoom deriving (Show, Eq)
 
 data GameRoom = GameRoom { roomType :: RoomType,
                            roomLayout :: [[Char]],
@@ -211,6 +212,12 @@ instance Component Health where type Storage Health = Map Health
 
 data MapError = MapError deriving (Show)
 instance Component MapError where type Storage MapError = Unique MapError 
+
+data Heart = Heart deriving (Show)
+instance Component Heart where type Storage Heart = Map Heart
+
+data Item = Item deriving (Show)
+instance Component Item where type Storage Item = Map Item
 
 -- Combat components
 newtype CombatEnemy = CombatEnemy Entity deriving (Show)
@@ -231,7 +238,7 @@ instance Monoid CombatTurn where
     mempty = CombatTurn PlayerTurn
 instance Component CombatTurn where type Storage CombatTurn = Global CombatTurn
 
-data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking | PlayerWin deriving (Show, Eq)
+data TurnState = PlayerTurn | EnemyTurn | PlayerAttacking | EnemyAttacking | PlayerWin | EnemyWin deriving (Show, Eq)
 
 data CombatTile = CombatTile deriving (Show)
 instance Component CombatTile where type Storage CombatTile = Map CombatTile
@@ -249,7 +256,7 @@ instance Monoid ShieldCooldown where
 instance Component ShieldCooldown where type Storage ShieldCooldown = Global ShieldCooldown
 
 
-data TransitionEvent = ToCombat | ToDungeon | ToNextLevel deriving (Show, Eq)
+data TransitionEvent = ToCombat | ToDungeon | ToNextLevel | StartDungeon | ToMenu  deriving (Show, Eq)
 
 -- Transition Components
 data Transition = Transition {
@@ -261,20 +268,18 @@ data Transition = Transition {
 } deriving (Show)
 instance Component Transition where type Storage Transition = Unique Transition
 
-data Particle = Particle Position deriving (Show)
+newtype Particle = Particle Position deriving (Show)
 instance Component Particle where type Storage Particle = Map Particle
 
 type FPS = Int
 
 data Face = FrontFace | BackFace | LeftFace | RightFace | TopFace | BottomFace deriving (Show, Eq, Ord)
 
-
 -- UI Components
-data Button = Button deriving Show
-instance Component Button where type Storage Button = Map Button
+data ButtonAction = StartGameButton deriving (Show, Eq)
 
-newtype IsClicked = IsClicked Bool
-instance Component IsClicked where type Storage IsClicked = Map IsClicked
+newtype Button = Button ButtonAction
+instance Component Button where type Storage Button = Map Button
 
 newtype TextLabel = TextLabel String deriving Show
 instance Component TextLabel where type Storage TextLabel = Map TextLabel
@@ -285,6 +290,13 @@ data FloatingText = FloatingText {
 } deriving Show
 instance Component FloatingText where type Storage FloatingText = Map FloatingText
 
+newtype MousePosition = MousePosition (V2 Float) deriving Show
+instance Semigroup MousePosition where
+    (MousePosition pos1) <> (MousePosition pos2) = MousePosition (pos1 + pos2)
+instance Monoid MousePosition where
+    mempty = MousePosition (V2 0 0)
+instance Component MousePosition where type Storage MousePosition = Global MousePosition
+
 -- Define all the components in the world
 makeWorld "World" [''Position,
                     ''Velocity,
@@ -292,6 +304,7 @@ makeWorld "World" [''Position,
                     ''Score,
                     ''Time,
                     ''Camera,
+                    ''MousePosition,
                     ''Wall,
                     ''SpriteRef,
                     ''MoveDirection,
@@ -320,10 +333,11 @@ makeWorld "World" [''Position,
                     ''CombatWall,
                     ''FontMap,
                     ''Button,
-                    ''IsClicked,
                     ''TextLabel,
                     ''ShieldCooldown,
-                    ''FloatingText
+                    ''FloatingText,
+                    ''Heart,
+                    ''Item
                     ]
 
 type System' a = System World a

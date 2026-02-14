@@ -163,9 +163,12 @@ stepEnemyAttack dT = do
                 if sr' == "player-shield" && fromMaybe 0 n `Set.member` playerShieldFrames then do
                     modify global $ \(ShieldCooldown _) -> ShieldCooldown 0
                     void $ newEntity (FloatingText 0 1.0, Position (V2 (-1280 / 3) (-20)), TextLabel "Blocked!", Velocity (V2 0 20))
-                else do
-                    cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
-                    set cp (SpriteRef "player-hit" (Just 1))
+                else cmapM_ $ \(Player, Health hp) -> if hp - enemyDamage > 0 then do
+                        cmap $ \(Player, Health hp) -> Health (hp - enemyDamage)
+                        set cp (SpriteRef "player-hit" (Just 1))
+                    else do
+                        set cp (SpriteRef "player-hit" (Just 1))
+                        set global $ CombatTurn EnemyWin
 stepEnemyTurn :: Float -> System' ()
 stepEnemyTurn dT = do
     cmapM_ $ \(CombatEnemy _, SpriteRef sr _, e) -> do
@@ -204,6 +207,11 @@ stepPlayerWin dT = cmapM_ $ \(CombatEnemy _, SpriteRef sr n) -> do
         existsTransition <- cfold (\_ (Transition {}) -> Just ()) Nothing
         when (fromMaybe 0 n + 1 >= frameCount anim && isNothing existsTransition) $ startTransition (pi / 4) 1.0 ToDungeon
 
+stepEnemyWin :: Float -> System' ()
+stepEnemyWin dT = do
+    existsTransition <- cfold (\_ (Transition {}) -> Just ()) Nothing
+    when (isNothing existsTransition) $ startTransition (pi / 4) 1.0 ToMenu
+
 stepCombat :: Float -> System' ()
 stepCombat dT = do
     ce <- cfold (\_ (CombatEnemy ce) -> Just ce) Nothing
@@ -219,3 +227,4 @@ stepCombat dT = do
             PlayerAttacking -> stepPlayerAttack dT
             EnemyAttacking -> stepEnemyAttack dT
             PlayerWin -> stepPlayerWin dT
+            EnemyWin -> stepEnemyWin dT

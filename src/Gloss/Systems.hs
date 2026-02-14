@@ -166,7 +166,11 @@ initialize = do
                         ("wall-bottom-left", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/wall-bottom-left.png") ),
                         ("combat-attack-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui.png") ),
                         ("combat-magic-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui-magic.png") ),
-                        ("ladder", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/ladder.png") )
+                        ("ladder", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/ladder.png") ),
+                        ("heart", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "items/heart.png") ),
+                        ("title-screen", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/title-screen.png") ),
+                        ("start-game-button", Sprite (300, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/start-game/button.png") ),
+                        ("start-game-button-hover", Sprite (300, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/start-game/hover.png") )
                     ]
     Sys.initialize spriteList
 
@@ -180,10 +184,12 @@ inputBindings = KeyBindings $ Map.fromList [
         (SpecialKey KeyEsc, GkEsc),
         (Char 'e', GkE),
         (Char 'q', GkQ),
-        (Char 'f', GkF)
+        (Char 'f', GkF),
+        (MouseButton LeftButton, GkLMB)
     ]
 
 handleEvent :: Event -> System' ()
 handleEvent (EventKey k Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k True ks
 handleEvent (EventKey k Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k False ks
+handleEvent (EventMotion (x,y)) = modify global $ \(MousePosition _) -> MousePosition (V2 x y)
 handleEvent _ = return ()

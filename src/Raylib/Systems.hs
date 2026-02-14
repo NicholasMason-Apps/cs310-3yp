@@ -173,7 +173,11 @@ spriteList = [
         ("combat-attack-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui.png", Nothing ))),
         ("combat-magic-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui-magic.png", Nothing ))),
         ("transition", Sprite (2500, 2500) (RaylibRenderer (loadSprite "ui/transition.png", Nothing))),
-        ("ladder", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/ladder-raylib.png", Nothing )))
+        ("ladder", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/ladder-raylib.png", Nothing ))),
+        ("heart", Sprite (64,64) (RaylibRenderer (loadSprite "items/heart.png", Nothing ))),
+        ("title-screen", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/title-screen.png", Nothing ))),
+        ("start-game-button", Sprite (300, 60) (RaylibRenderer (loadSprite "ui/start-game/button.png", Nothing ))),
+        ("start-game-button-hover", Sprite (300, 60) (RaylibRenderer (loadSprite "ui/start-game/hover.png", Nothing )))
     ]
 
 initialize :: System' RL.WindowResources
@@ -182,7 +186,7 @@ initialize = do
     set global $ RaylibCamera camera
     set global $ CameraAngle $ Just (0,0)
     liftIO $ do
-        window <- RL.initWindow 1280 720 "Dungeon Crawler"
+        window <- RL.initWindow 1280 720 "Hungeon"
         RL.setTargetFPS 60
 #if defined(WSL)
         return window
@@ -253,3 +257,11 @@ handleEvents = do
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkF `Set.insert` ks
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkF `Set.delete` ks
+    (V2 x y) <- liftIO RL.getMousePosition
+    Viewport (w, h) <- get global
+    modify global $ \(MousePosition _) -> MousePosition (V2 (x - fromIntegral w / 2) (fromIntegral h / 2 - y))
+    isLMB <- liftIO $ RL.isMouseButtonPressed RL.MouseButtonLeft
+    if isLMB then
+        modify global $ \(KeysPressed ks) -> KeysPressed $ GkLMB `Set.insert` ks
+    else
+        modify global $ \(KeysPressed ks) -> KeysPressed $ GkLMB `Set.delete` ks

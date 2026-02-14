@@ -93,6 +93,12 @@ ladderCollision = cmapM_ $ \(Player, Position posP, bbP) -> do
             Nothing -> startTransition (pi / 4) 1.0 ToNextLevel
             Just _ -> return ()
 
+heartCollision :: System' ()
+heartCollision = cmapM_ $ \(Player, Position posP, bbP, Health hp, ep) -> do
+    cmapM_ $ \(Heart, Position posH, bbH, eh) -> when (checkBoundaryBoxIntersection posP bbP posH bbH) $ do
+        set ep $ Health $ min 100 (hp + 50)
+        destroy eh (Proxy @(Heart, Position, BoundaryBox, Item, SpriteRef))
+
 stepDungeon :: Float -> System' ()
 stepDungeon dT = do
     updatePlayerMovement
@@ -101,6 +107,7 @@ stepDungeon dT = do
     stepPosition dT
     handleEnemyCollisions dT
     ladderCollision
+    heartCollision
 
 -- Block the player from moving into walls
 blockPlayer :: Float -> System' ()

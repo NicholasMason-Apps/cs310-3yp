@@ -36,6 +36,7 @@ library
       Gloss.Draw
       Gloss.Systems
       Input
+      Menu
       Raylib.Draw
       Raylib.Systems
       SDL.Draw
