@@ -41,6 +41,7 @@ library
       Raylib.Systems
       SDL.Draw
       SDL.Systems
+      Settings
       Sprite
       Systems
       Types
@@ -54,9 +55,11 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       JuicyPixels
+    , aeson
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , bytestring
     , containers
     , gloss
     , gloss-juicy
@@ -85,9 +88,11 @@ executable gloss-exe
   build-depends:
       3yp
     , JuicyPixels
+    , aeson
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , bytestring
     , containers
     , gloss
     , gloss-juicy
@@ -114,9 +119,11 @@ executable raylib-exe
   build-depends:
       3yp
     , JuicyPixels
+    , aeson
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , bytestring
     , containers
     , gloss
     , gloss-juicy
@@ -143,9 +150,11 @@ executable sdl-exe
   build-depends:
       3yp
     , JuicyPixels
+    , aeson
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , bytestring
     , containers
     , gloss
     , gloss-juicy
@@ -173,9 +182,11 @@ test-suite 3yp-test
   build-depends:
       3yp
     , JuicyPixels
+    , aeson
     , apecs
     , apecs-gloss
     , base >=4.7 && <5
+    , bytestring
     , containers
     , gloss
     , gloss-juicy

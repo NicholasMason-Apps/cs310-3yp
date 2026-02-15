@@ -32,12 +32,25 @@ import System.IO.Unsafe ( unsafePerformIO )
 import Combat
 import Dungeon
 import Menu
+import Settings
+import qualified Data.Vector as V
+import Data.Functor
+import Data.Foldable
+import Data.Aeson
+import qualified Data.ByteString.Lazy as BL
 
 -- Initialise the game state by creating a player entity
 initialize :: [(String, Sprite)] -> System' ()
 initialize spriteList = do
     set global (SpriteMap $ Map.fromList spriteList)
-    void $ newEntity (Button StartGameButton, Position (V2 0 (-150)), SpriteRef "start-game-button" Nothing)
+    settings <- liftIO (BL.readFile "settings.json" <&> decode) :: System' (Maybe Settings)
+    liftIO $ print settings
+    forM_ settings (set global)
+    windowedButton <- newEntity (SettingsUIElement, Button WindowedButton, Position (V2 (-132) 124), SpriteRef "windowed-button" Nothing)
+    fullscreenButton <- newEntity (SettingsUIElement, Button FullscreenButton, Position (V2 135 124), SpriteRef "fullscreen-button" Nothing)
+    _ <- newEntity (SettingsUIElement, ButtonGroup (V.fromList [windowedButton, fullscreenButton]) windowedButton)
+    _ <- newEntity (MainMenuUIElement, Button StartGameButton, Position (V2 0 (-150)), SpriteRef "start-game-button" Nothing)
+    void $ newEntity (MainMenuUIElement, Button SettingsButton, Position (V2 0 (-230)), SpriteRef "settings-button" Nothing)
 
 incrementTime :: Float -> System' ()
 incrementTime dT = do
@@ -98,7 +111,7 @@ toNextLevelAction = do
     cmapM_ $ \(Tile, e) -> destroy e (Proxy @(Tile, Position, SpriteRef))
     cmapM_ $ \(Enemy _, e) -> destroy e (Proxy @(Enemy, Position, Velocity, Health, SpriteRef, BoundaryBox))
     cmapM_ $ \(Heart, Item, e) -> destroy e (Proxy @(Heart, Item, Position, SpriteRef, BoundaryBox))
-    cmap $ \(Player, Position _) -> Position playerPos 
+    cmap $ \(Player, Position _) -> Position playerPos
     generateMap
 
 startDungeonAction :: System' ()
@@ -128,7 +141,7 @@ startDungeonAction = do
             else
                 SpriteRef t Nothing
             pos = Position (V2 (offsetX + fromIntegral x * tileSize) (offsetY + fromIntegral y * tileSize))
-            
+
         return (sref, pos, c)
         | x <- [-1..ceiling (1280 / tileSize)+1], y <- [-1..ceiling (720 / tileSize)+1] ]
     forM_ tileList $ \(s, p, c) -> do
@@ -162,15 +175,16 @@ stepTransition dT = cmapM_ $ \(Transition p ang spd fired event, e) -> do
         ToNextLevel -> toNextLevelAction
         StartDungeon -> startDungeonAction
         ToMenu -> toMenuAction
+        ToSettings -> set global SettingsState
     if p' >= 1 then
         destroy e (Proxy @Transition)
     else
         set e Transition { trProgress = p', trAngle = ang, trSpeed = spd, trCoverEventFired = fired || p' >= 0.5, trEvent = event }
 
 stepFloatingText :: Float -> System' ()
-stepFloatingText dt = cmapM_ $ \(ft, e) -> if currLifetime ft + dt >= lifetime ft then 
+stepFloatingText dt = cmapM_ $ \(ft, e) -> if currLifetime ft + dt >= lifetime ft then
         destroy e (Proxy @(FloatingText, Position, TextLabel, Velocity))
-    else 
+    else
         set e $ ft { currLifetime = currLifetime ft + dt }
 
 -- TODO: Add boundary box collision check and stop player movement
@@ -188,4 +202,5 @@ step dT = do
         DungeonState -> stepDungeon dT
         CombatState  -> stepCombat dT
         MenuState -> stepMenu dT
+        SettingsState -> stepSettings dT
         _            -> return ()

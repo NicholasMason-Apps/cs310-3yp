@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeApplications           #-}
 
-module Menu (stepMenu) where
+module Menu (stepMenu, buttonActions, posCheck) where
 
 import Apecs
 import Types
@@ -29,17 +29,21 @@ stepButtons = do
     MousePosition (V2 mx my) <- get global
     KeysPressed ks <- get global
     SpriteMap smap <- get global
-    cmapM_ $ \(Button action, Position (V2 x y), SpriteRef sref m, e) -> do
+    cmapM_ $ \(MainMenuUIElement, Button action, Position (V2 x y), SpriteRef sref m, e) -> do
         let
             Sprite (w,h) _ = smap Map.! sref
             baseSref = (if "-hover" `isInfixOf` sref then take (length sref - 6) sref else sref)
-            posCheck = mx >= x - fromIntegral w / 2 && mx <= x + fromIntegral w / 2 &&
-                       my >= y - fromIntegral h / 2 && my <= y + fromIntegral h / 2
-        if posCheck then
+        if posCheck mx my x y w h then
             set e $ SpriteRef (baseSref ++ "-hover") m
         else
             set e $ SpriteRef baseSref m
-        when (posCheck && GkLMB `Set.member` ks) $ do
-            case action of
-                StartGameButton -> startTransition (pi / 4) 1.0 StartDungeon
-        
+        when (posCheck mx my x y w h && GkLMB `Set.member` ks) $ buttonActions action
+
+buttonActions :: ButtonAction -> System' ()
+buttonActions StartGameButton = startTransition (pi / 4) 1.0 StartDungeon
+buttonActions SettingsButton = startTransition (pi / 4) 1.0 ToSettings
+buttonActions _ = return ()
+
+posCheck :: (Fractional a1, Fractional a2, Integral a3, Integral a4, Ord a1,  Ord a2) => a1 -> a2 -> a1 -> a2 -> a3 -> a4 -> Bool
+posCheck mx my x y w h = mx >= x - fromIntegral w / 2 && mx <= x + fromIntegral w / 2 &&
+                         my >= y - fromIntegral h / 2 && my <= y + fromIntegral h / 2

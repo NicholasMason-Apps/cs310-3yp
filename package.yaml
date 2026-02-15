@@ -36,6 +36,8 @@ dependencies:
 - sdl2-image
 - text
 - h-raylib
+- aeson
+- bytestring
 
 ghc-options:
 - -Wall

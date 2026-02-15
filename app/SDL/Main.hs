@@ -15,6 +15,7 @@ import qualified Data.Map as Map
 import Data.IORef
 import Control.Monad ( unless )
 import System.Exit (exitSuccess)
+import Control.Monad (when)
 
 main :: IO ()
 main = do
@@ -34,6 +35,11 @@ main = do
     
     -- Initialize systems
     runSystem (initialize windowConfig renderer) world
+
+    runSystem (do
+        settings <- get global :: System' Settings
+        when (fullscreen settings) $ liftIO $ SDL.setWindowMode window SDL.FullscreenDesktop
+        ) world
 
     SDL.showWindow window
 

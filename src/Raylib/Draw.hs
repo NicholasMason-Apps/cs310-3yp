@@ -328,7 +328,15 @@ drawMenu :: System' ()
 drawMenu = do
     SpriteMap smap <- get global
     liftIO $ drawTexture (SpriteRef "title-screen" Nothing) (SpriteMap smap) (Position (V2 0 0))
-    cmapM_ $ \(Button _, pos, SpriteRef sref m) -> do
+    cmapM_ $ \(MainMenuUIElement, Button _, pos, SpriteRef sref m) -> do
+        let (Sprite (w,h) _) = smap Map.! sref
+        liftIO $ drawTexture (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h)
+
+drawSettings :: System' ()
+drawSettings = do
+    SpriteMap smap <- get global
+    liftIO $ drawTexture (SpriteRef "settings-screen" Nothing) (SpriteMap smap) (Position (V2 0 0))
+    cmapM_ $ \(SettingsUIElement, Button _, pos, SpriteRef sref m) -> do
         let (Sprite (w,h) _) = smap Map.! sref
         liftIO $ drawTexture (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h)
 
@@ -342,6 +350,7 @@ draw = do
         DungeonState -> drawDungeon
         CombatState -> drawCombat
         MenuState -> drawMenu
+        SettingsState -> drawSettings
         _ -> return ()
     drawTransition
     cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> do

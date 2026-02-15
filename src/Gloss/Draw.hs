@@ -56,16 +56,24 @@ draw = do
         DungeonState -> drawDungeon
         CombatState  -> drawCombat
         MenuState -> drawMenu
+        SettingsState -> drawSettings
         _ -> return $ color white $ scale 0.3 0.3 $ Text "Menu / Paused / Game Over Screen"
     floatingText <- foldDraw $ \(FloatingText _ _, pos, TextLabel str) -> translate' pos $ color white $ scale 0.1 0.1 $ Text str
     playerHealth <- foldDraw $ \(Player, Health hp) -> color white . translate (-620) 320 . scale 0.1 0.1 . Text $ "Health: " ++ show hp
     return $ scale scaleFactor scaleFactor (p <> particles <> floatingText <> playerHealth <> drawTransitionPic )
 
+drawSettings :: System' Picture
+drawSettings = do
+    SpriteMap smap <- get global
+    let settingsScreen = getSpritePicture smap (SpriteRef "settings-screen" Nothing)
+    buttons <- foldDraw $ \(SettingsUIElement, Button _, pos, SpriteRef sref m) -> translate' pos $ getSpritePicture smap (SpriteRef sref m)
+    return $ settingsScreen <> buttons
+
 drawMenu :: System' Picture
 drawMenu = do
     SpriteMap smap <- get global
     let titleScreen = getSpritePicture smap (SpriteRef "title-screen" Nothing)
-    buttons <- foldDraw $ \(Button _, pos, SpriteRef sref m) -> translate' pos $ getSpritePicture smap (SpriteRef sref m)
+    buttons <- foldDraw $ \(MainMenuUIElement, Button _, pos, SpriteRef sref m) -> translate' pos $ getSpritePicture smap (SpriteRef sref m)
     return $ titleScreen <> buttons
 
 drawDungeon :: System' Picture

@@ -9,6 +9,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Types where
 
@@ -28,6 +29,9 @@ import qualified Data.Map as Map
 import qualified SDL
 import qualified Raylib.Types as RL
 import qualified SDL.Font
+import GHC.Generics (Generic)
+import Data.Aeson
+import qualified Data.ByteString.Lazy as BL
 
 -- Global stores
 newtype RaylibCamera = RaylibCamera RL.Camera3D deriving Show
@@ -38,9 +42,24 @@ instance Monoid RaylibCamera where
 instance Component RaylibCamera where type Storage RaylibCamera = Global RaylibCamera  
 
 
+data Settings = Settings {
+    fullscreen :: Bool
+} deriving (Generic, Show)
+instance ToJSON Settings where
+    toEncoding = genericToEncoding defaultOptions
+instance FromJSON Settings where
+    parseJSON = genericParseJSON defaultOptions
+instance Semigroup Settings where
+    (Settings f1) <> (Settings f2) = Settings f2
+instance Monoid Settings where
+    mempty = Settings False
+instance Component Settings where type Storage Settings = Global Settings
+
+
 
 newtype FontMap = FontMap (Map.Map String (RendererSystem () SDL.Font.Font ()))
 instance Semigroup FontMap where
+    (<>) :: FontMap -> FontMap -> FontMap
     (FontMap m1) <> (FontMap m2) = FontMap (m1 `mappend` m2)
 instance Monoid FontMap where
     mempty = FontMap mempty
@@ -76,7 +95,7 @@ instance Semigroup Score where (<>) = (+)
 instance Monoid Score where mempty = 0
 instance Component Score where type Storage Score = Global Score
 
-data GameState = MenuState | DungeonState | PauseState | CombatState deriving (Show, Eq)
+data GameState = MenuState | DungeonState | PauseState | CombatState | SettingsState deriving (Show, Eq)
 instance Semigroup GameState where
     (<>) :: GameState -> GameState -> GameState
     _ <> gs2 = gs2
@@ -256,7 +275,7 @@ instance Monoid ShieldCooldown where
 instance Component ShieldCooldown where type Storage ShieldCooldown = Global ShieldCooldown
 
 
-data TransitionEvent = ToCombat | ToDungeon | ToNextLevel | StartDungeon | ToMenu  deriving (Show, Eq)
+data TransitionEvent = ToCombat | ToDungeon | ToNextLevel | StartDungeon | ToMenu | ToSettings deriving (Show, Eq)
 
 -- Transition Components
 data Transition = Transition {
@@ -276,10 +295,13 @@ type FPS = Int
 data Face = FrontFace | BackFace | LeftFace | RightFace | TopFace | BottomFace deriving (Show, Eq, Ord)
 
 -- UI Components
-data ButtonAction = StartGameButton deriving (Show, Eq)
+data ButtonAction = StartGameButton | FullscreenButton | SettingsButton | WindowedButton deriving (Show, Eq)
 
 newtype Button = Button ButtonAction
 instance Component Button where type Storage Button = Map Button
+
+data ButtonGroup = ButtonGroup (V.Vector Entity) Entity deriving Show
+instance Component ButtonGroup where type Storage ButtonGroup = Map ButtonGroup
 
 newtype TextLabel = TextLabel String deriving Show
 instance Component TextLabel where type Storage TextLabel = Map TextLabel
@@ -289,6 +311,12 @@ data FloatingText = FloatingText {
     lifetime :: Float
 } deriving Show
 instance Component FloatingText where type Storage FloatingText = Map FloatingText
+
+data MainMenuUIElement = MainMenuUIElement deriving Show
+instance Component MainMenuUIElement where type Storage MainMenuUIElement = Map MainMenuUIElement
+
+data SettingsUIElement = SettingsUIElement deriving Show
+instance Component SettingsUIElement where type Storage SettingsUIElement = Map SettingsUIElement
 
 newtype MousePosition = MousePosition (V2 Float) deriving Show
 instance Semigroup MousePosition where
@@ -337,8 +365,13 @@ makeWorld "World" [''Position,
                     ''ShieldCooldown,
                     ''FloatingText,
                     ''Heart,
-                    ''Item
+                    ''Item,
+                    ''ButtonGroup,
+                    ''MainMenuUIElement,
+                    ''SettingsUIElement,
+                    ''Settings
                     ]
 
 type System' a = System World a
 type Kinetic = (Position, Velocity)
+

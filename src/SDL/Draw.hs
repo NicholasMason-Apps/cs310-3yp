@@ -115,7 +115,7 @@ drawMenu :: SDL.Renderer -> FPS -> System' ()
 drawMenu r fps = do
     SpriteMap smap <- get global :: System' SpriteMap
     liftIO $ drawSprite (SpriteRef "title-screen" Nothing) (SpriteMap smap) (Position (V2 0 0)) (1,1) (V2 False False) r
-    cmapM_ $ \(Button _, pos, SpriteRef sref m) -> do
+    cmapM_ $ \(MainMenuUIElement, Button _, pos, SpriteRef sref m) -> do
         let (Sprite (w,h) _) = smap Map.! sref
         liftIO $ drawSprite (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h) (1,1) (V2 False False) r
 
@@ -132,6 +132,14 @@ drawCombat r fps = do
             CombatAttackSelectUI -> drawSprite (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
             CombatMagicSelectUI  -> drawSprite (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0)) (1,1) (V2 False False) r
 
+drawSettings :: SDL.Renderer -> FPS -> System' ()
+drawSettings r fps = do
+    SpriteMap smap <- get global :: System' SpriteMap
+    liftIO $ drawSprite (SpriteRef "settings-screen" Nothing) (SpriteMap smap) (Position (V2 0 0)) (1,1) (V2 False False) r
+    cmapM_ $ \(SettingsUIElement, Button _, pos, SpriteRef sref m) -> do
+        let (Sprite (w,h) _) = smap Map.! sref
+        liftIO $ drawSprite (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h) (1,1) (V2 False False) r
+
 draw :: SDL.Renderer -> FPS -> System' ()
 draw r fps = do
     gs <- get global
@@ -144,6 +152,7 @@ draw r fps = do
             drawCombat r fps
             cmapM_ $ \(Player, Health hp) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 10)) fm ("HP: " ++ show hp)
         MenuState -> drawMenu r fps
-        _ -> return () -- drawMenuOrPause r fps
+        SettingsState -> drawSettings r fps
+        _ -> return ()
     drawTransition r fps
     cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (worldToScreen pos Nothing 64 64) fm str

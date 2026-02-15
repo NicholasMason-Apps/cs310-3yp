@@ -15,4 +15,6 @@ main = do
     w <- initWorld
     runWith w $ do
         initialize
-        play (InWindow "Hungeon" (1280, 720) (10, 10)) (makeColorI 37 19 26 255) 60 draw handleEvent step
+        settings <- get global :: System' Settings
+        let window = if fullscreen settings then FullScreen else InWindow "Hungeon" (1280, 720) (10, 10)
+        play window (makeColorI 37 19 26 255) 60 draw handleEvent step

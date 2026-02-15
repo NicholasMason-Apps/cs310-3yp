@@ -169,8 +169,15 @@ initialize = do
                         ("ladder", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/ladder.png") ),
                         ("heart", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "items/heart.png") ),
                         ("title-screen", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/title-screen.png") ),
+                        ("settings-screen", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/settings-screen.png") ),
                         ("start-game-button", Sprite (300, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/start-game/button.png") ),
-                        ("start-game-button-hover", Sprite (300, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/start-game/hover.png") )
+                        ("start-game-button-hover", Sprite (300, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/start-game/hover.png") ),
+                        ("settings-button", Sprite (210, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/settings/button.png") ),
+                        ("settings-button-hover", Sprite (210, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/settings/hover.png") ),
+                        ("windowed-button", Sprite (264, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/windowed/button.png") ),
+                        ("windowed-button-hover", Sprite (264, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/windowed/hover.png") ),
+                        ("fullscreen-button", Sprite (270, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/fullscreen/button.png") ),
+                        ("fullscreen-button-hover", Sprite (270, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/fullscreen/hover.png") )
                     ]
     Sys.initialize spriteList
 

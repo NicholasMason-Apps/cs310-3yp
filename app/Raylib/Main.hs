@@ -12,11 +12,14 @@ import qualified Raylib.Util.Colors as RL
 import Raylib.Systems as RL
 import Systems as Sys
 import Types
+import Control.Monad (when)
 
 main :: IO ()
 main = initWorld >>= runSystem (do
     window <- RL.initialize
     Sys.initialize RL.spriteList
+    settings <- get global :: System' Settings
+    when (fullscreen settings) $ liftIO $ RL.toggleFullscreen
     liftIO $ RL.setExitKey RL.KeyBackspace
     run
     terminate window)

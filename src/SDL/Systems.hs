@@ -178,8 +178,15 @@ initialize w r = do
                         ("ladder", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/ladder.png", Nothing ))),
                         ("heart", Sprite (64,64) (SDLRenderer (loadSprite r "items/heart.png", Nothing ))),
                         ("title-screen", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/title-screen.png", Nothing ))),
+                        ("settings-screen", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/settings-screen.png", Nothing ))),
                         ("start-game-button", Sprite (300, 60) (SDLRenderer (loadSprite r "ui/start-game/button.png", Nothing ))),
-                        ("start-game-button-hover", Sprite (300, 60) (SDLRenderer (loadSprite r "ui/start-game/hover.png", Nothing )))
+                        ("start-game-button-hover", Sprite (300, 60) (SDLRenderer (loadSprite r "ui/start-game/hover.png", Nothing ))),
+                        ("settings-button", Sprite (210, 60) (SDLRenderer (loadSprite r "ui/settings/button.png", Nothing ))),
+                        ("settings-button-hover", Sprite (210, 60) (SDLRenderer (loadSprite r "ui/settings/hover.png", Nothing ))),
+                        ("windowed-button", Sprite (264, 60) (SDLRenderer (loadSprite r "ui/windowed/button.png", Nothing ))),
+                        ("windowed-button-hover", Sprite (264, 60) (SDLRenderer (loadSprite r "ui/windowed/hover.png", Nothing ))),
+                        ("fullscreen-button", Sprite (270, 60) (SDLRenderer (loadSprite r "ui/fullscreen/button.png", Nothing ))),
+                        ("fullscreen-button-hover", Sprite (270, 60) (SDLRenderer (loadSprite r "ui/fullscreen/hover.png", Nothing )))
                     ]
     font <- loadFont "Roboto-Regular.ttf" 16
     set global $ FontMap $ Map.fromList [("roboto", SDLRenderer font)]
