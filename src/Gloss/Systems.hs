@@ -29,6 +29,7 @@ import Data.Maybe
 import System.IO.Unsafe ( unsafePerformIO )
 import qualified Systems as Sys
 import Input
+import Graphics.Gloss.Interface.Environment (getScreenSize)
 
 initialize :: System' ()
 initialize = do
@@ -198,5 +199,12 @@ inputBindings = KeyBindings $ Map.fromList [
 handleEvent :: Event -> System' ()
 handleEvent (EventKey k Down _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k True ks
 handleEvent (EventKey k Up _ _) = modify global $ \(KeysPressed ks) -> KeysPressed $ updateKeySet inputBindings k False ks
-handleEvent (EventMotion (x,y)) = modify global $ \(MousePosition _) -> MousePosition (V2 x y)
+handleEvent (EventMotion (x,y)) =  do
+    Viewport (w, h) <- get global
+    settings <- get global :: System' Settings
+    (w',h') <- liftIO getScreenSize
+    if fullscreen settings then
+        modify global $ \(MousePosition _) -> MousePosition (V2 (x * fromIntegral w / fromIntegral w') (y * fromIntegral h / fromIntegral h'))
+    else
+        modify global $ \(MousePosition _) -> MousePosition (V2 x y)
 handleEvent _ = return ()

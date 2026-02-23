@@ -38,7 +38,14 @@ main = do
 
     runSystem (do
         settings <- get global :: System' Settings
-        when (fullscreen settings) $ liftIO $ SDL.setWindowMode window SDL.FullscreenDesktop
+        when (fullscreen settings) $ do
+            liftIO $ SDL.setWindowMode window SDL.FullscreenDesktop
+            viewport <- SDL.get (SDL.rendererViewport renderer)
+            let (w',h') = case viewport of
+                    Just (SDL.Rectangle _ (SDL.V2 w h)) -> (w, h)
+                    Nothing -> (1280, 720)
+            (SDL.$=) (SDL.rendererScale renderer) (V2 (fromIntegral w' / 1280) (fromIntegral h' / 720))
+            modify global $ \(Viewport _) -> Viewport (fromIntegral w', fromIntegral h')
         ) world
 
     SDL.showWindow window

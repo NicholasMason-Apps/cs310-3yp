@@ -26,6 +26,7 @@ import Utils
 import System.IO.Unsafe ( unsafePerformIO )
 import Systems
 import Dungeon
+import Graphics.Gloss.Interface.Environment (getScreenSize)
 
 getSprite :: Map.Map String Sprite -> SpriteRef -> Sprite
 getSprite smap (SpriteRef sr _) = smap Map.! sr
@@ -45,12 +46,20 @@ draw :: System' Picture
 draw = do
     gs <- get global
     SpriteMap smap <- get global
+    settings <- get global :: System' Settings
     Viewport (w, h) <- get global
+    (w',h') <- liftIO getScreenSize
     drawTransitionPic <- drawTransition
     particles <- foldDraw $ \(Particle _, pos, s) -> translate' pos $ getSpritePicture smap s
     let
-        scaleFactorX = fromIntegral w / 1280
-        scaleFactorY = fromIntegral h / 720
+        scaleFactorX = if fullscreen settings then
+            fromIntegral w' / 1280
+        else
+            fromIntegral w / 1280
+        scaleFactorY = if fullscreen settings then
+            fromIntegral h' / 720
+        else
+            fromIntegral h / 720
         scaleFactor = min scaleFactorX scaleFactorY
     p <- case gs of
         DungeonState -> drawDungeon

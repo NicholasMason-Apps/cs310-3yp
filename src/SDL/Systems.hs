@@ -225,7 +225,11 @@ handleMouseMotionEvent ev = let
         (SDL.P (V2 x y)) = SDL.mouseMotionEventPos ev
     in do
         Viewport (w, h) <- get global
-        modify global $ \(MousePosition _) -> MousePosition (V2 (fromIntegral x - fromIntegral w / 2) (fromIntegral h / 2 - fromIntegral y))
+        -- Normalise mouse coordinates to be relative to the center of the screen, and invert y-axis to match game coordinate system
+        -- along with normalising for fullscreen applications relative to the base resolution of 1280x720
+        let nx = (fromIntegral x - fromIntegral w / 2) * (1280 / fromIntegral w)
+            ny = (fromIntegral h / 2 - fromIntegral y) * (720 / fromIntegral h)
+        modify global $ \(MousePosition _) -> MousePosition (V2 nx ny)
 
 handleKeyEvent :: SDL.KeyboardEventData -> System' ()
 handleKeyEvent ev
