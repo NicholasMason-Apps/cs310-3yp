@@ -167,6 +167,7 @@ initialize = do
                         ("wall-bottom-left", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/wall-bottom-left.png") ),
                         ("combat-attack-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui.png") ),
                         ("combat-magic-select-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui-magic.png") ),
+                        ("combat-parry-ui", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/combat-ui-parry.png") ),
                         ("ladder", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "tiles/ladder.png") ),
                         ("heart", Sprite (64,64) (GlossRenderer $ Left $ loadStaticSprite "items/heart.png") ),
                         ("title-screen", Sprite (1280,720) (GlossRenderer $ Left $ loadStaticSprite "ui/title-screen.png") ),

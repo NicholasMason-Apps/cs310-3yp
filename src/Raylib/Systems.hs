@@ -172,6 +172,7 @@ spriteList = [
         ("wall-bottom-left", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/wall-bottom-left.png", Nothing ))),
         ("combat-attack-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui.png", Nothing ))),
         ("combat-magic-select-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui-magic.png", Nothing ))),
+        ("combat-parry-ui", Sprite (1280,720) (RaylibRenderer (loadSprite "ui/combat-ui-parry.png", Nothing ))),
         ("transition", Sprite (2500, 2500) (RaylibRenderer (loadSprite "ui/transition.png", Nothing))),
         ("ladder", Sprite (64,64) (RaylibRenderer (loadSprite "tiles/ladder-raylib.png", Nothing ))),
         ("heart", Sprite (64,64) (RaylibRenderer (loadSprite "items/heart.png", Nothing ))),

@@ -174,6 +174,7 @@ initialize w r = do
                         ("wall-bottom-left", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/wall-bottom-left.png", Nothing ))),
                         ("combat-attack-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui.png", Nothing ))),
                         ("combat-magic-select-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui-magic.png", Nothing ))),
+                        ("combat-parry-ui", Sprite (1280,720) (SDLRenderer (loadSprite r "ui/combat-ui-parry.png", Nothing ))),
                         ("transition", Sprite (2500, 2500) (SDLRenderer (loadSprite r "ui/transition.png", Nothing))),
                         ("ladder", Sprite (64,64) (SDLRenderer (loadSprite r "tiles/ladder.png", Nothing ))),
                         ("heart", Sprite (64,64) (SDLRenderer (loadSprite r "items/heart.png", Nothing ))),

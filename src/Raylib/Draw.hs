@@ -328,9 +328,12 @@ drawCombatUI = do
     smap <- get global :: System' SpriteMap
     CombatTurn turn <- get global
     uiState <- get global :: System' UIState
-    when (turn == PlayerTurn) $ liftIO $ case uiState of
+    if turn == PlayerTurn then
+        liftIO $ case uiState of
         CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
         CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
+    else
+        liftIO $ drawTexture (SpriteRef "combat-parry-ui" Nothing) smap (Position (V2 0 0))
     cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
 
 drawMenu :: System' ()
