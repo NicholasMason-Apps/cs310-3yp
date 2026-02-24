@@ -297,10 +297,6 @@ drawCombat = do
         liftIO $ drawBillboard sref smap (Position ((pos * V2 0.18 1) - V2 (1280/3) 0 + V2 80 0)) (V2 False False) cam
     liftIO $ do
         RL.endMode3D
-    when (turn == PlayerTurn) $ liftIO $ case uiState of
-        CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
-        CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
-    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
 
 
 drawDungeon :: System' ()
@@ -322,6 +318,19 @@ drawDungeon = do
         liftIO $ drawBillboard sref smap pos (V2 False False) cam
     liftIO $ do
         RL.endMode3D
+
+drawDungeonUI :: System' ()
+drawDungeonUI = do
+    cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
+
+drawCombatUI :: System' ()
+drawCombatUI = do
+    smap <- get global :: System' SpriteMap
+    CombatTurn turn <- get global
+    uiState <- get global :: System' UIState
+    when (turn == PlayerTurn) $ liftIO $ case uiState of
+        CombatAttackSelectUI -> drawTexture (SpriteRef "combat-attack-select-ui" Nothing) smap (Position (V2 0 0))
+        CombatMagicSelectUI -> drawTexture (SpriteRef "combat-magic-select-ui" Nothing) smap (Position (V2 0 0))
     cmapM_ $ \(Player, Health hp) -> liftIO $ RL.drawText ("Health: " ++ show hp) 10 40 20 RL.white
 
 drawMenu :: System' ()
@@ -340,15 +349,16 @@ drawSettings = do
         let (Sprite (w,h) _) = smap Map.! sref
         liftIO $ drawTexture (SpriteRef sref m) (SpriteMap smap) (worldToScreen pos Nothing w h)
 
-draw :: System' ()
-draw = do
+draw :: RL.WindowResources -> System' ()
+draw window = do
     gs <- get global
+    uiTex <- liftIO $ RL.loadRenderTexture 1280 720
     liftIO $ do
-        RL.beginDrawing
-        RL.clearBackground (RL.Color 37 19 26 255)
+        RL.beginTextureMode uiTex
+        RL.clearBackground RL.blank
     case gs of
-        DungeonState -> drawDungeon
-        CombatState -> drawCombat
+        DungeonState -> drawDungeonUI
+        CombatState -> drawCombatUI
         MenuState -> drawMenu
         SettingsState -> drawSettings
         _ -> return ()
@@ -358,4 +368,22 @@ draw = do
         liftIO $ RL.drawText str (round x) (round y) 20 RL.white
     liftIO $ do
         RL.drawFPS 10 10
+        RL.endTextureMode
+    liftIO $ do
+        RL.beginDrawing
+        RL.clearBackground (RL.Color 37 19 26 255)
+    case gs of
+        DungeonState -> drawDungeon
+        CombatState -> drawCombat
+        _ -> return ()
+    liftIO $ do
+        sw <- RL.getScreenWidth
+        sh <- RL.getScreenHeight
+        let scale = min (sw `div` 1280) (sh `div` 720)
+            w' = 1280 * scale
+            h' = 720 * scale
+            offX = (sw - w') `div` 2
+            offY = (sh - h') `div` 2
+        RL.drawTexturePro (RL.renderTexture'texture uiTex) (RL.Rectangle 0 0 1280 (-720)) (RL.Rectangle (fromIntegral offX) (fromIntegral offY) (fromIntegral w') (fromIntegral h')) (V2 0 0) 0 RL.white
         RL.endDrawing
+        RL.unloadRenderTexture uiTex window

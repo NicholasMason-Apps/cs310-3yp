@@ -152,3 +152,10 @@ For progress report:
 - This week also saw the start and basis of the UI being implemented
     - Surprisingly implementing a UI was rather difficult. Since there are three different renderers, mouse position and butotns had to be captured agnostically, and adjusted at the event level for mouse position to have them be unified. Additionally, detecting mouse hover and implementing actionable buttons is rather tedious, as compared to a traditional event-driven system where you would fire an event on mouse click, due to the setup of Apecs preventing abstract monad types to be included inside type classes, a pattern match on an external `ButtonAction` type class has to suffice. Additionally, since 3 different renderers are being used, sprites for each button and each state have to be created, rather than laying elements such as the button's base, text, etc.
 - This week also saw the starting of settings. The basis of decoding and encoding a JSON file for the settings was added using the `aeson` library, and fullscreening works, but is not updated in real time and needs scaling to be added in all renderers (and position scaling for mouse movement)
+
+# Term 2 Week 7
+- Saw the completion of full screen scaling for all three renders in preparation for evaluation day
+    - For gloss, a very simple `translate'` was called with a scale factor based on the viewport and base resolution of 1280x720 was applied
+    - For SDL, scaling was applied by running a system in `main.hs` which applied a `SDL.renderScale` onto the renderer for the given screen size
+    - For Raylib, the 3D mode already scaled, and therefore the UI elements were drawn onto a 1280x720 empty texture using `RL.beginTextureMode`, and then had all the 3D elements rendered, and then had the UI texture rendered after and scaled
+    - For SDL and Raylib, mouse coordinates had to be normalised when captured such that they fit within the scaled resolution, whilst still having the origin be the centre of the screen

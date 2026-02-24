@@ -205,16 +205,16 @@ initialize = do
 terminate :: RL.WindowResources -> System' ()
 terminate window = liftIO $ RL.closeWindow $ Just window
 
-run :: System' ()
-run = do
+run :: RL.WindowResources -> System' ()
+run window = do
     -- Main game loop
     handleEvents
     dT <- liftIO RL.getFrameTime
     Sys.step dT
     updateCamera
-    draw
+    draw window
     shouldClose <- liftIO RL.windowShouldClose
-    unless shouldClose run
+    unless shouldClose $ run window
 
 
 handleEvents :: System' ()
@@ -265,8 +265,11 @@ handleEvents = do
     else
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkF `Set.delete` ks
     (V2 x y) <- liftIO RL.getMousePosition
-    Viewport (w, h) <- get global
-    modify global $ \(MousePosition _) -> MousePosition (V2 (x - fromIntegral w / 2) (fromIntegral h / 2 - y))
+    w <- liftIO RL.getScreenWidth
+    h <- liftIO RL.getScreenHeight
+    let nx = (x - fromIntegral w / 2) * (1280 / fromIntegral w)
+        ny = (fromIntegral h / 2 - y) * (720 / fromIntegral h)
+    modify global $ \(MousePosition _) -> MousePosition (V2 nx ny)
     isLMB <- liftIO $ RL.isMouseButtonPressed RL.MouseButtonLeft
     if isLMB then
         modify global $ \(KeysPressed ks) -> KeysPressed $ GkLMB `Set.insert` ks

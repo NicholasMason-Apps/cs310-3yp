@@ -19,8 +19,12 @@ main = initWorld >>= runSystem (do
     window <- RL.initialize
     Sys.initialize RL.spriteList
     settings <- get global :: System' Settings
-    when (fullscreen settings) $ liftIO $ RL.toggleFullscreen
+    when (fullscreen settings) $ liftIO $ do
+        RL.toggleFullscreen
+        mw <- RL.getMonitorWidth 0
+        mh <- RL.getMonitorHeight 0
+        RL.setWindowSize mw mh
     liftIO $ RL.setExitKey RL.KeyBackspace
-    run
+    run window
     terminate window)
 
