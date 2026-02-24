@@ -185,7 +185,9 @@ spriteList = [
         ("windowed-button", Sprite (264, 60) (RaylibRenderer (loadSprite "ui/windowed/button.png", Nothing ))),
         ("windowed-button-hover", Sprite (264, 60) (RaylibRenderer (loadSprite "ui/windowed/hover.png", Nothing ))),
         ("fullscreen-button", Sprite (270, 60) (RaylibRenderer (loadSprite "ui/fullscreen/button.png", Nothing ))),
-        ("fullscreen-button-hover", Sprite (270, 60) (RaylibRenderer (loadSprite "ui/fullscreen/hover.png", Nothing )))
+        ("fullscreen-button-hover", Sprite (270, 60) (RaylibRenderer (loadSprite "ui/fullscreen/hover.png", Nothing ))),
+        ("back-button", Sprite (138, 60) (RaylibRenderer (loadSprite "ui/back/button.png", Nothing ))),
+        ("back-button-hover", Sprite (138, 60) (RaylibRenderer (loadSprite "ui/back/hover.png", Nothing )))
     ]
 
 initialize :: System' RL.WindowResources

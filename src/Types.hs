@@ -295,7 +295,7 @@ type FPS = Int
 data Face = FrontFace | BackFace | LeftFace | RightFace | TopFace | BottomFace deriving (Show, Eq, Ord)
 
 -- UI Components
-data ButtonAction = StartGameButton | FullscreenButton | SettingsButton | WindowedButton deriving (Show, Eq)
+data ButtonAction = StartGameButton | FullscreenButton | SettingsButton | WindowedButton | BackToTitleButton deriving (Show, Eq)
 
 newtype Button = Button ButtonAction
 instance Component Button where type Storage Button = Map Button

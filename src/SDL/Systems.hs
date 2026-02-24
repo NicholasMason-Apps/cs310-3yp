@@ -187,7 +187,9 @@ initialize w r = do
                         ("windowed-button", Sprite (264, 60) (SDLRenderer (loadSprite r "ui/windowed/button.png", Nothing ))),
                         ("windowed-button-hover", Sprite (264, 60) (SDLRenderer (loadSprite r "ui/windowed/hover.png", Nothing ))),
                         ("fullscreen-button", Sprite (270, 60) (SDLRenderer (loadSprite r "ui/fullscreen/button.png", Nothing ))),
-                        ("fullscreen-button-hover", Sprite (270, 60) (SDLRenderer (loadSprite r "ui/fullscreen/hover.png", Nothing )))
+                        ("fullscreen-button-hover", Sprite (270, 60) (SDLRenderer (loadSprite r "ui/fullscreen/hover.png", Nothing ))),
+                        ("back-button", Sprite (138, 60) (SDLRenderer (loadSprite r "ui/back/button.png", Nothing ))),
+                        ("back-button-hover", Sprite (138, 60) (SDLRenderer (loadSprite r "ui/back/hover.png", Nothing )))
                     ]
     font <- loadFont "Roboto-Regular.ttf" 16
     set global $ FontMap $ Map.fromList [("roboto", SDLRenderer font)]
