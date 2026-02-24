@@ -382,6 +382,7 @@ draw window = do
     liftIO $ do
         sw <- RL.getScreenWidth
         sh <- RL.getScreenHeight
+        print (sw, sh)
         let scale = min (sw `div` 1280) (sh `div` 720)
             w' = 1280 * scale
             h' = 720 * scale

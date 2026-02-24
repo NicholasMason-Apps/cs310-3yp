@@ -23,6 +23,7 @@ main = initWorld >>= runSystem (do
         RL.toggleFullscreen
         mw <- RL.getMonitorWidth 0
         mh <- RL.getMonitorHeight 0
+        print (mw, mh)
         RL.setWindowSize mw mh
     liftIO $ RL.setExitKey RL.KeyBackspace
     run window
