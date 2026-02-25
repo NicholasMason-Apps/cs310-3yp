@@ -16,6 +16,8 @@ import qualified Data.Set as Set
 import Linear
 import qualified Data.Map as Map
 import Data.List (isInfixOf)
+import Data.Aeson
+import qualified Data.ByteString.Lazy as BL
 
 stepMenu :: Float -> System' ()
 stepMenu dT = do
@@ -42,7 +44,16 @@ stepButtons = do
 buttonActions :: ButtonAction -> System' ()
 buttonActions StartGameButton = startTransition (pi / 4) 1.0 StartDungeon
 buttonActions SettingsButton = startTransition (pi / 4) 1.0 ToSettings
-buttonActions _ = return ()
+buttonActions BackToTitleButton = startTransition (pi / 4) 1.0 ToMenu
+buttonActions FullscreenButton = do
+    settings <- get global :: System' Settings
+    set global (settings { fullscreen = True })
+    liftIO $ BL.writeFile "settings.json" (encode settings { fullscreen = True })
+buttonActions WindowedButton = do
+    settings <- get global :: System' Settings
+    set global (settings { fullscreen = False })
+    liftIO $ BL.writeFile "settings.json" (encode settings { fullscreen = False })
+-- buttonActions _ = return ()
 
 posCheck :: (Fractional a1, Fractional a2, Integral a3, Integral a4, Ord a1,  Ord a2) => a1 -> a2 -> a1 -> a2 -> a3 -> a4 -> Bool
 posCheck mx my x y w h = mx >= x - fromIntegral w / 2 && mx <= x + fromIntegral w / 2 &&

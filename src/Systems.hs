@@ -48,7 +48,11 @@ initialize spriteList = do
     forM_ settings (set global)
     windowedButton <- newEntity (SettingsUIElement, Button WindowedButton, Position (V2 (-132) 124), SpriteRef "windowed-button" Nothing)
     fullscreenButton <- newEntity (SettingsUIElement, Button FullscreenButton, Position (V2 135 124), SpriteRef "fullscreen-button" Nothing)
-    _ <- newEntity (SettingsUIElement, ButtonGroup (V.fromList [windowedButton, fullscreenButton]) windowedButton)
+    _ <- newEntity (SettingsUIElement, Button BackToTitleButton, Position (V2 (-450) 300), SpriteRef "back-button" Nothing)
+    let startActiveButton = case settings of
+            Just (Settings { fullscreen = True }) -> fullscreenButton
+            _ -> windowedButton
+    _ <- newEntity (SettingsUIElement, ButtonGroup (V.fromList [windowedButton, fullscreenButton]) startActiveButton)
     _ <- newEntity (MainMenuUIElement, Button StartGameButton, Position (V2 0 (-150)), SpriteRef "start-game-button" Nothing)
     void $ newEntity (MainMenuUIElement, Button SettingsButton, Position (V2 0 (-230)), SpriteRef "settings-button" Nothing)
 

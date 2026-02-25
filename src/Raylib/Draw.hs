@@ -383,11 +383,11 @@ draw window = do
         sw <- RL.getScreenWidth
         sh <- RL.getScreenHeight
         print (sw, sh)
-        let scale = min (sw `div` 1280) (sh `div` 720)
+        let scale = min (fromIntegral sw / 1280) (fromIntegral sh / 720) :: Float
             w' = 1280 * scale
             h' = 720 * scale
-            offX = (sw - w') `div` 2
-            offY = (sh - h') `div` 2
-        RL.drawTexturePro (RL.renderTexture'texture uiTex) (RL.Rectangle 0 0 1280 (-720)) (RL.Rectangle (fromIntegral offX) (fromIntegral offY) (fromIntegral w') (fromIntegral h')) (V2 0 0) 0 RL.white
+            offX = (fromIntegral sw - w') / 2
+            offY = (fromIntegral sh - h') / 2
+        RL.drawTexturePro (RL.renderTexture'texture uiTex) (RL.Rectangle 0 0 1280 (-720)) (RL.Rectangle offX offY w' h') (V2 0 0) 0 RL.white
         RL.endDrawing
         RL.unloadRenderTexture uiTex window

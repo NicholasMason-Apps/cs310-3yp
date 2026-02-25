@@ -179,7 +179,9 @@ initialize = do
                         ("windowed-button", Sprite (264, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/windowed/button.png") ),
                         ("windowed-button-hover", Sprite (264, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/windowed/hover.png") ),
                         ("fullscreen-button", Sprite (270, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/fullscreen/button.png") ),
-                        ("fullscreen-button-hover", Sprite (270, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/fullscreen/hover.png") )
+                        ("fullscreen-button-hover", Sprite (270, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/fullscreen/hover.png") ),
+                        ("back-button", Sprite (138, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/back/button.png") ),
+                        ("back-button-hover", Sprite (138, 60) (GlossRenderer $ Left $ loadStaticSprite "ui/back/hover.png") )
                     ]
     Sys.initialize spriteList
 
