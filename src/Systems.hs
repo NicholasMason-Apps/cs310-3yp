@@ -157,7 +157,7 @@ startDungeonAction = do
     CameraAngle cam <- get global
     when (isJust cam) $ do
 #if defined(WSL)
-    -- Do nothing for WSL raylib
+        return ()
 #else
         liftIO RL.disableCursor
 #endif
@@ -180,7 +180,7 @@ toMenuAction = do
     CameraAngle cam <- get global
     when (isJust cam) $ do
 #if defined(WSL)
-    -- Do nothing for WSL raylib
+        return ()
 #else
         liftIO RL.enableCursor
 #endif
