@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP                        #-}
+
 module Main (main) where
 
 import Apecs
@@ -20,10 +22,14 @@ main = initWorld >>= runSystem (do
     Sys.initialize RL.spriteList
     settings <- get global :: System' Settings
     when (fullscreen settings) $ liftIO $ do
+#if defined(WSL)
         RL.toggleFullscreen
+#else
+        RL.setWindowState [RL.WindowUndecorated]
+        RL.setWindowPosition 0 0
+#endif
         mw <- RL.getMonitorWidth 0
         mh <- RL.getMonitorHeight 0
-        print (mw, mh)
         RL.setWindowSize mw mh
     liftIO $ RL.setExitKey RL.KeyBackspace
     run window
