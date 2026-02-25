@@ -206,15 +206,6 @@ terminate window = liftIO $ RL.closeWindow $ Just window
 run :: RL.WindowResources -> System' ()
 run window = do
     -- Main game loop
-    gs <- get global :: System' GameState
--- #if defined(WSL)
---     -- WSL doesn't support hiding the cursor, so do nothing
--- #else
---     case gs of
---         DungeonState -> liftIO RL.disableCursor
---         CombatState -> liftIO RL.disableCursor
---         _ -> liftIO RL.enableCursor
--- #endif
     handleEvents
     dT <- liftIO RL.getFrameTime
     Sys.step dT
