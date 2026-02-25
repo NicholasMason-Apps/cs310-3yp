@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -13,6 +14,7 @@ module Systems where
 import Apecs
 import Apecs.Gloss
 import System.Random
+import qualified Raylib.Core as RL
 import System.Exit
 import Linear
 import Control.Monad
@@ -152,6 +154,13 @@ startDungeonAction = do
         case c of
             'W' -> void $ newEntity (CombatWall, p, s)
             _ -> void $ newEntity (CombatTile, p, s)
+    CameraAngle cam <- get global
+    when (isJust cam) $ do
+#if defined(WSL)
+    -- Do nothing for WSL raylib
+#else
+        liftIO RL.disableCursor
+#endif
     set global DungeonState
 
 toMenuAction :: System' ()
@@ -168,6 +177,13 @@ toMenuAction = do
     -- Destroy combat entities
     cmapM_ $ \(CombatPlayer, e) -> destroy e (Proxy @(CombatPlayer, Position, SpriteRef))
     cmapM_ $ \(CombatEnemy _, e) -> destroy e (Proxy @(CombatEnemy, Position, SpriteRef))
+    CameraAngle cam <- get global
+    when (isJust cam) $ do
+#if defined(WSL)
+    -- Do nothing for WSL raylib
+#else
+        liftIO RL.enableCursor
+#endif
     set global MenuState
 
 stepTransition :: Float -> System' ()
