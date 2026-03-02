@@ -158,4 +158,5 @@ draw r fps = do
         SettingsState -> drawSettings r fps
         _ -> return ()
     drawTransition r fps
+    liftIO $ drawText r (SDL.V4 255 255 255 255) (Position (V2 10 50)) fm ("FPS: " ++ show fps)
     cmapM_ $ \(FloatingText _ _, pos, TextLabel str) -> liftIO $ drawText r (SDL.V4 255 255 255 255) (worldToScreen pos Nothing 64 64) fm str

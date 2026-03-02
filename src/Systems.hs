@@ -200,8 +200,6 @@ step dT = do
     stepParticles dT
     stepTransition dT
     stepFloatingText dT
-    mousePos <- get global :: System' MousePosition
-    liftIO $ print mousePos
     case gs of
         DungeonState -> stepDungeon dT
         CombatState  -> stepCombat dT

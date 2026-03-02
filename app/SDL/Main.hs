@@ -16,6 +16,8 @@ import Data.IORef
 import Control.Monad ( unless )
 import System.Exit (exitSuccess)
 import Control.Monad (when)
+import qualified SDL.Raw
+import Data.Text.Array (run)
 
 main :: IO ()
 main = do
@@ -51,32 +53,47 @@ main = do
     SDL.showWindow window
 
     -- Loop code
-    let loop prevTicks secondTick fpsAcc prevFps = do
+    let loop prevTicks tickAcc fpsAcc = do
             ticks <- SDL.ticks
             payload <- map SDL.eventPayload <$> SDL.pollEvents
             let quit = SDL.QuitEvent `elem` payload
                 dt = ticks - prevTicks
-                calcFps = secondTick + dt > 1000
-                newFps = if calcFps then fpsAcc + 1 else fpsAcc
-                newFpsAcc = if calcFps then 1 else fpsAcc + 1
-                newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
-            
-            -- handle input events
+                tickAcc' = tickAcc + dt
+                avgFps = 1000.0 / (fromIntegral tickAcc' / fromIntegral fpsAcc)
             runSystem (handlePayload payload) world
-
-            -- update game state
             runSystem (step $ fromIntegral dt / 1000) world
-            
-            -- Set background colour and clear the screen
-            SDL.rendererRenderTarget renderer SDL.$= Nothing
             SDL.rendererDrawColor renderer SDL.$= SDL.V4 37 19 26 255
             SDL.clear renderer
-
-            -- render the current frame
-            runSystem (draw renderer newFps) world
+            runSystem (draw renderer (round avgFps)) world
             SDL.present renderer
-            unless quit $ loop ticks newSecondTick newFpsAcc newFps
-    loop 0 0 0 0
+            unless quit $ loop ticks tickAcc' (fpsAcc + 1)
+    loop 0 0 0
+    -- let loop prevTicks secondTick fpsAcc prevFps = do
+    --         ticks <- SDL.ticks
+    --         payload <- map SDL.eventPayload <$> SDL.pollEvents
+    --         let quit = SDL.QuitEvent `elem` payload
+    --             dt = ticks - prevTicks
+    --             calcFps = secondTick + dt > 1000
+    --             newFps = if calcFps then fpsAcc + 1 else fpsAcc
+    --             newFpsAcc = if calcFps then 1 else fpsAcc + 1
+    --             newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
+            
+    --         -- handle input events
+    --         runSystem (handlePayload payload) world
+
+    --         -- update game state
+    --         runSystem (step $ fromIntegral dt / 1000) world
+            
+    --         -- Set background colour and clear the screen
+    --         SDL.rendererRenderTarget renderer SDL.$= Nothing
+    --         SDL.rendererDrawColor renderer SDL.$= SDL.V4 37 19 26 255
+    --         SDL.clear renderer
+                
+    --         -- render the current frame
+    --         runSystem (draw renderer newFps) world
+    --         SDL.present renderer
+    --         unless quit $ loop ticks newSecondTick newFpsAcc newFps
+    -- loop 0 0 0 0
 
     SDL.destroyRenderer renderer
     SDL.destroyWindow window
