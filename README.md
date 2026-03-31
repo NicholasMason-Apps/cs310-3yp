@@ -18,8 +18,13 @@ If you do not have GHC and Stack installed, please do so
 
 ### 2. Build and run
 
-`stack build` and `stack run`
+You can run each version of the project as follows:
+
+- `./run.sh gloss` - 2D implementation using Gloss
+- `./run.sh sdl` - 2D implementation using SDL
+- `./run.sh raylib` - 3D implementation
+    - If you are using WSL, please build Raylib with the WSL flag: `./run.sh -wsl raylib`
 
 ## Windows
 
-Install WSL if you have not already, and follow the Linux steps. Windows is a nightmare
+Install WSL if you have not already, and follow the Linux steps
